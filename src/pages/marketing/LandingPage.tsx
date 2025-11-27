@@ -182,7 +182,7 @@ export function LandingPage({
             </div>
             <div className="animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
               <h1 className="text-4xl lg:text-5xl font-semibold leading-tight mb-4">
-                <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent animate-gradient">Your modern corporate learning platform.</span> Better than Litmos.
+                <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent animate-gradient">Your modern corporate learning platform.</span> Built for excellence.
               </h1>
               <p className="text-lg text-gray-600">
                 Knowledge Center by TQ Academy delivers comprehensive training for all Caava Group employees with intuitive dashboards, real-time progress tracking, and detailed reporting—all in one powerful, modern platform.
@@ -254,7 +254,7 @@ export function LandingPage({
                 Why Knowledge Center
               </div>
               <h2 className="text-3xl font-semibold text-gray-900 mt-2">
-                The Litmos replacement built for <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">Caava Group</span>.
+                Built specifically for <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">Caava Group</span>.
               </h2>
             </div>
             <button className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 border-b-2 border-purple-600 hover:text-green-600 hover:border-green-600 transition-colors self-start">
@@ -373,7 +373,7 @@ export function LandingPage({
               Trusted by Caava Group Employees
             </div>
             <p className="text-2xl font-semibold text-gray-900 leading-snug">
-              “Knowledge Center streamlined our employee training and made tracking progress effortless. It's everything we needed from Litmos, but better—more intuitive, faster, and designed specifically for our team.”
+              “Knowledge Center streamlined our employee training and made tracking progress effortless. It's intuitive, fast, and designed specifically for our team—exactly what we needed.”
             </p>
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-200 to-green-200" />
@@ -416,19 +416,19 @@ export function LandingPage({
         </section>
       </main>
 
-      <footer className="px-8 lg:px-16 py-10 border-t-2 border-purple-100 bg-gradient-to-b from-white to-purple-50/30 text-sm text-gray-500">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-8 h-8 object-contain" />
+      <footer className="px-8 lg:px-16 py-3 border-t-2 border-purple-100 bg-gradient-to-b from-white to-purple-50/30 text-sm text-gray-500">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-16 h-16 object-contain" />
             <div>
-              <div className="text-xs font-semibold text-gray-900">© {new Date().getFullYear()} Caava Group</div>
-              <div className="text-xs">Knowledge Center (TQ Academy). All rights reserved.</div>
+              <div className="text-xs font-semibold text-gray-900 leading-tight">© {new Date().getFullYear()} Caava Group</div>
+              <div className="text-xs leading-tight">Knowledge Center (TQ Academy). All rights reserved.</div>
             </div>
           </div>
-          <div className="flex gap-4">
-            <button className="hover:text-purple-600 transition-colors">Privacy</button>
-            <button className="hover:text-green-600 transition-colors">Terms</button>
-            <button className="hover:text-purple-600 transition-colors">Support</button>
+          <div className="flex gap-3">
+            <button className="hover:text-purple-600 transition-colors text-xs">Privacy</button>
+            <button className="hover:text-green-600 transition-colors text-xs">Terms</button>
+            <button className="hover:text-purple-600 transition-colors text-xs">Support</button>
           </div>
         </div>
       </footer>
