@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, ArrowUp, Award, BookOpen, CheckCircle2, Clock, GraduationCap, Moon, Play, Shield, Sparkles, Star, Sun, Target, TrendingUp, Users, Zap } from 'lucide-react';
 
-type Page = 'landing' | 'learner' | 'learning' | 'reports';
+type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login';
 
 interface LandingPageProps {
   onNavigate?: (page: Page) => void;
@@ -187,7 +187,7 @@ export function LandingPage({
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200">
+          <button onClick={() => onNavigate?.('login')} className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200">
             Log in
           </button>
           <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-xl transition-all duration-300 shadow-lg shadow-purple-500/30 group">
