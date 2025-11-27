@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, BookOpen, User, PieChart, ClipboardCheck, Settings, Plus, Zap, MessageSquare } from 'lucide-react';
 
 interface MainSidebarProps {
-  activePage?: 'home' | 'search' | 'reports' | 'learning' | 'profile' | 'analytics' | 'tasks' | 'content' | 'users';
+  activePage?: 'home' | 'search' | 'reports' | 'learning' | 'profile' | 'analytics' | 'tasks' | 'content' | 'users' | 'settings';
 }
 
 export function MainSidebar({ activePage }: MainSidebarProps) {
@@ -16,6 +16,7 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
     if (path === '/reports') return 'reports';
     if (path === '/admin/content' || path.includes('/admin/content')) return 'content';
     if (path === '/admin/users' || path.includes('/admin/users')) return 'users';
+    if (path === '/admin/settings' || path.includes('/admin/settings')) return 'settings';
     if (path === '/learning' || path.includes('/learning')) return 'learning';
     if (path === '/admin' || path === '/') return 'home';
     return 'home';
@@ -141,8 +142,15 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
         </button>
         
         {/* Settings */}
-        <button className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-700 transition-all duration-300 hover:scale-110 active:scale-95 group">
-          <Settings size={14} className="group-hover:rotate-90 transition-transform duration-300" />
+        <button 
+          onClick={() => handleNavigation('/admin/settings')}
+          className={`w-7 h-7 flex items-center justify-center rounded-lg transition-all duration-300 group flex-shrink-0 ${
+            currentActivePage === 'settings'
+              ? 'bg-gradient-to-br from-purple-100 to-green-100 text-purple-700 shadow-md scale-105' 
+              : 'hover:bg-gray-200 text-gray-700 hover:scale-110'
+          }`}
+        >
+          <Settings size={14} className={`transition-transform duration-300 ${currentActivePage === 'settings' ? 'scale-110' : 'group-hover:rotate-90'}`} />
         </button>
         
         {/* User Initials - Yellow with RF */}
