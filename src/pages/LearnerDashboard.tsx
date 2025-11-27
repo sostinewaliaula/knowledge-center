@@ -73,19 +73,25 @@ const mostViewed = [{
   type: 'Course',
   progress: 80,
   hours: 25,
-  color: 'bg-sky-400'
+  color: '#6ee7b7',
+  pillBg: 'bg-[#e0f2ff]',
+  pillColor: 'text-[#0ea5e9]'
 }, {
   title: 'Creating Engaging Learning Journeys: UI/UX Best Practices in LMS Design',
   type: 'Page',
   progress: 15,
   hours: 15,
-  color: 'bg-orange-400'
+  color: '#86efac',
+  pillBg: 'bg-[#ffe8d1]',
+  pillColor: 'text-[#fb923c]'
 }, {
   title: 'Other task',
-  type: '',
+  type: 'Other task',
   progress: 5,
   hours: 4,
-  color: 'bg-gray-400'
+  color: '#bbf7d0',
+  pillBg: 'bg-gray-200',
+  pillColor: 'text-gray-600'
 }];
 
 const reviewItems = [{
@@ -371,31 +377,46 @@ export function LearnerDashboard({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm space-y-6">
+                  <div className="bg-white border border-gray-200 rounded-[20px] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)] space-y-3">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-lg font-semibold text-gray-900">
-                        Most view contents
-                      </h2>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          Most view contents
+                        </h2>
+                        <Info size={18} className="text-gray-400" />
+                      </div>
+                      <button className="relative group inline-flex items-center gap-2 text-sm font-semibold text-[#6c48ff]">
+                        <span>View all</span>
+                        <span className="transform transition-transform group-hover:translate-x-1">
+                          →
+                        </span>
+                        <span className="absolute left-0 -bottom-1 h-[2px] w-full bg-[#6c48ff] rounded-full opacity-70" />
+                      </button>
                     </div>
-                    <div className="space-y-4">
-                      {mostViewed.map(item => <div key={item.title} className="space-y-3">
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2">
-                              {item.type && <span className={`text-xs font-semibold text-gray-600 ${item.type === 'Course' ? 'text-sky-600' : item.type === 'Page' ? 'text-orange-500' : ''}`}>
-                                  {item.type}
-                                </span>}
-                              <span className="font-semibold text-gray-900">
+                    <div className="space-y-1">
+                      {mostViewed.map(item => <div key={item.title} className="flex items-center gap-2 rounded-xl border border-gray-100 px-2.5 py-1.5 bg-white">
+                          <div className="flex items-center gap-2 flex-1">
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center ${item.pillBg}`}>
+                              <Circle size={12} className={item.pillColor} />
+                            </div>
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:gap-2 w-full">
+                              <div className="font-semibold text-[13px] text-gray-900 truncate">
                                 {item.title}
+                              </div>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full border border-gray-200 ${item.pillColor}`}>
+                                {item.type}
                               </span>
                             </div>
-                            <span className="text-xs text-gray-500">
-                              {item.progress}% ({item.hours} hrs)
-                            </span>
                           </div>
-                          <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
-                            <div className={`h-full ${item.color}`} style={{
-                            width: `${item.progress}%`
-                          }} />
+                          <div className="flex items-center gap-1.5 min-w-[170px] justify-end">
+                            <div className="relative w-32 h-3 rounded-full bg-gray-100 overflow-hidden">
+                              <div className="absolute inset-y-0 right-0 rounded-full flex items-center justify-end px-1.5 text-[10px] font-semibold text-gray-700" style={{
+                            width: `${item.progress}%`,
+                            background: item.color
+                          }}>
+                                {item.progress}% ({item.hours} hrs)
+                              </div>
+                            </div>
                           </div>
                         </div>)}
                     </div>
