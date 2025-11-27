@@ -15,15 +15,9 @@ interface Learner {
   assignedToAvatar: string;
 }
 
-type Page = 'learning' | 'reports' | 'learner';
+interface ReportsPageProps {}
 
-interface ReportsPageProps {
-  onNavigate?: (page: Page) => void;
-}
-
-export function ReportsPage({
-  onNavigate
-}: ReportsPageProps) {
+export function ReportsPage({}: ReportsPageProps) {
   const [showFilters, setShowFilters] = useState(false);
   const learners: Learner[] = [{
     id: '1',
@@ -129,7 +123,7 @@ export function ReportsPage({
   };
 
   return <div className="flex h-screen bg-gray-50">
-      <Sidebar activePage="reports" onNavigate={onNavigate} />
+      <Sidebar activePage="reports" />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">

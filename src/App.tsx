@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { LearningContent } from './pages/learner/LearningContent';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { LearnerDashboard } from './pages/learner/LearnerDashboard';
@@ -9,27 +10,18 @@ import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 export type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
 
 export function App() {
-  const [currentPage, setCurrentPage] = useState<Page>('landing');
-
-  if (currentPage === 'landing') {
-    return <LandingPage onNavigate={setCurrentPage} />;
-  }
-
-  if (currentPage === 'login') {
-    return <LoginPage onNavigate={setCurrentPage} />;
-  }
-
-  if (currentPage === 'forgot-password') {
-    return <ForgotPasswordPage onNavigate={setCurrentPage} />;
-  }
-
-  if (currentPage === 'learner') {
-    return <LearnerDashboard onNavigate={setCurrentPage} />;
-  }
-
-  if (currentPage === 'learning') {
-    return <LearningContent onNavigate={setCurrentPage} />;
-  }
-
-  return <ReportsPage onNavigate={setCurrentPage} />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/learner" element={<LearnerDashboard />} />
+        <Route path="/learning" element={<LearningContent />} />
+        <Route path="/reports" element={<ReportsPage />} />
+        {/* Redirect any unknown routes to landing */}
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }

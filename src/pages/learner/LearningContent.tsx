@@ -1,11 +1,8 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Bell, Bookmark, ChevronDown, MessageCircle, Search, Sparkles, Zap } from 'lucide-react';
 
-type Page = 'learning' | 'reports' | 'learner';
-
-interface LearningContentProps {
-  onNavigate?: (page: Page) => void;
-}
+interface LearningContentProps {}
 
 const continueLearning = [{
   id: 1,
@@ -29,9 +26,8 @@ const continueLearning = [{
   image: '/Screenshot_2025-11-27_105820.png'
 }];
 
-export function LearningContent({
-  onNavigate
-}: LearningContentProps) {
+export function LearningContent({}: LearningContentProps) {
+  const navigate = useNavigate();
   return <div className="min-h-screen bg-[#f5f6fb]">
       <div className="bg-white min-h-screen shadow-sm">
         <header className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
@@ -48,9 +44,9 @@ export function LearningContent({
                 const isActive = item === 'My Learning';
                 return <button key={item} onClick={() => {
                     if (item === 'Home') {
-                      onNavigate?.('learner');
+                      navigate('/learner');
                     } else if (item === 'My Learning') {
-                      onNavigate?.('learning');
+                      navigate('/learning');
                     }
                   }} className={`pb-2 transition-colors ${isActive ? 'text-gray-900 font-semibold border-b-2 border-gray-900' : 'hover:text-gray-900'}`}>
                     {item}

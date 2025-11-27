@@ -1,18 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun, CheckCircle } from 'lucide-react';
-import { api } from '../../utils/api';
+import { sendOtp, verifyOtp, resetPassword } from '../../utils/api';
 
-type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
-
-interface ForgotPasswordPageProps {
-  onNavigate?: (page: Page) => void;
-}
+interface ForgotPasswordPageProps {}
 
 type Step = 'email' | 'otp' | 'new-password' | 'success';
 
-export function ForgotPasswordPage({
-  onNavigate
-}: ForgotPasswordPageProps) {
+export function ForgotPasswordPage({}: ForgotPasswordPageProps) {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -380,7 +376,7 @@ export function ForgotPasswordPage({
                 </p>
               </div>
               <button
-                onClick={() => onNavigate?.('login')}
+                    onClick={() => navigate('/login')}
                 className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group"
               >
                 Go to Login
@@ -393,7 +389,7 @@ export function ForgotPasswordPage({
           {step !== 'success' && (
             <div className="text-center pt-2 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => onNavigate?.('login')}
+                    onClick={() => navigate('/login')}
                 className="text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors inline-flex items-center gap-1"
               >
                 <ArrowLeft size={12} />

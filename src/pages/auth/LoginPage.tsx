@@ -1,16 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun } from 'lucide-react';
 import { api } from '../../utils/api';
 
-type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
+interface LoginPageProps {}
 
-interface LoginPageProps {
-  onNavigate?: (page: Page) => void;
-}
-
-export function LoginPage({
-  onNavigate
-}: LoginPageProps) {
+export function LoginPage({}: LoginPageProps) {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -53,7 +49,7 @@ export function LoginPage({
       }
       
       // Navigate to learner dashboard on successful login
-      onNavigate?.('learner');
+      navigate('/learner');
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
@@ -167,7 +163,7 @@ export function LoginPage({
               </label>
               <button
                 type="button"
-                onClick={() => onNavigate?.('forgot-password')}
+                    onClick={() => navigate('/forgot-password')}
                 className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
               >
                 Forgot password?
@@ -197,7 +193,7 @@ export function LoginPage({
               Don't have an account?{' '}
               <button
                 type="button"
-                onClick={() => onNavigate?.('landing')}
+                    onClick={() => navigate('/')}
                 className="font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
               >
                 Contact your administrator
@@ -208,7 +204,7 @@ export function LoginPage({
           {/* Back to Home */}
           <div className="text-center pt-1 border-t border-gray-200 dark:border-gray-700">
             <button
-              onClick={() => onNavigate?.('landing')}
+                    onClick={() => navigate('/')}
               className="text-xs text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 transition-colors inline-flex items-center gap-1"
             >
               ← Back to home

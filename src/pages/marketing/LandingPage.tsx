@@ -1,11 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowUp, Award, BookOpen, CheckCircle2, Clock, GraduationCap, Moon, Play, Shield, Sparkles, Star, Sun, Target, TrendingUp, Users, Zap } from 'lucide-react';
 
-type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login';
-
-interface LandingPageProps {
-  onNavigate?: (page: Page) => void;
-}
+interface LandingPageProps {}
 
 const features = [{
   title: 'Employee Development',
@@ -115,9 +112,8 @@ const howItWorks = [{
   description: 'Monitor your achievements, badges, and career development milestones.'
 }];
 
-export function LandingPage({
-  onNavigate
-}: LandingPageProps) {
+export function LandingPage({}: LandingPageProps) {
+  const navigate = useNavigate();
   const [showScrollTop, setShowScrollTop] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
@@ -169,15 +165,15 @@ export function LandingPage({
         </div>
         <nav className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-300">
           <button className="font-semibold text-gray-900 dark:text-gray-100 hover:scale-105 transition-transform duration-200">Home</button>
-          <button className="hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('learner')}>
-            My Dashboard
-          </button>
-          <button className="hover:text-green-600 dark:hover:text-green-400 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('learning')}>
-            My Learning
-          </button>
-          <button className="hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('reports')}>
-            Admin Portal
-          </button>
+              <button className="hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200" onClick={() => navigate('/learner')}>
+                My Dashboard
+              </button>
+              <button className="hover:text-green-600 dark:hover:text-green-400 hover:scale-105 transition-all duration-200" onClick={() => navigate('/learning')}>
+                My Learning
+              </button>
+              <button className="hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200" onClick={() => navigate('/reports')}>
+                Admin Portal
+              </button>
         </nav>
         <div className="flex items-center gap-2 animate-slide-in-right">
           <button
@@ -187,13 +183,13 @@ export function LandingPage({
           >
             {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-          <button onClick={() => onNavigate?.('login')} className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200">
-            Log in
-          </button>
-          <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-xl transition-all duration-300 shadow-lg shadow-purple-500/30 group">
-            Access Knowledge Center
-            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
-          </button>
+              <button onClick={() => navigate('/login')} className="text-sm font-semibold text-gray-600 dark:text-gray-300 hover:text-purple-600 dark:hover:text-purple-400 hover:scale-105 transition-all duration-200">
+                Log in
+              </button>
+              <button onClick={() => navigate('/learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-xl transition-all duration-300 shadow-lg shadow-purple-500/30 group">
+                Access Knowledge Center
+                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+              </button>
         </div>
       </header>
 
@@ -213,11 +209,11 @@ export function LandingPage({
               </p>
             </div>
             <div className="flex flex-wrap gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
-              <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg shadow-purple-500/30 group animate-pulse-glow">
+              <button onClick={() => navigate('/learner')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg shadow-purple-500/30 group animate-pulse-glow">
                 Access Knowledge Center
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
-              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-purple-200 dark:border-purple-700/50 text-purple-700 dark:text-purple-300 font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:scale-105 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 group" onClick={() => onNavigate?.('learning')}>
+              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-purple-200 dark:border-purple-700/50 text-purple-700 dark:text-purple-300 font-semibold hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:scale-105 hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-300 group" onClick={() => navigate('/learning')}>
                 <Play size={18} className="group-hover:scale-110 transition-transform duration-300" />
                 View Training Catalog
               </button>
@@ -241,7 +237,7 @@ export function LandingPage({
                   Employee Dashboard
                 </div>
               </div>
-              <button onClick={() => onNavigate?.('learner')} className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
+              <button onClick={() => navigate('/learner')} className="text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors">
                 View live →
               </button>
             </div>

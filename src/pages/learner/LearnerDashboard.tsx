@@ -148,9 +148,8 @@ const leaderboard = [{
   avatar: 'https://i.pravatar.cc/100?img=13'
 }];
 
-export function LearnerDashboard({
-  onNavigate
-}: LearnerDashboardProps) {
+export function LearnerDashboard({}: LearnerDashboardProps) {
+  const navigate = useNavigate();
   const progressGoal = 0.2;
   const circumference = 2 * Math.PI * 32;
   const goalStroke = circumference * (1 - progressGoal);
@@ -202,7 +201,7 @@ export function LearnerDashboard({
             <nav className="flex items-center gap-8 text-sm text-gray-500">
               {['Home', 'My Learning', 'Catalog', 'Favorites'].map(item => {
               const isActive = item === 'Home';
-              return <button key={item} onClick={item === 'My Learning' ? () => onNavigate?.('learning') : undefined} className={`pb-2 transition-colors ${isActive ? 'text-gray-900 font-semibold border-b-2 border-gray-900' : 'hover:text-gray-900'}`}>
+              return <button key={item} onClick={item === 'My Learning' ? () => navigate('/learning') : undefined} className={`pb-2 transition-colors ${isActive ? 'text-gray-900 font-semibold border-b-2 border-gray-900' : 'hover:text-gray-900'}`}>
                   {item}
                   {item === 'Favorites' && <span className="ml-1 text-xs rounded-full bg-gray-200 px-2 py-0.5 text-gray-600">
                       1
