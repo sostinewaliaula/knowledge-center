@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun } from 'lucide-react';
 
-type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login';
+type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
 
 interface LoginPageProps {
   onNavigate?: (page: Page) => void;
@@ -146,6 +146,7 @@ export function LoginPage({
               </label>
               <button
                 type="button"
+                onClick={() => onNavigate?.('forgot-password')}
                 className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
               >
                 Forgot password?
