@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Bookmark, ChevronDown, MessageCircle, Search, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react';
+import { Bell, Bookmark, ChevronDown, Circle, Clock3, FileText, Info, MessageCircle, Search, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react';
 
 type DashboardPage = 'learning' | 'reports' | 'learner';
 
@@ -11,17 +11,20 @@ const summaryCards = [{
   label: 'Point',
   value: '100',
   icon: Star,
-  accent: 'bg-amber-100 text-amber-600'
+  iconColor: 'text-[#ffb200]',
+  iconBg: 'bg-[#fff6df]'
 }, {
   label: 'Badges',
   value: '32',
   icon: ShieldCheck,
-  accent: 'bg-indigo-100 text-indigo-600'
+  iconColor: 'text-[#5b4bff]',
+  iconBg: 'bg-[#f1edff]'
 }, {
   label: 'Certificates',
   value: '12',
   icon: Bookmark,
-  accent: 'bg-emerald-100 text-emerald-600'
+  iconColor: 'text-[#08c98f]',
+  iconBg: 'bg-[#e1fbf2]'
 }];
 
 const inProgressCourses = [{
@@ -37,6 +40,7 @@ const inProgressCourses = [{
   title: 'Creating Engaging Learning Journeys in LMS',
   materials: 12,
   completion: '64%',
+  completionPercent: 64,
   deadline: '12 hrs',
   action: 'Continue',
   illustration: '/Screenshot_2025-11-27_105820.png',
@@ -186,130 +190,174 @@ export function LearnerDashboard({
         </header>
 
           <div className="px-10 pb-10 bg-gray-50">
-            <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
-              <section className="space-y-8 pt-8">
+            <div className="space-y-8 py-10">
+              <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
                 <div>
-                  <h1 className="text-3xl font-semibold text-gray-900">
+                  <h1 className="text-4xl font-semibold text-gray-900">
                     Good morning, Adit 👋
                   </h1>
-                  <p className="text-gray-500 mt-1">
+                  <p className="text-lg text-gray-500 mt-1">
                     Welcome to Trenning, check your priority learning.
                   </p>
                 </div>
-
-                <div className="grid gap-4 md:grid-cols-3">
-                  {summaryCards.map(card => <div key={card.label} className="p-5 rounded-2xl bg-white border border-gray-100 flex items-center justify-between shadow-sm">
-                      <div>
-                        <div className="text-sm text-gray-500">{card.label}</div>
-                        <div className="text-2xl font-semibold text-gray-900 mt-1">
+                <div className="flex flex-wrap gap-4 w-full justify-between lg:justify-end">
+                  {summaryCards.map(card => <div key={card.label} className="flex items-center gap-3 rounded-[18px] border border-gray-200 bg-white px-5 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] min-w-[170px] flex-1 sm:flex-none">
+                      <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.iconBg}`}>
+                        <card.icon size={20} className={card.iconColor} />
+                      </div>
+                      <div className="text-left">
+                        <div className="text-xl font-semibold text-gray-900 leading-tight">
                           {card.value}
                         </div>
-                      </div>
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${card.accent}`}>
-                        <card.icon size={20} />
+                        <div className="text-xs uppercase tracking-wide text-gray-500">
+                          {card.label}
+                        </div>
                       </div>
                     </div>)}
                 </div>
+              </div>
 
-                <div className="rounded-2xl border border-lime-100 bg-lime-50 p-6">
-                  <span className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-white px-3 py-1 rounded-full shadow-sm">
+              <div className="rounded-[24px] bg-[#dffff2] border border-[#b1f5d7] px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between shadow-[0_15px_35px_rgba(5,150,105,0.15)]">
+                <div className="flex items-center gap-4">
+                  <span className="inline-flex items-center text-sm font-semibold text-white bg-[#0ab37b] px-4 py-1 rounded-full shadow-sm">
                     New
                   </span>
-                  <div className="mt-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <div className="text-gray-900 font-semibold">
-                        Feature Discussion
-                      </div>
-                      <p className="text-sm text-gray-600 mt-2 max-w-lg">
-                        The learning content are a new feature in "Feature Discussion" can be explain the material problem chat.
-                      </p>
+                  <div>
+                    <div className="text-lg font-semibold text-gray-900">
+                      Feature Discussion
                     </div>
-                    <button className="inline-flex items-center text-sm font-semibold text-gray-900">
-                      Go to detail →
-                    </button>
+                    <p className="text-sm text-gray-600 mt-1">
+                      The learning content are a new feature in <span className="font-semibold text-gray-900">“Feature Discussion”</span> can be explain the material problem chat.
+                    </p>
                   </div>
                 </div>
-
+                <button className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 border-b border-gray-900 pb-0.5 self-start lg:self-auto">
+                  Go to detail
+                  <span className="text-lg">→</span>
+                </button>
+              </div>
+            </div>
+            <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
+              <section className="space-y-10">
                 <div className="space-y-8">
-                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="bg-white border border-gray-200 rounded-[24px] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <h2 className="text-lg font-semibold text-gray-900">
                           In progress learning content
                         </h2>
+                        <Info size={18} className="text-gray-400" />
                       </div>
-                      <button className="text-sm font-semibold text-gray-500 hover:text-gray-900">
-                        View all
+                      <button className="relative group inline-flex items-center gap-2 text-sm font-semibold text-[#6c48ff]">
+                        <span>View all</span>
+                        <span className="transform transition-transform group-hover:translate-x-1">
+                          →
+                        </span>
+                        <span className="absolute left-0 -bottom-1 h-[2px] w-full bg-[#6c48ff] rounded-full opacity-70" />
                       </button>
                     </div>
-                    <div className="space-y-4">
-                      {inProgressCourses.map(course => <div key={course.title} className="flex flex-col gap-4 rounded-2xl border border-gray-100 p-4 bg-gray-50 md:flex-row md:items-center">
-                          <div className="flex flex-1 items-center gap-4">
-                            <div className="w-16 h-16 rounded-2xl bg-white p-1 shadow-sm flex items-center justify-center">
-                              <img src={course.illustration} alt={course.title} className="w-full h-full object-cover rounded-xl" />
+                    <div className="divide-y divide-gray-200">
+                      {inProgressCourses.map(course => <div key={course.title} className="flex items-center gap-4 py-4">
+                          <div className="flex items-center gap-3 w-[35%] min-w-[240px]">
+                            <div className="w-20 h-14 rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden flex-shrink-0">
+                              <img src={course.illustration} alt={course.title} className="w-full h-full object-cover" />
                             </div>
-                            <div>
-                              <span className="inline-flex text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-0.5 rounded-full">
+                            <div className="flex-1">
+                              <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#00a3ff]">
+                                <div className="w-4 h-4 rounded-full bg-[#e0f2ff] flex items-center justify-center text-[#00a3ff] text-[10px] font-bold">
+                                  C
+                                </div>
                                 Course
                               </span>
-                              <h3 className="text-sm font-semibold text-gray-900 mt-2">
+                              <h3 className="text-sm font-semibold text-gray-900 leading-tight truncate max-w-[170px]">
                                 {course.title}
                               </h3>
-                              <p className="text-xs text-gray-500 mt-1">
-                                Content • {course.materials} Material
-                              </p>
                             </div>
                           </div>
-                          <div className="flex flex-wrap items-center gap-6 text-sm text-gray-500">
-                            <div>
-                              Completion{' '}
-                              <span className={`font-semibold ${course.completionColor}`}>
-                                {course.completion}
-                              </span>
+                          <div className="flex items-center w-[45%] text-sm text-gray-500 gap-6">
+                            <div className="flex-1 min-w-[110px]">
+                              <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                                Content
+                              </div>
+                              <div className="flex items-center gap-1.5 text-gray-900 font-semibold mt-1 text-sm">
+                                <FileText size={14} className="text-gray-400" />
+                                {course.materials} Material
+                              </div>
                             </div>
-                            <div>
-                              Deadline{' '}
-                              <span className={`font-semibold ${course.deadlineColor}`}>
+                            <div className="flex-1 min-w-[110px]">
+                              <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                                Completion
+                              </div>
+                              {course.completionPercent !== undefined ? <div className="flex items-center gap-1.5 mt-1">
+                                  <div className="relative w-7 h-7">
+                                    <svg className="w-full h-full -rotate-90">
+                                      <circle cx="14" cy="14" r="12" fill="none" stroke="#e5e7eb" strokeWidth="3" />
+                                      <circle cx="14" cy="14" r="12" fill="none" stroke="#22c55e" strokeWidth="3" strokeDasharray={`${2 * Math.PI * 12 * (course.completionPercent / 100)} ${2 * Math.PI * 12}`} strokeLinecap="round" />
+                                    </svg>
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                      <span className="text-[11px] font-semibold text-gray-900">
+                                        {course.completion}
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div> : <div className="text-sm font-semibold text-gray-900 mt-1">
+                                  {course.completion}
+                                </div>}
+                            </div>
+                            <div className="flex-1 min-w-[110px]">
+                              <div className="text-[10px] uppercase tracking-wide text-gray-400">
+                                Deadline
+                              </div>
+                              <div className={`flex items-center gap-1.5 mt-1 font-semibold ${course.deadlineColor}`}>
+                                <Clock3 size={14} />
                                 {course.deadline}
-                              </span>
+                              </div>
                             </div>
                           </div>
-                          <button className="px-5 py-2 rounded-2xl bg-gray-900 text-white text-sm font-semibold">
+                          <button className="ml-auto px-5 py-1.5 rounded-full border border-gray-200 text-sm font-semibold text-gray-900 hover:border-gray-400">
                             {course.action}
                           </button>
                         </div>)}
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
+                  <div className="bg-white border border-gray-200 rounded-[24px] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-2">
                         <h2 className="text-lg font-semibold text-gray-900">
                           New enrollment
                         </h2>
+                        <Info size={18} className="text-gray-400" />
                       </div>
-                      <button className="text-sm font-semibold text-gray-500 hover:text-gray-900">
-                        View all
+                      <button className="relative group inline-flex items-center gap-2 text-sm font-semibold text-[#6c48ff]">
+                        <span>View all</span>
+                        <span className="transform transition-transform group-hover:translate-x-1">
+                          →
+                        </span>
+                        <span className="absolute left-0 -bottom-1 h-[2px] w-full bg-[#6c48ff] rounded-full opacity-70" />
                       </button>
                     </div>
-                    <div className="grid gap-4 lg:grid-cols-3">
-                      {newEnrollments.map(course => <div key={course.title} className="rounded-2xl border border-gray-100 p-4 bg-gray-50 flex flex-col gap-3">
-                          <div className="flex items-center gap-3 text-xs font-semibold text-gray-500">
-                            <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                              <div className="w-2 h-2 rounded-full bg-indigo-500" />
+                    <div className="grid gap-5 lg:grid-cols-3">
+                      {newEnrollments.map(course => <div key={course.title} className="rounded-[20px] border border-gray-100 bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] flex flex-col gap-4">
+                          <div className="relative w-full h-36 rounded-[16px] overflow-hidden border border-gray-100 bg-gray-50">
+                            <img src={course.illustration} alt={course.title} className="w-full h-full object-cover" />
+                            <span className="absolute top-3 left-3 px-3 py-1 text-[11px] font-semibold text-white bg-gray-900/80 rounded-full backdrop-blur">
                               {course.materials} materials
                             </span>
-                            <span className="inline-flex items-center gap-1 bg-white px-2 py-0.5 rounded-full border border-gray-200">
-                              <div className="w-2 h-2 rounded-full bg-lime-500" />
+                          </div>
+                          <div className="space-y-2">
+                            <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#00a3ff]">
+                              <div className="w-4 h-4 rounded-full bg-[#e0f2ff] flex items-center justify-center text-[#00a3ff] text-[10px] font-bold">
+                                C
+                              </div>
                               Course
                             </span>
+                            <h3 className="text-sm font-semibold text-gray-900 leading-5">
+                              {course.title}
+                            </h3>
                           </div>
-                          <img src={course.illustration} alt={course.title} className="w-full h-32 object-cover rounded-xl bg-white" />
-                          <h3 className="text-sm font-semibold text-gray-900 flex-1">
-                            {course.title}
-                          </h3>
-                          <div className="flex flex-wrap gap-2 text-xs text-gray-500">
-                            {course.tags.map(tag => <span key={tag} className="px-2 py-1 bg-white rounded-full border border-gray-200">
+                          <div className="flex flex-wrap gap-2 text-xs text-gray-600">
+                            {course.tags.map(tag => <span key={tag} className="px-3 py-1 rounded-full bg-gray-100 text-gray-600">
                                 {tag}
                               </span>)}
                           </div>
@@ -317,6 +365,9 @@ export function LearnerDashboard({
                             {course.status}
                           </div>
                         </div>)}
+                    </div>
+                    <div className="mt-6 h-1.5 bg-gray-100 rounded-full relative overflow-hidden">
+                      <span className="absolute left-0 w-1/3 h-full bg-gray-300 rounded-full" />
                     </div>
                   </div>
 
