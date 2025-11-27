@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun } from 'lucide-react';
+import { api } from '../../utils/api';
 
 type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
 
@@ -32,12 +33,32 @@ export function LoginPage({
     setIsDarkMode(!isDarkMode);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', { email, password, rememberMe });
-    // Navigate to learner dashboard on successful login
-    onNavigate?.('learner');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.login(email, password);
+      
+      // Store token and user info
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      
+      if (rememberMe) {
+        localStorage.setItem('rememberMe', 'true');
+      }
+      
+      // Navigate to learner dashboard on successful login
+      onNavigate?.('learner');
+    } catch (err: any) {
+      setError(err.message || 'Login failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -153,13 +174,20 @@ export function LoginPage({
               </button>
             </div>
 
+            {error && (
+              <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                {error}
+              </div>
+            )}
+
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group"
+              disabled={loading}
+              className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Sign in
-              <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+              {loading ? 'Signing in...' : 'Sign in'}
+              {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}
             </button>
           </form>
 

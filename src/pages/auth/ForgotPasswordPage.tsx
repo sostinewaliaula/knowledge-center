@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, Mail, Moon, Sun, CheckCircle } from 'lucide-react';
+import { api } from '../../utils/api';
 
 type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
 
@@ -19,6 +20,9 @@ export function ForgotPasswordPage({
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('darkMode');
     return saved ? JSON.parse(saved) : false;
@@ -37,12 +41,24 @@ export function ForgotPasswordPage({
     setIsDarkMode(!isDarkMode);
   };
 
-  const handleEmailSubmit = (e: React.FormEvent) => {
+  const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // In a real app, this would send OTP to email
-    console.log('Sending OTP to:', email);
-    // Simulate OTP sent
-    setStep('otp');
+    setError('');
+    setLoading(true);
+
+    try {
+      const response = await api.forgotPassword(email);
+      setOtpSent(true);
+      setStep('otp');
+      // In development, show OTP in console
+      if (response.otp) {
+        console.log('OTP (dev only):', response.otp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to send OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleOtpChange = (index: number, value: string) => {
@@ -65,36 +81,70 @@ export function ForgotPasswordPage({
     }
   };
 
-  const handleOtpSubmit = (e: React.FormEvent) => {
+  const handleOtpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setLoading(true);
     const otpValue = otp.join('');
-    // In a real app, this would verify OTP
-    console.log('Verifying OTP:', otpValue);
-    // Simulate OTP verified
-    if (otpValue.length === 6) {
+
+    if (otpValue.length !== 6) {
+      setError('Please enter a complete 6-digit OTP');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      await api.verifyOTP(email, otpValue);
       setStep('new-password');
+    } catch (err: any) {
+      setError(err.message || 'Invalid or expired OTP. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    
     if (newPassword !== confirmPassword) {
-      alert('Passwords do not match');
+      setError('Passwords do not match');
       return;
     }
     if (newPassword.length < 8) {
-      alert('Password must be at least 8 characters');
+      setError('Password must be at least 8 characters');
       return;
     }
-    // In a real app, this would reset the password
-    console.log('Resetting password for:', email);
-    setStep('success');
+
+    setLoading(true);
+    const otpValue = otp.join('');
+
+    try {
+      await api.resetPassword(email, otpValue, newPassword);
+      setStep('success');
+    } catch (err: any) {
+      setError(err.message || 'Failed to reset password. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const resendOtp = () => {
-    console.log('Resending OTP to:', email);
+  const resendOtp = async () => {
+    setError('');
+    setLoading(true);
     setOtp(['', '', '', '', '', '']);
-    // In a real app, this would resend OTP
+
+    try {
+      const response = await api.forgotPassword(email);
+      // In development, show OTP in console
+      if (response.otp) {
+        console.log('OTP (dev only):', response.otp);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to resend OTP. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -168,12 +218,19 @@ export function ForgotPasswordPage({
                 </div>
               </div>
 
+              {error && (
+                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                  {error}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group"
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Send OTP
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+                {loading ? 'Sending...' : 'Send OTP'}
+                {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}
               </button>
             </form>
           )}
@@ -202,22 +259,30 @@ export function ForgotPasswordPage({
                 </div>
               </div>
 
+              {error && (
+                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                  {error}
+                </div>
+              )}
+
               <div className="text-center">
                 <button
                   type="button"
                   onClick={resendOtp}
-                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                  disabled={loading}
+                  className="text-xs font-semibold text-purple-600 dark:text-purple-400 hover:text-green-600 dark:hover:text-green-400 transition-colors disabled:opacity-50"
                 >
-                  Resend OTP
+                  {loading ? 'Resending...' : 'Resend OTP'}
                 </button>
               </div>
 
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group"
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Verify OTP
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+                {loading ? 'Verifying...' : 'Verify OTP'}
+                {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}
               </button>
             </form>
           )}
@@ -281,12 +346,19 @@ export function ForgotPasswordPage({
                 </div>
               </div>
 
+              {error && (
+                <div className="text-xs text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-2">
+                  {error}
+                </div>
+              )}
+
               <button
                 type="submit"
-                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group"
+                disabled={loading}
+                className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-purple-600 to-green-600 dark:from-purple-500 dark:to-green-500 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 dark:hover:from-purple-600 dark:hover:to-green-600 hover:scale-[1.02] hover:shadow-xl hover:shadow-purple-500/30 dark:hover:shadow-purple-500/20 transition-all duration-300 group disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Reset Password
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
+                {loading ? 'Resetting...' : 'Reset Password'}
+                {!loading && <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />}
               </button>
             </form>
           )}
