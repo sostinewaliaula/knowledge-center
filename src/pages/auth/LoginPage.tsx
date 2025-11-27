@@ -48,8 +48,13 @@ export function LoginPage({}: LoginPageProps) {
         localStorage.setItem('rememberMe', 'true');
       }
       
-      // Navigate to learner dashboard on successful login
-      navigate('/learner');
+      // Navigate based on user role
+      const userRole = response.user?.role || response.user?.role_name;
+      if (userRole === 'admin') {
+        navigate('/reports');
+      } else {
+        navigate('/learner');
+      }
     } catch (err: any) {
       setError(err.message || 'Login failed. Please check your credentials.');
     } finally {

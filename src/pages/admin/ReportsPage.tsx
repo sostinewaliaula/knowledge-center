@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sidebar } from '../../components/Sidebar';
+import { MainSidebar } from '../../components/MainSidebar';
 import { Search, Plus, MoreVertical, ChevronDown, X } from 'lucide-react';
 
 interface Learner {
@@ -123,7 +123,7 @@ export function ReportsPage({}: ReportsPageProps) {
   };
 
   return <div className="flex h-screen bg-gray-50">
-      <Sidebar activePage="reports" />
+      <MainSidebar activePage="reports" />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">

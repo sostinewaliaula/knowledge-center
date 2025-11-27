@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Home, Search, Image, BookOpen, Users, Clock, Settings, Plus, Zap, MessageSquare, ChevronLeft, ChevronDown, Trophy, UserCircle } from 'lucide-react';
 
 interface SidebarProps {
-  activePage?: 'learning' | 'reports';
+  activePage?: 'learning' | 'reports' | 'content';
 }
 
 export function Sidebar({
@@ -33,7 +33,10 @@ export function Sidebar({
           <button className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-700">
             <Search size={20} />
           </button>
-          <button className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-200 text-gray-700">
+          <button 
+            onClick={() => handleNavigation('/admin/content')} 
+            className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${activePage === 'content' ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-200 text-gray-700'}`}
+          >
             <Image size={20} />
           </button>
           <button onClick={() => handleNavigation('/learning')} className={`w-10 h-10 flex items-center justify-center rounded-lg transition-colors ${activePage === 'learning' ? 'bg-indigo-100 text-indigo-600' : 'hover:bg-gray-200 text-gray-700'}`}>
