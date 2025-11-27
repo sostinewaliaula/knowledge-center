@@ -60,5 +60,14 @@ export const api = {
       body: JSON.stringify({ email, otp, newPassword }),
     });
   },
+
+  // Users endpoints
+  async getUsers() {
+    return this.request('/users');
+  },
+
+  async getUser(id) {
+    return this.request(`/users/${id}`);
+  },
 };
 

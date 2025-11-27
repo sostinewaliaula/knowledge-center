@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
 import roleRoutes from './routes/roles.js';
+import userRoutes from './routes/users.js';
 import pool from './config/database.js';
 
 dotenv.config();
@@ -28,6 +29,7 @@ pool.getConnection()
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
