@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Sidebar } from '../components/Sidebar';
+import { Sidebar } from '../../components/Sidebar';
 import { Search, Plus, MoreVertical, ChevronDown, X } from 'lucide-react';
+
 interface Learner {
   id: string;
   name: string;
@@ -13,10 +14,13 @@ interface Learner {
   assignedTo: string;
   assignedToAvatar: string;
 }
+
 type Page = 'learning' | 'reports' | 'learner';
+
 interface ReportsPageProps {
   onNavigate?: (page: Page) => void;
 }
+
 export function ReportsPage({
   onNavigate
 }: ReportsPageProps) {
@@ -99,6 +103,7 @@ export function ReportsPage({
     assignedTo: 'Pandji Manjiw',
     assignedToAvatar: 'https://i.pravatar.cc/150?img=21'
   }];
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'In progress':
@@ -111,6 +116,7 @@ export function ReportsPage({
         return 'text-gray-600';
     }
   };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'In progress':
@@ -121,19 +127,18 @@ export function ReportsPage({
         return '⚪';
     }
   };
+
   return <div className="flex h-screen bg-gray-50">
       <Sidebar activePage="reports" onNavigate={onNavigate} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
         <main className="flex-1 overflow-auto">
           <div className="p-8">
-            {/* Header */}
             <div className="mb-6">
               <h1 className="text-3xl font-semibold text-gray-900 mb-6">
                 Learners
               </h1>
 
-              {/* Tabs */}
               <div className="flex gap-8 border-b border-gray-200">
                 <button className="pb-3 text-sm text-gray-600 hover:text-gray-900">
                   Overview
@@ -144,7 +149,6 @@ export function ReportsPage({
               </div>
             </div>
 
-            {/* Filters and Controls */}
             <div className="bg-white rounded-lg border border-gray-200 mb-6">
               <div className="p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -174,7 +178,6 @@ export function ReportsPage({
                   </div>
                 </div>
 
-                {/* Stats Overview */}
                 <div className="flex items-center gap-8 pb-6 border-b border-gray-200">
                   <div className="flex items-center gap-4">
                     <div className="relative w-20 h-20">
@@ -182,7 +185,7 @@ export function ReportsPage({
                         <circle cx="40" cy="40" r="32" fill="none" stroke="#e5e7eb" strokeWidth="6" />
                         <circle cx="40" cy="40" r="32" fill="none" stroke="#10b981" strokeWidth="6" strokeDasharray={`${2 * Math.PI * 32 * 0.5} ${2 * Math.PI * 32}`} strokeLinecap="round" />
                       </svg>
-                      <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="absolute inset-0ità flex items-center justify-center">
                         <span className="text-xl font-bold text-gray-900">
                           50%
                         </span>
@@ -241,7 +244,6 @@ export function ReportsPage({
                 </div>
               </div>
 
-              {/* Table */}
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-y border-gray-200">
@@ -342,6 +344,7 @@ export function ReportsPage({
       </div>
     </div>;
 }
+
 function Users({
   size
 }: {
@@ -354,6 +357,7 @@ function Users({
       <path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>;
 }
+
 function Filter({
   size
 }: {
@@ -363,3 +367,4 @@ function Filter({
       <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
     </svg>;
 }
+
