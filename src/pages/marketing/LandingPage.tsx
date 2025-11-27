@@ -120,15 +120,15 @@ export function LandingPage({
 }: LandingPageProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-green-50/30 to-white text-gray-900">
-      <header className="px-8 lg:px-16 py-6 flex flex-wrap items-center justify-between gap-4 bg-white/80 backdrop-blur-sm border-b border-purple-100/50">
-        <div className="flex items-center gap-3">
-          <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-20 h-20 object-contain" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80"><rect width="80" height="80" fill="%239433ff"/><text x="40" y="50" font-size="32" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }} />
+      <header className="sticky top-0 z-50 px-8 lg:px-16 py-1.5 flex flex-wrap items-center justify-between gap-2 bg-white/80 backdrop-blur-sm border-b border-purple-100/50">
+        <div className="flex items-center gap-2">
+          <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-16 h-16 object-contain" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }} />
           <div>
-            <div className="text-xl font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">Knowledge Center</div>
-            <div className="text-xs text-gray-500 -mt-1">TQ Academy</div>
+            <div className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent leading-tight">Knowledge Center</div>
+            <div className="text-[10px] text-gray-500 leading-tight">TQ Academy</div>
           </div>
         </div>
-        <nav className="flex items-center gap-6 text-sm text-gray-600">
+        <nav className="flex items-center gap-4 text-sm text-gray-600">
           <button className="font-semibold text-gray-900">Home</button>
           <button className="hover:text-purple-600 transition-colors" onClick={() => onNavigate?.('learner')}>
             My Dashboard
@@ -140,13 +140,13 @@ export function LandingPage({
             Admin Portal
           </button>
         </nav>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button className="text-sm font-semibold text-gray-600 hover:text-purple-600 transition-colors">
             Log in
           </button>
-          <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 transition-all shadow-lg shadow-purple-500/30">
+          <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 transition-all shadow-lg shadow-purple-500/30">
             Access Knowledge Center
-            <ArrowRight size={16} />
+            <ArrowRight size={14} />
           </button>
         </div>
       </header>
