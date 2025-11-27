@@ -6,19 +6,30 @@ async function createTestUser() {
     const email = 'test@caavagroup.com';
     const password = 'Test1234';
     const name = 'Test User';
-    const role = 'learner';
+    const roleName = 'learner';
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Get role_id for learner
+    const [roles] = await pool.query('SELECT id FROM roles WHERE name = ?', [roleName]);
+    if (roles.length === 0) {
+      console.error('❌ Error: Role "learner" not found. Please run init-db.js first.');
+      process.exit(1);
+    }
+    const roleId = roles[0].id;
 
-    const [result] = await pool.query(
-      'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
-      [email, hashedPassword, name, role]
-    );
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log('✅ Test user created successfully!');
-    console.log(`Email: ${email}`);
-    console.log(`Password: ${password}`);
-    console.log(`User ID: ${result.insertId}`);
+        await pool.query(
+          'INSERT INTO users (email, password, name, role_id) VALUES (?, ?, ?, ?)',
+          [email, hashedPassword, name, roleId]
+        );
+
+        // Get the auto-generated ID
+        const [newUser] = await pool.query('SELECT id FROM users WHERE email = ? ORDER BY created_at DESC LIMIT 1', [email]);
+
+        console.log('✅ Test user created successfully!');
+        console.log(`Email: ${email}`);
+        console.log(`Password: ${password}`);
+        console.log(`User ID: ${newUser[0].id}`);
     process.exit(0);
   } catch (error) {
     if (error.code === 'ER_DUP_ENTRY') {

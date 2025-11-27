@@ -1,14 +1,24 @@
-import pool from './database.js';
+import pool from '../config/database.js';
 
-async function initDatabase() {
+async function migrateToRoles() {
   try {
     const connection = await pool.getConnection();
     console.log('Connected to database');
+    console.log('Starting migration to role-based system...');
+
+    // Drop old tables if they exist (in reverse order due to foreign keys)
+    console.log('Dropping old tables...');
+    await connection.query('DROP TABLE IF EXISTS password_resets');
+    await connection.query('DROP TABLE IF EXISTS otp_codes');
+    await connection.query('DROP TABLE IF EXISTS users');
+    await connection.query('DROP TABLE IF EXISTS role_permissions');
+    await connection.query('DROP TABLE IF EXISTS roles');
 
     // Create roles table
+    console.log('Creating roles table...');
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS roles (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+      CREATE TABLE roles (
+        id INT AUTO_INCREMENT PRIMARY KEY,
         name VARCHAR(50) UNIQUE NOT NULL,
         display_name VARCHAR(100) NOT NULL,
         description TEXT,
@@ -19,11 +29,12 @@ async function initDatabase() {
       )
     `);
 
-    // Create role_permissions table for future permission management
+    // Create role_permissions table
+    console.log('Creating role_permissions table...');
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS role_permissions (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
-        role_id CHAR(36) NOT NULL,
+      CREATE TABLE role_permissions (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        role_id INT NOT NULL,
         permission VARCHAR(100) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
@@ -32,14 +43,15 @@ async function initDatabase() {
       )
     `);
 
-    // Create users table with role_id reference
+    // Create users table with role_id
+    console.log('Creating users table...');
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS users (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+      CREATE TABLE users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
         name VARCHAR(255),
-        role_id CHAR(36) NOT NULL,
+        role_id INT NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (role_id) REFERENCES roles(id),
@@ -49,9 +61,10 @@ async function initDatabase() {
     `);
 
     // Create otp_codes table
+    console.log('Creating otp_codes table...');
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS otp_codes (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+      CREATE TABLE otp_codes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
         code VARCHAR(6) NOT NULL,
         expires_at TIMESTAMP NOT NULL,
@@ -63,9 +76,10 @@ async function initDatabase() {
     `);
 
     // Create password_resets table
+    console.log('Creating password_resets table...');
     await connection.query(`
-      CREATE TABLE IF NOT EXISTS password_resets (
-        id CHAR(36) PRIMARY KEY DEFAULT (UUID()),
+      CREATE TABLE password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
         email VARCHAR(255) NOT NULL,
         token VARCHAR(255) NOT NULL,
         expires_at TIMESTAMP NOT NULL,
@@ -77,6 +91,7 @@ async function initDatabase() {
     `);
 
     // Insert default roles
+    console.log('Inserting default roles...');
     const defaultRoles = [
       { name: 'admin', display_name: 'Administrator', description: 'Full system access and management', is_system_role: true },
       { name: 'learner', display_name: 'Learner', description: 'Access to learning content and courses', is_system_role: true },
@@ -85,23 +100,21 @@ async function initDatabase() {
     ];
 
     for (const role of defaultRoles) {
-      // Check if role already exists
-      const [existing] = await connection.query('SELECT id FROM roles WHERE name = ?', [role.name]);
-      if (existing.length === 0) {
-        await connection.query(
-          `INSERT INTO roles (name, display_name, description, is_system_role) VALUES (?, ?, ?, ?)`,
-          [role.name, role.display_name, role.description, role.is_system_role]
-        );
-      }
+      await connection.query(
+        `INSERT INTO roles (name, display_name, description, is_system_role) VALUES (?, ?, ?, ?)`,
+        [role.name, role.display_name, role.description, role.is_system_role]
+      );
+      console.log(`  ✓ Created role: ${role.display_name}`);
     }
 
-    console.log('Database tables initialized successfully');
+    console.log('✅ Migration completed successfully!');
     connection.release();
+    process.exit(0);
   } catch (error) {
-    console.error('Error initializing database:', error);
-    throw error;
+    console.error('❌ Migration error:', error);
+    process.exit(1);
   }
 }
 
-initDatabase();
+migrateToRoles();
 

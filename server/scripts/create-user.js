@@ -16,17 +16,32 @@ async function createUser() {
     const email = await question('Enter email: ');
     const password = await question('Enter password: ');
     const name = await question('Enter name (optional): ') || null;
-    const role = await question('Enter role (learner/admin, default: learner): ') || 'learner';
+    const roleName = await question('Enter role name (admin/learner/instructor/auditor, default: learner): ') || 'learner';
 
-    const hashedPassword = await bcrypt.hash(password, 10);
+    // Get role_id
+    const [roles] = await pool.query('SELECT id, display_name FROM roles WHERE name = ?', [roleName]);
+    if (roles.length === 0) {
+      console.error(`❌ Error: Role "${roleName}" not found.`);
+      console.log('Available roles:');
+      const [allRoles] = await pool.query('SELECT name, display_name FROM roles');
+      allRoles.forEach(r => console.log(`  - ${r.name} (${r.display_name})`));
+      rl.close();
+      process.exit(1);
+    }
+    const roleId = roles[0].id;
 
-    const [result] = await pool.query(
-      'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)',
-      [email, hashedPassword, name, role]
-    );
+        const hashedPassword = await bcrypt.hash(password, 10);
 
-    console.log('✅ User created successfully!');
-    console.log(`User ID: ${result.insertId}`);
+        await pool.query(
+          'INSERT INTO users (email, password, name, role_id) VALUES (?, ?, ?, ?)',
+          [email, hashedPassword, name, roleId]
+        );
+
+        // Get the auto-generated ID
+        const [newUser] = await pool.query('SELECT id FROM users WHERE email = ? ORDER BY created_at DESC LIMIT 1', [email]);
+
+        console.log('✅ User created successfully!');
+        console.log(`User ID: ${newUser[0].id}`);
     rl.close();
     process.exit(0);
   } catch (error) {

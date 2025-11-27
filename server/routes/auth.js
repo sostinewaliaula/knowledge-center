@@ -16,7 +16,10 @@ router.post('/login', async (req, res) => {
     }
 
     const [users] = await pool.query(
-      'SELECT * FROM users WHERE email = ?',
+      `SELECT u.*, r.name as role_name, r.display_name as role_display_name 
+       FROM users u 
+       JOIN roles r ON u.role_id = r.id 
+       WHERE u.email = ?`,
       [email]
     );
 
@@ -32,7 +35,7 @@ router.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, role: user.role },
+      { userId: user.id, email: user.email, role: user.role_name, roleId: user.role_id },
       process.env.JWT_SECRET || 'kc-secret-key-2024-production',
       { expiresIn: '7d' }
     );
@@ -44,7 +47,9 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
-        role: user.role
+        role: user.role_name,
+        roleDisplayName: user.role_display_name,
+        roleId: user.role_id
       }
     });
   } catch (error) {
@@ -81,7 +86,7 @@ router.post('/forgot-password', async (req, res) => {
     const expiresAt = new Date();
     expiresAt.setMinutes(expiresAt.getMinutes() + 10); // OTP expires in 10 minutes
 
-    // Save OTP to database
+    // Save OTP to database (id will be auto-generated)
     await pool.query(
       'INSERT INTO otp_codes (email, code, expires_at) VALUES (?, ?, ?)',
       [email, otpCode, expiresAt]

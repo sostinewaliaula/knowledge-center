@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js';
+import roleRoutes from './routes/roles.js';
 import pool from './config/database.js';
 
 dotenv.config();
@@ -26,6 +27,7 @@ pool.getConnection()
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/roles', roleRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
