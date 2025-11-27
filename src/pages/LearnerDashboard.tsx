@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Bookmark, ChevronDown, Circle, Clock3, FileText, Info, MessageCircle, Search, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react';
+import { ArrowRight, Bell, Bookmark, ChevronDown, Circle, Clock3, FileText, Info, MessageCircle, Search, ShieldCheck, Sparkles, Star, Zap } from 'lucide-react';
 
 type DashboardPage = 'learning' | 'reports' | 'learner';
 
@@ -97,19 +97,35 @@ const mostViewed = [{
 const reviewItems = [{
   title: 'The Art of Blending Aesthetics and Functional Design',
   type: 'Quiz',
-  detail: '15 Question'
+  detail: '15 Question',
+  iconBg: 'bg-[#fef3c7]',
+  iconColor: 'text-[#f97316]',
+  badgeColor: 'text-[#f97316]',
+  badgeBg: 'bg-[#fff5e7]'
 }, {
   title: 'Designing Intuitive User Interfaces',
   type: 'Quiz',
-  detail: '10 Question'
+  detail: '10 Question',
+  iconBg: 'bg-[#fef3c7]',
+  iconColor: 'text-[#f97316]',
+  badgeColor: 'text-[#f97316]',
+  badgeBg: 'bg-[#fff5e7]'
 }, {
   title: 'Mobile & Desktop Screen Pattern',
   type: 'Assignment',
-  detail: ''
+  detail: '',
+  iconBg: 'bg-[#e0e7ff]',
+  iconColor: 'text-[#4f46e5]',
+  badgeColor: 'text-[#4f46e5]',
+  badgeBg: 'bg-[#eef2ff]'
 }, {
   title: 'Optimizing User Experience in Education Apps',
   type: 'Assignment',
-  detail: ''
+  detail: '',
+  iconBg: 'bg-[#e0e7ff]',
+  iconColor: 'text-[#4f46e5]',
+  badgeColor: 'text-[#4f46e5]',
+  badgeBg: 'bg-[#eef2ff]'
 }];
 
 const leaderboard = [{
@@ -137,6 +153,9 @@ export function LearnerDashboard({
 }: LearnerDashboardProps) {
   const progressGoal = 0.2;
   const circumference = 2 * Math.PI * 32;
+  const goalValue = 6;
+  const goalTotal = 30;
+  const goalStroke = circumference * (1 - progressGoal);
   return (
     <div className="min-h-screen bg-[#f5f6fb]">
       <div className="bg-white min-h-screen shadow-sm">
@@ -422,25 +441,41 @@ export function LearnerDashboard({
                     </div>
                   </div>
 
-                  <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
-                    <div className="flex items-center justify-between mb-6">
-                      <h2 className="text-lg font-semibold text-gray-900">
-                        To be reviewed
-                      </h2>
-                      <span className="text-xs text-gray-500">Last 7 Day</span>
+                  <div className="bg-white border border-gray-200 rounded-[20px] p-6 shadow-[0_18px_40px_rgba(15,23,42,0.08)]">
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-lg font-semibold text-gray-900">
+                          To be reviewed
+                        </h2>
+                        <Info size={18} className="text-gray-400" />
+                      </div>
+                      <button className="flex items-center gap-1 text-xs font-semibold text-gray-500">
+                        Last 7 Day
+                        <ChevronDown size={14} />
+                      </button>
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      {reviewItems.map(item => <div key={item.title} className="border border-gray-100 rounded-2xl p-4 flex items-center justify-between">
-                          <div>
-                            <span className="text-xs font-semibold text-gray-500">
-                              {item.type}
-                            </span>
-                            <h3 className="text-sm font-semibold text-gray-900 mt-1">
-                              {item.title}
-                            </h3>
-                            {item.detail && <p className="text-xs text-gray-500 mt-1">
-                                {item.detail}
-                              </p>}
+                    <div className="grid gap-3 md:grid-cols-2">
+                      {reviewItems.map(item => <div key={item.title} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${item.iconBg}`}>
+                              <Circle size={18} className={item.iconColor} />
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h3 className="text-sm font-semibold text-gray-900 truncate max-w-[150px]">
+                                  {item.title}
+                                </h3>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${item.badgeBg} ${item.badgeColor}`}>
+                                  {item.type}
+                                </span>
+                                {item.detail && <div className="flex items-center gap-1 text-[11px] text-gray-500">
+                                    <FileText size={12} />
+                                    {item.detail}
+                                  </div>}
+                              </div>
+                            </div>
                           </div>
                           <button className="w-8 h-8 rounded-xl border border-gray-200 flex items-center justify-center text-gray-500">
                             →
@@ -451,117 +486,63 @@ export function LearnerDashboard({
                 </div>
               </section>
 
-              <aside className="space-y-6 pt-8">
-                <div className="space-y-4">
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <div className="text-sm text-gray-500">Learning content</div>
-                    <div className="text-3xl font-semibold text-gray-900 mt-2">
-                      120
+              <aside className="space-y-5 pt-8">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between rounded-[18px] border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                        <Circle size={20} />
+                      </div>
+                      <div>
+                        <div className="text-3xl font-semibold text-gray-900">120</div>
+                        <div className="text-sm text-gray-500">Learning content</div>
+                      </div>
                     </div>
+                    <ArrowRight size={18} className="text-gray-400" />
                   </div>
-                  <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                    <div className="text-sm text-gray-500">Learning time</div>
-                    <div className="text-3xl font-semibold text-gray-900 mt-2">
-                      44
+                  <div className="flex items-center justify-between rounded-[18px] border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-400">
+                        <Circle size={20} />
+                      </div>
+                      <div>
+                        <div className="text-3xl font-semibold text-gray-900">44</div>
+                        <div className="text-sm text-gray-500">Learning time</div>
+                      </div>
                     </div>
+                    <ArrowRight size={18} className="text-gray-400" />
                   </div>
                 </div>
 
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-2">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        Goals
+                <div className="bg-white rounded-[18px] border border-gray-200 p-5 shadow-sm text-center space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-semibold text-gray-900">Goals</div>
+                    <Info size={16} className="text-gray-400" />
+                  </div>
+                  <div className="flex flex-col items-center gap-4">
+                    <div className="relative w-24 h-24">
+                      <svg className="w-full h-full -rotate-90">
+                        <circle cx="48" cy="48" r="32" fill="none" stroke="#e5e7eb" strokeWidth="6" />
+                        <circle cx="48" cy="48" r="32" fill="none" stroke="#10b981" strokeWidth="6" strokeDasharray={`${circumference}`} strokeDashoffset={goalStroke} strokeLinecap="round" />
+                      </svg>
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <Zap size={20} className="text-gray-300" />
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Daily Goal: 6/30 learning
-                      </p>
                     </div>
-                    <button className="text-xs font-semibold text-indigo-600">
+                    <div>
+                      <div className="text-xs text-gray-500">Daily Goal</div>
+                      <div className="text-base font-semibold text-gray-900">6/30 learning</div>
+                    </div>
+                    <div className="w-full h-px bg-gray-100" />
+                    <div className="text-xs text-gray-500">
+                      Your Longest streak:{' '}
+                      <span className="font-semibold text-gray-900">1 Day</span>
+                      <div>(28 Sep 23 - 4 Okt 23)</div>
+                    </div>
+                    <button className="text-sm font-semibold text-[#5e37fb]">
                       See Detail
                     </button>
                   </div>
-                  <div className="flex items-center gap-4 mt-4">
-                    <div className="relative w-24 h-24">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle cx="48" cy="48" r="32" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-                        <circle cx="48" cy="48" r="32" fill="none" stroke="#4ade80" strokeWidth="8" strokeDasharray={`${circumference * progressGoal} ${circumference}`} strokeLinecap="round" />
-                      </svg>
-                      <div className="absolute inset-0 flex items-center justify-center flex-col rotate-90">
-                        <span className="text-2xl font-semibold text-gray-900">
-                          6
-                        </span>
-                        <span className="text-xs text-gray-500">/30</span>
-                      </div>
-                    </div>
-                    <div className="space-y-1 text-sm">
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                        <span className="text-gray-600">Completed today</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className="w-2 h-2 rounded-full bg-gray-200" />
-                        <span className="text-gray-600">Remaining</span>
-                      </div>
-                      <div className="text-xs text-gray-500 pt-2">
-                        Your Longest streak: 1 Day (28 Sep 23 - 4 Okt 23)
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <div className="text-sm font-semibold text-gray-900">
-                        Leaderboard
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Top designers this week
-                      </p>
-                    </div>
-                    <button className="text-xs font-semibold text-indigo-600">
-                      See All
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    {leaderboard.map(user => <div key={user.rank} className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                          <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between">
-                            <span className="text-sm font-semibold text-gray-900">
-                              {user.name}
-                            </span>
-                            <span className="text-xs font-semibold text-gray-900">
-                              {user.points}pts
-                            </span>
-                          </div>
-                          <p className="text-xs text-gray-500">
-                            {user.role}
-                          </p>
-                        </div>
-                        <span className="text-sm font-semibold text-gray-400">
-                          #{user.rank}
-                        </span>
-                      </div>)}
-                  </div>
-                </div>
-
-                <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm text-center">
-                  <div className="w-12 h-12 mx-auto rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-3">
-                    <Zap size={20} />
-                  </div>
-                  <h3 className="text-sm font-semibold text-gray-900">
-                    Keep the momentum
-                  </h3>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Stay consistent to maintain your learning streak.
-                  </p>
-                  <button className="mt-4 inline-flex items-center justify-center gap-2 px-4 py-2 rounded-2xl border border-gray-200 text-sm font-semibold text-gray-900 hover:bg-gray-50">
-                    Resume learning
-                  </button>
                 </div>
               </aside>
             </div>
