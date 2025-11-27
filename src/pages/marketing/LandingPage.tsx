@@ -1,5 +1,5 @@
-import React from 'react';
-import { ArrowRight, Award, BookOpen, CheckCircle2, Clock, GraduationCap, Play, Shield, Sparkles, Star, Target, TrendingUp, Users, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, ArrowUp, Award, BookOpen, CheckCircle2, Clock, GraduationCap, Play, Shield, Sparkles, Star, Target, TrendingUp, Users, Zap } from 'lucide-react';
 
 type Page = 'landing' | 'learner' | 'learning' | 'reports';
 
@@ -118,66 +118,88 @@ const howItWorks = [{
 export function LandingPage({
   onNavigate
 }: LandingPageProps) {
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-green-50/30 to-white text-gray-900">
-      <header className="sticky top-0 z-50 px-8 lg:px-16 py-1.5 flex flex-wrap items-center justify-between gap-2 bg-white/80 backdrop-blur-sm border-b border-purple-100/50">
+      <header className="sticky top-0 z-50 px-8 lg:px-16 py-1.5 flex flex-wrap items-center justify-between gap-2 bg-white/80 backdrop-blur-sm border-b border-purple-100/50 animate-fade-in">
         <div className="flex items-center gap-2">
-          <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-16 h-16 object-contain" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }} />
-          <div>
+          <img src="/assets/CcT2K1dC8NCSuB6a.png" alt="Knowledge Center Logo" className="w-16 h-16 object-contain hover:scale-110 transition-transform duration-300 cursor-pointer" onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }} />
+          <div className="animate-slide-in-left">
             <div className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent leading-tight">Knowledge Center</div>
             <div className="text-[10px] text-gray-500 leading-tight">TQ Academy</div>
           </div>
         </div>
         <nav className="flex items-center gap-4 text-sm text-gray-600">
-          <button className="font-semibold text-gray-900">Home</button>
-          <button className="hover:text-purple-600 transition-colors" onClick={() => onNavigate?.('learner')}>
+          <button className="font-semibold text-gray-900 hover:scale-105 transition-transform duration-200">Home</button>
+          <button className="hover:text-purple-600 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('learner')}>
             My Dashboard
           </button>
-          <button className="hover:text-green-600 transition-colors" onClick={() => onNavigate?.('learning')}>
+          <button className="hover:text-green-600 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('learning')}>
             My Learning
           </button>
-          <button className="hover:text-purple-600 transition-colors" onClick={() => onNavigate?.('reports')}>
+          <button className="hover:text-purple-600 hover:scale-105 transition-all duration-200" onClick={() => onNavigate?.('reports')}>
             Admin Portal
           </button>
         </nav>
-        <div className="flex items-center gap-2">
-          <button className="text-sm font-semibold text-gray-600 hover:text-purple-600 transition-colors">
+        <div className="flex items-center gap-2 animate-slide-in-right">
+          <button className="text-sm font-semibold text-gray-600 hover:text-purple-600 hover:scale-105 transition-all duration-200">
             Log in
           </button>
-          <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 transition-all shadow-lg shadow-purple-500/30">
+          <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-1.5 px-4 py-1 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white text-sm font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-xl transition-all duration-300 shadow-lg shadow-purple-500/30 group">
             Access Knowledge Center
-            <ArrowRight size={14} />
+            <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform duration-300" />
           </button>
         </div>
       </header>
 
       <main className="px-8 lg:px-16 py-16 space-y-24">
         <section className="grid lg:grid-cols-2 gap-12 items-center">
-          <div className="space-y-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-100 to-green-100 border border-purple-200/50 text-xs font-semibold text-purple-700">
-              <Sparkles size={14} />
+          <div className="space-y-8 animate-fade-in-up">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-purple-100 to-green-100 border border-purple-200/50 text-xs font-semibold text-purple-700 hover:scale-105 transition-transform duration-200 animate-scale-in">
+              <Sparkles size={14} className="animate-pulse" />
               Built for Caava Group Employees
             </div>
-            <div>
+            <div className="animate-fade-in-up" style={{ animationDelay: '0.1s', opacity: 0 }}>
               <h1 className="text-4xl lg:text-5xl font-semibold leading-tight mb-4">
-                <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">Your modern corporate learning platform.</span> Better than Litmos.
+                <span className="bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent animate-gradient">Your modern corporate learning platform.</span> Better than Litmos.
               </h1>
               <p className="text-lg text-gray-600">
                 Knowledge Center by TQ Academy delivers comprehensive training for all Caava Group employees with intuitive dashboards, real-time progress tracking, and detailed reporting—all in one powerful, modern platform.
               </p>
             </div>
-            <div className="flex flex-wrap gap-4">
-              <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold hover:from-purple-700 hover:to-green-700 transition-all shadow-lg shadow-purple-500/30">
+            <div className="flex flex-wrap gap-4 animate-fade-in-up" style={{ animationDelay: '0.2s', opacity: 0 }}>
+              <button onClick={() => onNavigate?.('learner')} className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white font-semibold hover:from-purple-700 hover:to-green-700 hover:scale-105 hover:shadow-2xl transition-all duration-300 shadow-lg shadow-purple-500/30 group animate-pulse-glow">
                 Access Knowledge Center
-                <ArrowRight size={18} />
+                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
               </button>
-              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 transition-colors" onClick={() => onNavigate?.('learning')}>
-                <Play size={18} />
+              <button className="inline-flex items-center gap-2 px-6 py-3 rounded-full border-2 border-purple-200 text-purple-700 font-semibold hover:bg-purple-50 hover:scale-105 hover:border-purple-300 transition-all duration-300 group" onClick={() => onNavigate?.('learning')}>
+                <Play size={18} className="group-hover:scale-110 transition-transform duration-300" />
                 View Training Catalog
               </button>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4">
-              {stats.map(stat => <div key={stat.label} className="p-4 rounded-2xl bg-gradient-to-br from-white to-purple-50/50 border border-purple-100">
+              {stats.map((stat, index) => <div key={stat.label} className="p-4 rounded-2xl bg-gradient-to-br from-white to-purple-50/50 border border-purple-100 hover:scale-105 hover:shadow-lg transition-all duration-300 animate-fade-in-up" style={{ animationDelay: `${0.3 + index * 0.1}s`, opacity: 0 }}>
                   <div className="text-3xl font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent">
                     {stat.value}
                   </div>
@@ -185,7 +207,7 @@ export function LandingPage({
                 </div>)}
             </div>
           </div>
-          <div className="bg-white border-2 border-purple-100 rounded-[32px] shadow-[0_30px_60px_rgba(139,92,246,0.15)] p-6 space-y-6">
+          <div className="bg-white border-2 border-purple-100 rounded-[32px] shadow-[0_30px_60px_rgba(139,92,246,0.15)] p-6 space-y-6 animate-slide-in-right hover:shadow-[0_40px_80px_rgba(139,92,246,0.2)] transition-shadow duration-300">
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs uppercase text-purple-600 font-semibold">
@@ -241,9 +263,11 @@ export function LandingPage({
             </button>
           </div>
           <div className="grid md:grid-cols-3 gap-6">
-            {features.map((feature, index) => <div key={feature.title} className={`rounded-2xl border-2 p-5 transition-all hover:shadow-lg ${index % 2 === 0 ? 'border-purple-100 bg-gradient-to-br from-purple-50 to-white' : 'border-green-100 bg-gradient-to-br from-green-50 to-white'}`}>
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 ${index % 2 === 0 ? 'bg-purple-100' : 'bg-green-100'}`}>
-                  {feature.icon}
+            {features.map((feature, index) => <div key={feature.title} className={`group rounded-2xl border-2 p-5 transition-all hover:shadow-xl hover:scale-105 hover:-translate-y-1 duration-300 animate-fade-in-up ${index % 2 === 0 ? 'border-purple-100 bg-gradient-to-br from-purple-50 to-white' : 'border-green-100 bg-gradient-to-br from-green-50 to-white'}`} style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}>
+                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110 ${index % 2 === 0 ? 'bg-purple-100 group-hover:bg-purple-200' : 'bg-green-100 group-hover:bg-green-200'}`}>
+                  <div className="group-hover:rotate-12 transition-transform duration-300">
+                    {feature.icon}
+                  </div>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">
                   {feature.title}
@@ -268,18 +292,20 @@ export function LandingPage({
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {trainingCategories.map((category, index) => <div key={category.title} className={`rounded-2xl border-2 p-6 transition-all hover:shadow-xl hover:-translate-y-1 ${index % 2 === 0 ? 'border-purple-100 bg-gradient-to-br from-purple-50 to-white' : 'border-green-100 bg-gradient-to-br from-green-50 to-white'}`}>
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 ${index % 2 === 0 ? 'bg-purple-100' : 'bg-green-100'}`}>
-                  {category.icon}
+            {trainingCategories.map((category, index) => <div key={category.title} className={`group rounded-2xl border-2 p-6 transition-all hover:shadow-xl hover:-translate-y-2 hover:scale-105 duration-300 animate-fade-in-up ${index % 2 === 0 ? 'border-purple-100 bg-gradient-to-br from-purple-50 to-white' : 'border-green-100 bg-gradient-to-br from-green-50 to-white'}`} style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}>
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all duration-300 group-hover:scale-110 group-hover:rotate-6 ${index % 2 === 0 ? 'bg-purple-100 group-hover:bg-purple-200' : 'bg-green-100 group-hover:bg-green-200'}`}>
+                  <div className="group-hover:scale-110 transition-transform duration-300">
+                    {category.icon}
+                  </div>
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-purple-600 transition-colors duration-300">
                   {category.title}
                 </h3>
                 <p className="text-sm text-gray-600 mb-4">
                   {category.description}
                 </p>
                 <div className="flex items-center gap-2 text-sm">
-                  <span className="px-3 py-1 rounded-full bg-white border border-purple-200 text-purple-700 font-semibold">
+                  <span className="px-3 py-1 rounded-full bg-white border border-purple-200 text-purple-700 font-semibold group-hover:bg-purple-50 group-hover:border-purple-300 transition-all duration-300">
                     {category.courses} Courses
                   </span>
                 </div>
@@ -297,8 +323,8 @@ export function LandingPage({
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {benefits.map((benefit, index) => <div key={benefit.title} className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6">
-                <div className="text-3xl font-bold mb-2">
+            {benefits.map((benefit, index) => <div key={benefit.title} className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20 p-6 hover:bg-white/20 hover:scale-105 hover:-translate-y-1 transition-all duration-300 animate-fade-in-up" style={{ animationDelay: `${index * 0.1}s`, opacity: 0 }}>
+                <div className="text-3xl font-bold mb-2 animate-pulse">
                   {benefit.metric}
                 </div>
                 <h3 className="text-lg font-semibold mb-2">
@@ -406,6 +432,17 @@ export function LandingPage({
           </div>
         </div>
       </footer>
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-8 right-8 z-50 w-14 h-14 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-300 hover:scale-110 hover:shadow-xl hover:shadow-purple-500/50 group ${
+          showScrollTop ? 'opacity-100 translate-y-0 animate-fade-in-up' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        aria-label="Scroll to top"
+      >
+        <ArrowUp size={24} className="group-hover:-translate-y-1 transition-transform duration-300" />
+      </button>
     </div>
   );
 }
