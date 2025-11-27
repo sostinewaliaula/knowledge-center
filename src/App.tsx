@@ -4,6 +4,7 @@ import { LearningContent } from './pages/learner/LearningContent';
 import { ReportsPage } from './pages/admin/ReportsPage';
 import { AdminLearningPage } from './pages/admin/AdminLearningPage';
 import { AdminLearningContent } from './pages/admin/AdminLearningContent';
+import { UsersPage } from './pages/admin/UsersPage';
 import { LearnerDashboard } from './pages/learner/LearnerDashboard';
 import { LandingPage } from './pages/marketing/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
@@ -21,6 +22,7 @@ export function App() {
         <Route path="/learner" element={<LearnerDashboard />} />
         <Route path="/learning" element={<AdminLearningPage />} />
         <Route path="/admin/content" element={<AdminLearningContent />} />
+        <Route path="/admin/users" element={<UsersPage />} />
         <Route path="/learner/learning" element={<LearningContent />} />
         <Route path="/reports" element={<ReportsPage />} />
         {/* Redirect any unknown routes to landing */}

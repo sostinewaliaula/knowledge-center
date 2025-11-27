@@ -2,7 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, Search, BookOpen, User, PieChart, ClipboardCheck, Settings, Plus, Zap, MessageSquare } from 'lucide-react';
 
 interface MainSidebarProps {
-  activePage?: 'home' | 'search' | 'reports' | 'learning' | 'profile' | 'analytics' | 'tasks' | 'content';
+  activePage?: 'home' | 'search' | 'reports' | 'learning' | 'profile' | 'analytics' | 'tasks' | 'content' | 'users';
 }
 
 export function MainSidebar({ activePage }: MainSidebarProps) {
@@ -15,6 +15,7 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
     const path = location.pathname;
     if (path === '/reports') return 'reports';
     if (path === '/admin/content' || path.includes('/admin/content')) return 'content';
+    if (path === '/admin/users' || path.includes('/admin/users')) return 'users';
     if (path === '/learning' || path.includes('/learning')) return 'learning';
     if (path === '/admin' || path === '/') return 'home';
     return 'home';
@@ -87,14 +88,15 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
           <BookOpen size={14} className={`transition-transform duration-300 ${currentActivePage === 'content' || currentActivePage === 'learning' ? 'scale-110' : 'group-hover:scale-110'}`} />
         </button>
         <button 
+          onClick={() => handleNavigation('/admin/users')}
           className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 group flex-shrink-0 ${
-            currentActivePage === 'profile' 
+            currentActivePage === 'users' || currentActivePage === 'profile'
               ? 'bg-gradient-to-br from-purple-100 to-green-100 text-purple-700 shadow-md scale-105' 
               : 'hover:bg-gray-100 text-gray-700 hover:scale-110'
           }`}
           style={{ animationDelay: '0.3s' }}
         >
-          <User size={14} className={`transition-transform duration-300 ${currentActivePage === 'profile' ? 'scale-110' : 'group-hover:scale-110'}`} />
+          <User size={14} className={`transition-transform duration-300 ${currentActivePage === 'users' || currentActivePage === 'profile' ? 'scale-110' : 'group-hover:scale-110'}`} />
         </button>
         <button 
           className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 group flex-shrink-0 ${
