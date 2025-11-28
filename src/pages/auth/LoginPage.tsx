@@ -52,7 +52,14 @@ export function LoginPage({}: LoginPageProps) {
       const userRole = response.user?.role || response.user?.role_name;
       if (userRole === 'admin') {
         navigate('/reports');
+      } else if (userRole === 'learner') {
+        navigate('/learner');
+      } else if (userRole === 'instructor') {
+        navigate('/learner'); // Instructors can also access learner dashboard
+      } else if (userRole === 'auditor') {
+        navigate('/learner'); // Auditors can also access learner dashboard
       } else {
+        // Default fallback for any other role
         navigate('/learner');
       }
     } catch (err: any) {

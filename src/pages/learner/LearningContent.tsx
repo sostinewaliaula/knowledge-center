@@ -1,6 +1,5 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Bell, Bookmark, ChevronDown, MessageCircle, Search, Sparkles, Zap } from 'lucide-react';
+import { Bookmark, Zap } from 'lucide-react';
+import { LearnerNavbar } from '../../components/LearnerNavbar';
 
 interface LearningContentProps {}
 
@@ -27,65 +26,9 @@ const continueLearning = [{
 }];
 
 export function LearningContent({}: LearningContentProps) {
-  const navigate = useNavigate();
   return <div className="min-h-screen bg-[#f5f6fb]">
       <div className="bg-white min-h-screen shadow-sm">
-        <header className="sticky top-0 z-20 bg-white border-b border-gray-100 shadow-sm">
-          <div className="px-10 py-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-indigo-600 flex items-center justify-center text-white font-semibold">
-                  t
-                </div>
-                <span className="text-xl font-semibold text-gray-900">trenning</span>
-              </div>
-              <nav className="flex items-center gap-6 text-sm text-gray-600">
-                {['Home', 'My Learning', 'Catalog', 'Favorites'].map(item => {
-                const isActive = item === 'My Learning';
-                return <button key={item} onClick={() => {
-                    if (item === 'Home') {
-                      navigate('/learner');
-                    } else if (item === 'My Learning') {
-                      navigate('/learning');
-                    }
-                  }} className={`pb-2 transition-colors ${isActive ? 'text-gray-900 font-semibold border-b-2 border-gray-900' : 'hover:text-gray-900'}`}>
-                    {item}
-                    {item === 'Favorites' && <span className="ml-1 text-xs rounded-full bg-gray-200 px-2 py-0.5 text-gray-600">
-                        1
-                      </span>}
-                  </button>;
-              })}
-              </nav>
-            </div>
-            <div className="flex items-center gap-4 w-full lg:w-auto">
-              <button className="flex items-center gap-2 rounded-full border border-[#c9b4ff] px-5 py-2 text-sm font-semibold text-[#5e37fb] bg-white shadow-[0_10px_20px_rgba(94,55,251,0.15)]">
-                <Sparkles size={16} />
-                Ask AI
-              </button>
-              <div className="flex items-center rounded-full border border-gray-200 overflow-hidden shadow-sm w-full lg:w-72">
-                <Search size={18} className="ml-4 text-gray-400" />
-                <input placeholder="Search..." className="w-full px-3 py-2 text-sm focus:outline-none" />
-              </div>
-              <button className="w-11 h-11 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-900">
-                <MessageCircle size={18} />
-              </button>
-              <button className="w-11 h-11 rounded-full border border-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-900 relative">
-                <Bell size={18} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
-              </button>
-              <div className="flex items-center gap-3 border border-gray-200 rounded-full px-3 py-1.5">
-                <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden">
-                  <img src="https://i.pravatar.cc/100?img=15" alt="Adit Irwan" className="w-full h-full object-cover" />
-                </div>
-                <div className="text-left">
-                  <div className="text-sm font-semibold text-gray-900">Adit Irwan</div>
-                  <div className="text-xs text-gray-500">Jr UI/UX Designer</div>
-                </div>
-                <ChevronDown size={16} className="text-gray-400" />
-              </div>
-            </div>
-          </div>
-        </header>
+        <LearnerNavbar activeNavItem="My Learning" favoritesCount={1} />
 
         <main className="px-10 pb-12 bg-gray-50">
           <section className="py-10 space-y-6">
