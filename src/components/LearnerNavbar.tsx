@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, ChevronDown, MessageCircle, Search, Sparkles } from 'lucide-react';
+import { ArrowUp, Bell, ChevronDown, MessageCircle, Search, Sparkles } from 'lucide-react';
 
 interface LearnerNavbarProps {
   activeNavItem?: 'Home' | 'My Learning' | 'Catalog' | 'Favorites';
@@ -17,6 +18,27 @@ export function LearnerNavbar({
   userInitials = 'AI'
 }: LearnerNavbarProps) {
   const navigate = useNavigate();
+  const [showScrollTop, setShowScrollTop] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 300) {
+        setShowScrollTop(true);
+      } else {
+        setShowScrollTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const handleNavClick = (item: string) => {
     switch (item) {
@@ -145,6 +167,17 @@ export function LearnerNavbar({
           })}
         </nav>
       </div>
+
+      {/* Scroll to Top Button */}
+      <button
+        onClick={scrollToTop}
+        className={`fixed bottom-8 right-8 z-50 w-12 h-12 rounded-full bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-lg shadow-purple-500/30 flex items-center justify-center transition-all duration-300 hover:from-purple-700 hover:to-green-700 hover:scale-110 hover:shadow-xl ${
+          showScrollTop ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        aria-label="Scroll to top"
+      >
+        <ArrowUp size={20} strokeWidth={2.5} />
+      </button>
     </>
   );
 }

@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, Clock3, FileText, Info, ShieldCheck, Star, Zap } from 'lucide-react';
+import { ArrowRight, Bookmark, Clock3, FileText, GraduationCap, Info, Medal, Star, Zap } from 'lucide-react';
 import { LearnerNavbar } from '../../components/LearnerNavbar';
 
 type DashboardPage = 'learning' | 'reports' | 'learner';
@@ -11,20 +11,20 @@ const summaryCards = [{
   label: 'Point',
   value: '100',
   icon: Star,
-  iconColor: 'text-[#ffb200]',
-  iconBg: 'bg-[#fff6df]'
+  iconColor: 'text-yellow-500',
+  iconBg: 'bg-transparent'
 }, {
   label: 'Badges',
   value: '32',
-  icon: ShieldCheck,
-  iconColor: 'text-[#5b4bff]',
-  iconBg: 'bg-[#f1edff]'
+  icon: Medal,
+  iconColor: 'text-yellow-500',
+  iconBg: 'bg-transparent'
 }, {
   label: 'Certificates',
   value: '12',
-  icon: Bookmark,
-  iconColor: 'text-[#08c98f]',
-  iconBg: 'bg-[#e1fbf2]'
+  icon: GraduationCap,
+  iconColor: 'text-yellow-500',
+  iconBg: 'bg-transparent'
 }];
 
 const inProgressCourses = [{
@@ -158,51 +158,58 @@ export function LearnerDashboard({}: LearnerDashboardProps) {
       <div className="bg-white min-h-screen shadow-sm">
         <LearnerNavbar activeNavItem="Home" favoritesCount={1} />
 
-        <div className="px-10 pb-10 bg-gray-50">
+        <div className="px-10 pb-10 bg-white">
           <div className="space-y-8 py-10">
-            <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            {/* Top Section: Greeting and Stats */}
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+              {/* Left: Greeting */}
               <div>
-                <h1 className="text-4xl font-semibold text-gray-900">
+                <h1 className="text-4xl font-bold text-gray-900">
                   Good morning, Adit 👋
                 </h1>
-                <p className="text-lg text-gray-500 mt-1">
+                <p className="text-base text-gray-600 mt-2">
                   Welcome to Trenning, check your priority learning.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-4 w-full justify-between lg:justify-end">
-                {summaryCards.map(card => <div key={card.label} className="flex items-center gap-3 rounded-[18px] border border-gray-200 bg-white px-5 py-3 shadow-[0_12px_30px_rgba(15,23,42,0.08)] min-w-[170px] flex-1 sm:flex-none">
-                    <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.iconBg}`}>
-                      <card.icon size={20} className={card.iconColor} />
+
+              {/* Right: Stats Cards */}
+              <div className="flex flex-wrap gap-4 w-full lg:w-auto justify-between lg:justify-end">
+                {summaryCards.map(card => (
+                  <div key={card.label} className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 min-w-[140px] flex-1 sm:flex-none">
+                    <div className={`w-9 h-9 flex items-center justify-center ${card.iconBg}`}>
+                      <card.icon size={22} className={card.iconColor} strokeWidth={2} />
                     </div>
                     <div className="text-left">
-                      <div className="text-xl font-semibold text-gray-900 leading-tight">
+                      <div className="text-2xl font-bold text-gray-900 leading-tight">
                         {card.value}
                       </div>
-                      <div className="text-xs uppercase tracking-wide text-gray-500">
+                      <div className="text-xs text-gray-500 mt-0.5">
                         {card.label}
                       </div>
                     </div>
-                  </div>)}
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="rounded-[24px] bg-[#dffff2] border border-[#b1f5d7] px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between shadow-[0_15px_35px_rgba(5,150,105,0.15)]">
-              <div className="flex items-center gap-4">
-                <span className="inline-flex items-center text-sm font-semibold text-white bg-[#0ab37b] px-4 py-1 rounded-full shadow-sm">
-                  New
-                </span>
-                <div>
-                  <div className="text-lg font-semibold text-gray-900">
+            {/* Feature Announcement Banner */}
+            <div className="rounded-2xl bg-green-50 border border-green-100 px-6 py-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+              <div className="flex-1">
+                <div className="flex items-start gap-4 mb-2">
+                  <span className="inline-flex items-center text-xs font-semibold text-white bg-green-500 px-3 py-1 rounded-full flex-shrink-0">
+                    New
+                  </span>
+                  <div className="text-lg font-bold text-gray-900">
                     Feature Discussion
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">
-                    The learning content are a new feature in <span className="font-semibold text-gray-900">“Feature Discussion”</span> can be explain the material problem chat.
-                  </p>
                 </div>
+                <p className="text-sm text-gray-700">
+                  The learning content are a new feature in <span className="font-semibold text-gray-900">"Feature Discussion"</span> can be explain the material problem chat.
+                </p>
               </div>
-              <button className="inline-flex items-center gap-2 text-sm font-semibold text-gray-900 border-b border-gray-900 pb-0.5 self-start lg:self-auto">
+              <button className="inline-flex items-center gap-1 text-sm font-semibold text-gray-900 border-b border-gray-900 pb-0.5 self-start lg:self-auto hover:opacity-80 transition-opacity whitespace-nowrap">
                 Go to detail
-                <span className="text-lg">→</span>
+                <span className="text-base">→</span>
               </button>
             </div>
           </div>
