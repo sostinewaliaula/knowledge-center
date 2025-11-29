@@ -154,8 +154,6 @@ CREATE TABLE IF NOT EXISTS courses (
   status ENUM('draft', 'published', 'archived') DEFAULT 'draft',
   difficulty_level ENUM('beginner', 'intermediate', 'advanced') DEFAULT 'beginner',
   duration_minutes INT DEFAULT 0,
-  price DECIMAL(10,2) DEFAULT 0.00,
-  currency VARCHAR(3) DEFAULT 'KES',
   language VARCHAR(10) DEFAULT 'en',
   is_featured BOOLEAN DEFAULT FALSE,
   enrollment_count INT DEFAULT 0,
