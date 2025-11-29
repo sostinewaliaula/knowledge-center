@@ -58,6 +58,11 @@ export class User {
       values.push(userData.name);
     }
 
+    if (userData.email !== undefined) {
+      updates.push('email = ?');
+      values.push(userData.email);
+    }
+
     if (userData.role_id !== undefined) {
       updates.push('role_id = ?');
       values.push(userData.role_id);
@@ -108,25 +113,28 @@ export class User {
       params.push(`%${search}%`, `%${search}%`);
     }
     
-    sql += ' ORDER BY u.created_at DESC LIMIT ? OFFSET ?';
-    params.push(limit, offset);
+    // MySQL doesn't accept LIMIT/OFFSET as placeholders, use template literals
+    sql += ` ORDER BY u.created_at DESC LIMIT ${parseInt(limit)} OFFSET ${parseInt(offset)}`;
     
     const users = await query(sql, params);
     
     // Get total count
     let countSql = 'SELECT COUNT(*) as total FROM users u';
+    const countParams = [];
     if (search) {
       countSql += ' WHERE u.name LIKE ? OR u.email LIKE ?';
+      countParams.push(`%${search}%`, `%${search}%`);
     }
-    const [{ total }] = await query(countSql, search ? [`%${search}%`, `%${search}%`] : []);
+    const countResult = await query(countSql, countParams);
+    const total = countResult[0]?.total || 0;
     
     return {
       users,
       pagination: {
         page,
         limit,
-        total,
-        pages: Math.ceil(total / limit)
+        total: Number(total),
+        pages: Math.ceil(Number(total) / limit)
       }
     };
   }

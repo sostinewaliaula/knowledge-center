@@ -13,7 +13,11 @@ export const getUsers = async (req, res, next) => {
 
     res.json({
       success: true,
-      ...result
+      users: result.users,
+      total: result.pagination.total,
+      page: result.pagination.page,
+      limit: result.pagination.limit,
+      totalPages: result.pagination.pages
     });
   } catch (error) {
     next(error);

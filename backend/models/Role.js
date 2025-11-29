@@ -36,8 +36,9 @@ export class Role {
       VALUES (?, ?, ?, ?)
     `;
     
-    const result = await query(sql, [name, display_name, description || null, is_system_role]);
-    return await this.findById(result.insertId);
+    await query(sql, [name, display_name, description || null, is_system_role]);
+    // UUID is auto-generated, so fetch by name to get the created role
+    return await this.findByName(name);
   }
 
   /**

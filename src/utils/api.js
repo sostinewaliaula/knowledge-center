@@ -68,12 +68,51 @@ export const api = {
   },
 
   // Users endpoints
-  async getUsers() {
-    return this.request('/users');
+  async getUsers(page = 1, limit = 100, search = '') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    const queryString = params.toString();
+    return this.request(`/users${queryString ? `?${queryString}` : ''}`);
   },
 
   async getUser(id) {
-    return this.request(`/users/${id}`);
+    const response = await this.request(`/users/${id}`);
+    return response.user;
+  },
+
+  async createUser(userData) {
+    const response = await this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
+    return response.user;
+  },
+
+  async updateUser(id, userData) {
+    const response = await this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
+    });
+    return response.user;
+  },
+
+  async deleteUser(id) {
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Roles endpoints
+  async getRoles() {
+    const response = await this.request('/roles');
+    return response.roles || [];
+  },
+
+  async getRole(id) {
+    const response = await this.request(`/roles/${id}`);
+    return response.role;
   },
 };
 
