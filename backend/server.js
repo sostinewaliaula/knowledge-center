@@ -1,13 +1,19 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 import pool from './config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Import routes
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import roleRoutes from './routes/role.routes.js';
+import contentRoutes from './routes/content.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -24,6 +30,9 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve uploaded files statically
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -53,7 +62,8 @@ app.get('/api', (req, res) => {
       health: '/api/health',
       auth: '/api/auth',
       users: '/api/users',
-      roles: '/api/roles'
+      roles: '/api/roles',
+      content: '/api/content'
     }
   });
 });
@@ -62,6 +72,7 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/content', contentRoutes);
 
 // 404 handler
 app.use(notFound);

@@ -18,6 +18,10 @@ dist-ssr
 server/.env
 backend/.env
 
+# Uploaded files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
