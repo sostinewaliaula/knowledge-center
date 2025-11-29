@@ -14,7 +14,6 @@ import {
   Settings, 
   Info,
   Palette,
-  CreditCard,
   Zap,
   Lock,
   FileText,
@@ -61,7 +60,6 @@ export function SettingsPage({}: SettingsPageProps) {
     language: 'en',
     dateFormat: 'MM/DD/YYYY',
     timeFormat: '12h',
-    currency: 'USD',
     theme: 'light',
     primaryColor: '#9333EA',
     secondaryColor: '#10B981'
@@ -147,18 +145,6 @@ export function SettingsPage({}: SettingsPageProps) {
     fromName: 'Knowledge Center',
     replyToEmail: 'support@caavagroup.com',
     testEmail: ''
-  });
-
-  // Payment/Billing Settings
-  const [billingSettings, setBillingSettings] = useState({
-    enablePayments: false,
-    currency: 'USD',
-    paymentMethods: ['credit_card', 'paypal'],
-    enableSubscriptions: false,
-    trialPeriodDays: 14,
-    enableInvoicing: false,
-    taxRate: 0,
-    enableCoupons: false
   });
 
   // Integration Settings
@@ -253,7 +239,6 @@ export function SettingsPage({}: SettingsPageProps) {
     { id: 'notifications', label: 'Notifications', icon: Bell, color: 'text-yellow-600' },
     { id: 'security', label: 'Security', icon: Shield, color: 'text-red-600' },
     { id: 'email', label: 'Email', icon: Mail, color: 'text-indigo-600' },
-    { id: 'billing', label: 'Billing', icon: CreditCard, color: 'text-pink-600' },
     { id: 'integrations', label: 'Integrations', icon: LinkIcon, color: 'text-cyan-600' },
     { id: 'gamification', label: 'Gamification', icon: Award, color: 'text-orange-600' },
     { id: 'learning-paths', label: 'Learning Paths', icon: Zap, color: 'text-teal-600' }
@@ -374,7 +359,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                         />
                       </div>
-                      <div className="grid grid-cols-3 gap-4">
+                      <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
                           <select
@@ -410,22 +395,6 @@ export function SettingsPage({}: SettingsPageProps) {
                             <option value="de">German</option>
                             <option value="zh">Chinese</option>
                             <option value="ja">Japanese</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                          <select
-                            value={generalSettings.currency}
-                            onChange={(e) => {
-                              setGeneralSettings({...generalSettings, currency: e.target.value});
-                              setHasUnsavedChanges(true);
-                            }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                          >
-                            <option value="USD">USD ($)</option>
-                            <option value="EUR">EUR (€)</option>
-                            <option value="GBP">GBP (£)</option>
-                            <option value="JPY">JPY (¥)</option>
                           </select>
                         </div>
                       </div>
@@ -1427,145 +1396,6 @@ export function SettingsPage({}: SettingsPageProps) {
                           </button>
                         </div>
                       </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'billing' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <CreditCard size={20} className="text-pink-600" />
-                      Payment Settings
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={billingSettings.enablePayments}
-                        onChange={() => {
-                          setBillingSettings({...billingSettings, enablePayments: !billingSettings.enablePayments});
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Payments"
-                        description="Allow payment processing for courses"
-                      />
-                      {billingSettings.enablePayments && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
-                            <select
-                              value={billingSettings.currency}
-                              onChange={(e) => {
-                                setBillingSettings({...billingSettings, currency: e.target.value});
-                                setHasUnsavedChanges(true);
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                              <option value="USD">USD ($)</option>
-                              <option value="EUR">EUR (€)</option>
-                              <option value="GBP">GBP (£)</option>
-                              <option value="JPY">JPY (¥)</option>
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Payment Methods</label>
-                            <div className="space-y-2">
-                              {['credit_card', 'paypal', 'stripe', 'bank_transfer'].map((method) => (
-                                <label key={method} className="flex items-center gap-2">
-                                  <input
-                                    type="checkbox"
-                                    checked={billingSettings.paymentMethods.includes(method)}
-                                    onChange={(e) => {
-                                      if (e.target.checked) {
-                                        setBillingSettings({...billingSettings, paymentMethods: [...billingSettings.paymentMethods, method]});
-                                      } else {
-                                        setBillingSettings({...billingSettings, paymentMethods: billingSettings.paymentMethods.filter(m => m !== method)});
-                                      }
-                                      setHasUnsavedChanges(true);
-                                    }}
-                                    className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
-                                  />
-                                  <span className="text-sm text-gray-700 capitalize">{method.replace('_', ' ')}</span>
-                                </label>
-                              ))}
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <CreditCard size={20} className="text-purple-600" />
-                      Subscriptions & Trials
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={billingSettings.enableSubscriptions}
-                        onChange={() => {
-                          setBillingSettings({...billingSettings, enableSubscriptions: !billingSettings.enableSubscriptions});
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Subscriptions"
-                        description="Allow recurring subscription payments"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Trial Period (days)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="90"
-                          value={billingSettings.trialPeriodDays}
-                          onChange={(e) => {
-                            setBillingSettings({...billingSettings, trialPeriodDays: parseInt(e.target.value)});
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <FileText size={20} className="text-blue-600" />
-                      Invoicing & Taxes
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={billingSettings.enableInvoicing}
-                        onChange={() => {
-                          setBillingSettings({...billingSettings, enableInvoicing: !billingSettings.enableInvoicing});
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Invoicing"
-                        description="Generate invoices for payments"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          step="0.01"
-                          value={billingSettings.taxRate}
-                          onChange={(e) => {
-                            setBillingSettings({...billingSettings, taxRate: parseFloat(e.target.value)});
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <ToggleSwitch
-                        enabled={billingSettings.enableCoupons}
-                        onChange={() => {
-                          setBillingSettings({...billingSettings, enableCoupons: !billingSettings.enableCoupons});
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Coupons"
-                        description="Allow discount coupons and codes"
-                      />
                     </div>
                   </div>
                 </div>
