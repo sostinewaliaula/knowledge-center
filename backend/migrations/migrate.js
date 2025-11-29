@@ -36,28 +36,100 @@ const markMigrationExecuted = async (name) => {
 const executeMigration = async (filePath, fileName) => {
   const sql = fs.readFileSync(filePath, 'utf8');
   
-  // Split SQL by semicolons and execute each statement
-  const statements = sql
-    .split(';')
-    .map(s => s.trim())
-    .filter(s => s.length > 0 && !s.startsWith('--'));
-
+  // Remove comments
+  let cleanSql = sql.replace(/--.*$/gm, '');
+  cleanSql = cleanSql.replace(/\/\*[\s\S]*?\*\//g, '');
+  
+  // Split by semicolons, but handle multi-line statements (triggers, functions)
+  // For functions and triggers, we need to keep BEGIN...END together
+  const statements = [];
+  let currentStatement = '';
+  let inBlock = false;
+  let beginCount = 0;
+  let endCount = 0;
+  
+  // Process line by line to better handle multi-line statements
+  const lines = cleanSql.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (inBlock) {
+        currentStatement += '\n';
+      }
+      continue;
+    }
+    
+    // Check if this line starts a block
+    if (trimmed.match(/^(CREATE|DROP)\s+(TRIGGER|FUNCTION|PROCEDURE)/i)) {
+      inBlock = true;
+      beginCount = 0;
+      endCount = 0;
+    }
+    
+    // Count BEGIN and END
+    const lineBeginMatches = (trimmed.match(/\bBEGIN\b/gi) || []).length;
+    const lineEndMatches = (trimmed.match(/\bEND\b/gi) || []).length;
+    beginCount += lineBeginMatches;
+    endCount += lineEndMatches;
+    
+    currentStatement += (currentStatement ? '\n' : '') + trimmed;
+    
+    // Check if statement is complete
+    if (trimmed.endsWith(';')) {
+      // If we're in a block, wait for matching END
+      if (inBlock && endCount < beginCount) {
+        // Still in block, continue
+        continue;
+      } else {
+        // Statement complete
+        if (currentStatement.trim()) {
+          statements.push(currentStatement.trim());
+        }
+        currentStatement = '';
+        inBlock = false;
+        beginCount = 0;
+        endCount = 0;
+      }
+    }
+  }
+  
+  // Add any remaining statement
+  if (currentStatement.trim()) {
+    statements.push(currentStatement.trim());
+  }
+  
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
     
+    let statementCount = 0;
     for (const statement of statements) {
-      if (statement.trim()) {
-        await connection.query(statement);
+      const trimmed = statement.trim();
+      if (trimmed && !trimmed.match(/^\s*$/)) {
+        try {
+          await connection.query(trimmed);
+          statementCount++;
+        } catch (stmtError) {
+          console.error(`\n❌ Error in statement ${statementCount + 1}:`);
+          console.error(trimmed.substring(0, 200) + '...');
+          console.error(`Error: ${stmtError.message}\n`);
+          throw stmtError;
+        }
       }
     }
     
     await markMigrationExecuted(fileName);
     await connection.commit();
     
-    console.log(`✅ Executed: ${fileName}`);
+    console.log(`✅ Executed: ${fileName} (${statementCount} statements)`);
   } catch (error) {
     await connection.rollback();
+    console.error(`\n❌ Migration failed: ${fileName}`);
+    console.error(`Error: ${error.message}`);
+    if (error.sql) {
+      console.error(`SQL: ${error.sql.substring(0, 200)}...`);
+    }
     throw error;
   } finally {
     connection.release();

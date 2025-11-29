@@ -41,6 +41,17 @@ export const query = async (sql, params = []) => {
   }
 };
 
+// Helper function to get MySQL UUID (without dashes, 32 chars)
+export const getMySQLUUID = async () => {
+  try {
+    const [result] = await pool.execute('SELECT REPLACE(UUID(), "-", "") as uuid');
+    return result[0].uuid;
+  } catch (error) {
+    console.error('Error generating MySQL UUID:', error);
+    throw error;
+  }
+};
+
 // Helper function to get a single row
 export const queryOne = async (sql, params = []) => {
   const results = await query(sql, params);
