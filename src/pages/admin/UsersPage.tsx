@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
+import { useToast } from '../../contexts/ToastContext';
 
 interface User {
   id: string;
@@ -43,6 +44,7 @@ interface Role {
 interface UsersPageProps {}
 
 export function UsersPage({}: UsersPageProps) {
+  const { showSuccess, showError } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(true);
@@ -91,7 +93,9 @@ export function UsersPage({}: UsersPageProps) {
       setTotalUsers(data.total || 0);
       setTotalPages(data.totalPages || 1);
     } catch (err: any) {
-      setError(err.message || 'Failed to fetch users');
+      const errorMessage = err.message || 'Failed to fetch users';
+      setError(errorMessage);
+      showError(errorMessage);
       console.error('Error fetching users:', err);
     } finally {
       setLoading(false);
@@ -164,6 +168,7 @@ export function UsersPage({}: UsersPageProps) {
     if (!validateForm()) return;
     
     setSubmitting(true);
+    setFormErrors({});
     try {
       await api.createUser({
         name: formData.name || null,
@@ -173,9 +178,12 @@ export function UsersPage({}: UsersPageProps) {
       });
       
       setShowCreateModal(false);
+      showSuccess('User created successfully!');
       fetchUsers();
     } catch (err: any) {
-      setFormErrors({ submit: err.message || 'Failed to create user' });
+      const errorMessage = err.message || 'Failed to create user';
+      setFormErrors({ submit: errorMessage });
+      showError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -185,6 +193,7 @@ export function UsersPage({}: UsersPageProps) {
     if (!selectedUser || !validateForm()) return;
     
     setSubmitting(true);
+    setFormErrors({});
     try {
       const updateData: any = {
         name: formData.name || null,
@@ -199,9 +208,12 @@ export function UsersPage({}: UsersPageProps) {
       await api.updateUser(selectedUser.id, updateData);
       
       setShowEditModal(false);
+      showSuccess('User updated successfully!');
       fetchUsers();
     } catch (err: any) {
-      setFormErrors({ submit: err.message || 'Failed to update user' });
+      const errorMessage = err.message || 'Failed to update user';
+      setFormErrors({ submit: errorMessage });
+      showError(errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -216,12 +228,16 @@ export function UsersPage({}: UsersPageProps) {
     }
     
     setSubmitting(true);
+    setFormErrors({});
     try {
       await api.deleteUser(selectedUser.id);
       setShowDeleteModal(false);
+      showSuccess('User deleted successfully!');
       fetchUsers();
     } catch (err: any) {
-      setFormErrors({ submit: err.message || 'Failed to delete user' });
+      const errorMessage = err.message || 'Failed to delete user';
+      setFormErrors({ submit: errorMessage });
+      showError(errorMessage);
     } finally {
       setSubmitting(false);
     }

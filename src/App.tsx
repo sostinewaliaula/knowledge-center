@@ -9,6 +9,8 @@ import { LandingPage } from './pages/marketing/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
 import { ProtectedRoute } from './components/ProtectedRoute';
+import { ToastProvider, useToast } from './contexts/ToastContext';
+import { ToastContainer } from './components/ToastContainer';
 // New Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ContentLibrary } from './pages/admin/ContentLibrary';
@@ -31,10 +33,13 @@ import { UserImport } from './pages/admin/UserImport';
 
 export type Page = 'landing' | 'learner' | 'learning' | 'reports' | 'login' | 'forgot-password';
 
-export function App() {
+function AppContent() {
+  const { toasts, removeToast } = useToast();
+
   return (
-    <BrowserRouter>
-      <Routes>
+    <>
+      <BrowserRouter>
+        <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -158,7 +163,17 @@ export function App() {
         } />
         {/* Redirect any unknown routes to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+      <ToastContainer toasts={toasts} onClose={removeToast} />
+    </>
+  );
+}
+
+export function App() {
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
   );
 }
