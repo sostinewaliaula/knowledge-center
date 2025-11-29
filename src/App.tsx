@@ -8,6 +8,7 @@ import { LearnerDashboard } from './pages/learner/LearnerDashboard';
 import { LandingPage } from './pages/marketing/LandingPage';
 import { LoginPage } from './pages/auth/LoginPage';
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage';
+import { ProtectedRoute } from './components/ProtectedRoute';
 // New Admin Pages
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { ContentLibrary } from './pages/admin/ContentLibrary';
@@ -37,30 +38,124 @@ export function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/learner" element={<LearnerDashboard />} />
-        <Route path="/learner/learning" element={<LearningContent />} />
-        {/* Admin Routes */}
-        <Route path="/admin" element={<AdminDashboard />} />
-        <Route path="/admin/content-library" element={<ContentLibrary />} />
-        <Route path="/admin/course-builder" element={<CourseBuilder />} />
-        <Route path="/admin/learning-paths" element={<LearningPathCreator />} />
-        <Route path="/admin/assessments" element={<Assessments />} />
-        <Route path="/admin/assignments" element={<Assignments />} />
-        <Route path="/admin/analytics" element={<Analytics />} />
-        <Route path="/admin/compliance" element={<Compliance />} />
-        <Route path="/admin/gamification" element={<Gamification />} />
-        <Route path="/admin/live-sessions" element={<LiveSessions />} />
-        <Route path="/admin/discussions" element={<Discussions />} />
-        <Route path="/admin/notifications" element={<Notifications />} />
-        <Route path="/admin/users" element={<UsersPage />} />
-        <Route path="/admin/settings" element={<SettingsPage />} />
-        <Route path="/admin/categories" element={<Categories />} />
-        <Route path="/admin/templates" element={<Templates />} />
-        <Route path="/admin/user-groups" element={<UserGroups />} />
-        <Route path="/admin/departments" element={<Departments />} />
-        <Route path="/admin/roles" element={<Roles />} />
-        <Route path="/admin/user-import" element={<UserImport />} />
-        <Route path="/reports" element={<ReportsPage />} />
+        {/* Protected Learner Routes */}
+        <Route path="/learner" element={
+          <ProtectedRoute>
+            <LearnerDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/learner/learning" element={
+          <ProtectedRoute>
+            <LearningContent />
+          </ProtectedRoute>
+        } />
+        
+        {/* Protected Admin Routes - Only accessible by admins */}
+        <Route path="/admin" element={
+          <ProtectedRoute requiredRole="admin">
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/content-library" element={
+          <ProtectedRoute requiredRole="admin">
+            <ContentLibrary />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/course-builder" element={
+          <ProtectedRoute requiredRole="admin">
+            <CourseBuilder />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/learning-paths" element={
+          <ProtectedRoute requiredRole="admin">
+            <LearningPathCreator />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/assessments" element={
+          <ProtectedRoute requiredRole="admin">
+            <Assessments />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/assignments" element={
+          <ProtectedRoute requiredRole="admin">
+            <Assignments />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/analytics" element={
+          <ProtectedRoute requiredRole="admin">
+            <Analytics />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/compliance" element={
+          <ProtectedRoute requiredRole="admin">
+            <Compliance />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/gamification" element={
+          <ProtectedRoute requiredRole="admin">
+            <Gamification />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/live-sessions" element={
+          <ProtectedRoute requiredRole="admin">
+            <LiveSessions />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/discussions" element={
+          <ProtectedRoute requiredRole="admin">
+            <Discussions />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/notifications" element={
+          <ProtectedRoute requiredRole="admin">
+            <Notifications />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/users" element={
+          <ProtectedRoute requiredRole="admin">
+            <UsersPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/settings" element={
+          <ProtectedRoute requiredRole="admin">
+            <SettingsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/categories" element={
+          <ProtectedRoute requiredRole="admin">
+            <Categories />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/templates" element={
+          <ProtectedRoute requiredRole="admin">
+            <Templates />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/user-groups" element={
+          <ProtectedRoute requiredRole="admin">
+            <UserGroups />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/departments" element={
+          <ProtectedRoute requiredRole="admin">
+            <Departments />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/roles" element={
+          <ProtectedRoute requiredRole="admin">
+            <Roles />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/user-import" element={
+          <ProtectedRoute requiredRole="admin">
+            <UserImport />
+          </ProtectedRoute>
+        } />
+        <Route path="/reports" element={
+          <ProtectedRoute requiredRole="admin">
+            <ReportsPage />
+          </ProtectedRoute>
+        } />
         {/* Redirect any unknown routes to landing */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

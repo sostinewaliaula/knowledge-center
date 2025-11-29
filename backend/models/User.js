@@ -41,8 +41,9 @@ export class User {
       VALUES (?, ?, ?, ?)
     `;
     
-    const result = await query(sql, [email, hashedPassword, name || null, role_id || null]);
-    return await this.findById(result.insertId);
+    await query(sql, [email, hashedPassword, name || null, role_id || null]);
+    // UUID is auto-generated, so fetch by email to get the created user
+    return await this.findByEmail(email);
   }
 
   /**

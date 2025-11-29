@@ -49,9 +49,9 @@ export function LoginPage({}: LoginPageProps) {
       }
       
       // Navigate based on user role
-      const userRole = response.user?.role || response.user?.role_name;
+      const userRole = response.user?.role_name || response.user?.role;
       if (userRole === 'admin') {
-        navigate('/reports');
+        navigate('/admin');
       } else if (userRole === 'learner') {
         navigate('/learner');
       } else if (userRole === 'instructor') {

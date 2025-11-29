@@ -34,10 +34,16 @@ export const api = {
 
   // Auth endpoints
   async login(email, password) {
-    return this.request('/auth/login', {
+    const response = await this.request('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
+    // Backend returns { success: true, token, user }
+    // Return just token and user for compatibility
+    return {
+      token: response.token,
+      user: response.user
+    };
   },
 
   async forgotPassword(email) {
