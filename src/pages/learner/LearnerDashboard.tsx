@@ -1,4 +1,4 @@
-import { ArrowRight, Bookmark, Clock3, FileText, GraduationCap, Info, Medal, Star, Zap } from 'lucide-react';
+import { ArrowRight, Bookmark, Clock3, FileText, GraduationCap, Info, Medal, ShieldCheck, Star, Zap } from 'lucide-react';
 import { LearnerNavbar } from '../../components/LearnerNavbar';
 
 type DashboardPage = 'learning' | 'reports' | 'learner';
@@ -217,49 +217,94 @@ export function LearnerDashboard({}: LearnerDashboardProps) {
           <div className="grid gap-8 lg:grid-cols-[2fr,1fr]">
             <section className="space-y-10">
               {/* In Progress Courses */}
-              <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">In Progress</h2>
-                  <button className="text-sm font-semibold text-[#5e37fb] flex items-center gap-1">
-                    View All
+              <div className="bg-white rounded-2xl border border-gray-100 p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-gray-900">In progress learning content</h2>
+                    <Info size={18} className="text-gray-400" />
+                  </div>
+                  <button className="text-sm font-semibold text-purple-600 hover:text-purple-700 flex items-center gap-1">
+                    View all
                     <ArrowRight size={16} />
                   </button>
                 </div>
-                <div className="space-y-4">
+
+                <div className="space-y-3">
                   {inProgressCourses.map((course, index) => (
-                    <div key={index} className="flex gap-4 p-4 rounded-[18px] border border-gray-100 hover:shadow-md transition-shadow">
-                      <div className="flex-shrink-0 w-24 h-24 rounded-xl overflow-hidden bg-gray-100">
-                        <img src={course.illustration} alt={course.title} className="w-full h-full object-cover" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="text-base font-semibold text-gray-900 mb-1 line-clamp-2">{course.title}</h3>
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-3">
-                          <span className="flex items-center gap-1">
-                            <FileText size={14} />
-                            {course.materials} Materials
-                          </span>
-                          {course.completion && (
-                            <span className={course.completionColor}>
-                              {course.completion} Complete
-                            </span>
-                          )}
-                          <span className={course.deadlineColor}>
-                            <Clock3 size={14} className="inline mr-1" />
-                            {course.deadline}
+                    <div
+                      key={index}
+                      className="flex flex-wrap items-center gap-4 border border-gray-100 rounded-2xl px-4 py-3 hover:shadow-sm transition-shadow"
+                    >
+                      <div className="flex items-center gap-4 flex-1 min-w-[250px]">
+                        <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-gray-100 flex-shrink-0">
+                          <img src={course.illustration} alt={course.title} className="w-full h-full object-cover" />
+                          <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-white flex items-center justify-center shadow-sm">
+                            <ShieldCheck size={14} className="text-green-500" />
                           </span>
                         </div>
-                        {course.completionPercent && (
-                          <div className="mb-3">
-                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-gradient-to-r from-[#5e37fb] to-[#22c55e] transition-all"
-                                style={{ width: `${course.completionPercent}%` }}
-                              />
-                            </div>
+                        <div className="space-y-1 min-w-0">
+                          <div className="flex items-center gap-1 text-xs text-gray-500">
+                            <FileText size={14} className="text-blue-500" />
+                            Course
                           </div>
-                        )}
-                        <button className="text-sm font-semibold text-[#5e37fb] hover:text-[#4c2dd1] transition-colors">
-                          {course.action} →
+                          <h3 className="text-base font-semibold text-gray-900 leading-tight line-clamp-1">
+                            {course.title}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-8 text-sm text-gray-500 flex-1">
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-gray-400">Content</div>
+                          <div className="flex items-center gap-1 text-gray-900">
+                            <FileText size={14} />
+                            {course.materials} Material
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-gray-400">Completion</div>
+                          {course.completionPercent ? (
+                            <div className="flex items-center gap-2 text-gray-900 font-semibold">
+                              <svg width="24" height="24" viewBox="0 0 36 36">
+                                <path
+                                  d="M18 2.0845
+                                  a 15.9155 15.9155 0 0 1 0 31.831
+                                  a 15.9155 15.9155 0 0 1 0 -31.831"
+                                  fill="none"
+                                  stroke="#e5e7eb"
+                                  strokeWidth="3"
+                                />
+                                <path
+                                  d="M18 2.0845
+                                  a 15.9155 15.9155 0 0 1 0 31.831"
+                                  fill="none"
+                                  stroke="#22c55e"
+                                  strokeWidth="3"
+                                  strokeDasharray={`${course.completionPercent}, 100`}
+                                />
+                              </svg>
+                              {course.completion}
+                            </div>
+                          ) : (
+                            <div className="text-gray-400">-</div>
+                          )}
+                        </div>
+                        <div>
+                          <div className="text-[11px] uppercase tracking-wide text-gray-400">Deadline</div>
+                          <div
+                            className={`flex items-center gap-1 font-semibold ${
+                              course.deadlineColor?.includes('rose') ? 'text-red-500' : 'text-gray-900'
+                            }`}
+                          >
+                            <Clock3 size={14} />
+                            {course.deadline}
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex-shrink-0">
+                        <button className="px-4 py-2 rounded-full border border-gray-300 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+                          {course.action}
                         </button>
                       </div>
                     </div>
@@ -270,39 +315,52 @@ export function LearnerDashboard({}: LearnerDashboardProps) {
               {/* New Enrollments */}
               <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
                 <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">New Enrollments</h2>
-                  <button className="text-sm font-semibold text-[#5e37fb] flex items-center gap-1">
-                    View All
-                    <ArrowRight size={16} />
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold text-gray-900">New enrollment</h2>
+                    <Info size={16} className="text-gray-400" />
+                  </div>
+                  <button className="text-sm font-semibold text-purple-600 underline hover:text-purple-700 transition-colors">
+                    View all
                   </button>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {newEnrollments.map((course, index) => (
-                    <div key={index} className="rounded-[18px] border border-gray-100 overflow-hidden hover:shadow-md transition-shadow">
+                    <div key={index} className="rounded-xl border border-gray-200 bg-white overflow-hidden hover:shadow-md transition-shadow">
+                      {/* Thumbnail */}
                       <div className="h-32 bg-gray-100 relative overflow-hidden">
                         <img src={course.illustration} alt={course.title} className="w-full h-full object-cover" />
-                        <div className="absolute top-3 right-3">
-                          <span className="px-2 py-1 text-xs font-semibold bg-white rounded-full text-gray-700">
-                            {course.status}
+                        {/* Materials Badge */}
+                        <div className="absolute top-3 left-3">
+                          <span className="px-2 py-1 text-xs font-semibold bg-gray-700 text-white rounded">
+                            {course.materials} materials
                           </span>
                         </div>
                       </div>
-                      <div className="p-4">
-                        <h3 className="text-sm font-semibold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
-                        <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-                          <FileText size={12} />
-                          <span>{course.materials} Materials</span>
+                      
+                      {/* Course Details */}
+                      <div className="p-3">
+                        {/* Course Type */}
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <FileText size={14} className="text-blue-500" />
+                          <span className="text-xs text-blue-500">Course</span>
                         </div>
-                        <div className="flex flex-wrap gap-2 mb-3">
+                        
+                        {/* Course Title */}
+                        <h3 className="text-sm font-bold text-gray-900 mb-2 line-clamp-2">{course.title}</h3>
+                        
+                        {/* Tags */}
+                        <div className="flex flex-wrap gap-2 mb-2">
                           {course.tags.map((tag, tagIndex) => (
-                            <span key={tagIndex} className="px-2 py-1 text-xs bg-gray-100 text-gray-600 rounded-full">
+                            <span key={tagIndex} className="px-2.5 py-1 text-xs bg-gray-100 text-gray-600 rounded-md">
                               {tag}
                             </span>
                           ))}
                         </div>
-                        <button className="w-full text-sm font-semibold text-[#5e37fb] hover:text-[#4c2dd1] transition-colors">
-                          Start Learning →
-                        </button>
+                        
+                        {/* Status */}
+                        <div className="text-xs text-gray-600 font-medium">
+                          {course.status}
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -311,38 +369,41 @@ export function LearnerDashboard({}: LearnerDashboardProps) {
 
               {/* Most Viewed */}
               <div className="bg-white rounded-[24px] p-6 shadow-[0_12px_30px_rgba(15,23,42,0.08)]">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-xl font-semibold text-gray-900">Most Viewed</h2>
-                  <button className="text-sm font-semibold text-[#5e37fb] flex items-center gap-1">
-                    View All
-                    <ArrowRight size={16} />
-                  </button>
+                <div className="flex items-center gap-2 mb-6">
+                  <h2 className="text-xl font-semibold text-gray-900">Most view contents</h2>
+                  <Info size={18} className="text-gray-400" />
                 </div>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {mostViewed.map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 p-4 rounded-[18px] border border-gray-100 hover:shadow-md transition-shadow">
-                      <div className="flex-shrink-0 w-16 h-16 rounded-xl flex items-center justify-center" style={{ backgroundColor: item.color + '40' }}>
-                        <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ backgroundColor: item.color }}>
-                          <FileText size={24} className="text-white" />
+                    <div key={index} className="flex flex-wrap items-center gap-4 border border-gray-100 rounded-2xl px-4 py-3">
+                      <div className="flex items-center gap-4 flex-1 min-w-[220px]">
+                        <div
+                          className="w-10 h-10 rounded-full flex items-center justify-center"
+                          style={{ backgroundColor: item.color + '33' }}
+                        >
+                          <FileText size={18} style={{ color: item.color }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-sm">
+                            <span className="font-semibold text-gray-900 line-clamp-1">{item.title}</span>
+                            <span className={`px-2 py-0.5 text-[11px] font-medium rounded-full ${item.pillBg} ${item.pillColor}`}>
+                              {item.type}
+                            </span>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-base font-semibold text-gray-900">{item.title}</h3>
-                          <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${item.pillBg} ${item.pillColor}`}>
-                            {item.type}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          <span>{item.hours} Hours</span>
-                          <span>{item.progress}% Complete</span>
-                        </div>
-                        <div className="mt-2 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full transition-all"
+                      <div className="flex-1 min-w-[150px]">
+                        <div className="relative h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="absolute inset-y-0 left-0 rounded-full"
                             style={{ width: `${item.progress}%`, backgroundColor: item.color }}
                           />
                         </div>
+                      </div>
+                      <div className="flex items-center justify-end gap-2 flex-shrink-0 text-sm font-semibold text-gray-900">
+                        <span className="px-3 py-1 rounded-full bg-green-100 text-green-700">
+                          {item.progress}% ({item.hours} hrs)
+                        </span>
                       </div>
                     </div>
                   ))}

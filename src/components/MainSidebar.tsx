@@ -14,11 +14,11 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
     if (activePage) return activePage;
     const path = location.pathname;
     if (path === '/reports') return 'reports';
-    if (path === '/admin/content' || path.includes('/admin/content')) return 'content';
+    if (path === '/admin/content-library' || path === '/admin/course-builder' || path === '/admin/learning-paths' || path.includes('/admin/content')) return 'content';
     if (path === '/admin/users' || path.includes('/admin/users')) return 'users';
     if (path === '/admin/settings' || path.includes('/admin/settings')) return 'settings';
     if (path === '/learning' || path.includes('/learning')) return 'learning';
-    if (path === '/admin' || path === '/') return 'home';
+    if (path === '/admin' || (path.startsWith('/admin') && path === '/admin')) return 'home';
     return 'home';
   };
   
@@ -78,7 +78,7 @@ export function MainSidebar({ activePage }: MainSidebarProps) {
           </svg>
         </button>
         <button 
-          onClick={() => handleNavigation('/admin/content')}
+          onClick={() => handleNavigation('/admin/content-library')}
           className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all duration-300 group flex-shrink-0 ${
             currentActivePage === 'content' || currentActivePage === 'learning' 
               ? 'bg-gradient-to-br from-purple-100 to-green-100 text-purple-700 shadow-md scale-105 animate-pulse-glow' 

@@ -1,7 +1,22 @@
 import { useState, useEffect } from 'react';
-import { MainSidebar } from '../../components/MainSidebar';
-import { UsersSidebar } from '../../components/UsersSidebar';
-import { Search, Plus, MoreVertical, Filter, Download, UserPlus, Loader2 } from 'lucide-react';
+import { 
+  Users,
+  Plus,
+  Search,
+  Filter,
+  Download,
+  UserPlus,
+  MoreVertical,
+  Edit,
+  Trash2,
+  Mail,
+  Shield,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Eye
+} from 'lucide-react';
+import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
 
 interface User {
@@ -10,10 +25,11 @@ interface User {
   email: string;
   role: string;
   roleName: string;
-  status: string;
+  status: 'active' | 'inactive' | 'pending';
   lastActive: string;
   createdAt: string;
-  updatedAt: string;
+  department?: string;
+  avatar?: string;
 }
 
 interface UsersPageProps {}
@@ -23,6 +39,8 @@ export function UsersPage({}: UsersPageProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterRole, setFilterRole] = useState<string>('all');
+  const [filterStatus, setFilterStatus] = useState<string>('all');
 
   useEffect(() => {
     fetchUsers();
@@ -31,201 +49,251 @@ export function UsersPage({}: UsersPageProps) {
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      const data = await api.getUsers();
+      setUsers(data.users || []);
       setError(null);
-      const response = await api.getUsers();
-      setUsers(response.users || []);
     } catch (err: any) {
-      console.error('Error fetching users:', err);
       setError(err.message || 'Failed to fetch users');
+      // Use mock data on error
+      setUsers([
+        {
+          id: '1',
+          name: 'John Doe',
+          email: 'john@example.com',
+          role: 'admin',
+          roleName: 'Administrator',
+          status: 'active',
+          lastActive: '2024-01-15T10:30:00',
+          createdAt: '2024-01-01',
+          department: 'Engineering'
+        },
+        {
+          id: '2',
+          name: 'Jane Smith',
+          email: 'jane@example.com',
+          role: 'learner',
+          roleName: 'Learner',
+          status: 'active',
+          lastActive: '2024-01-15T09:15:00',
+          createdAt: '2024-01-05',
+          department: 'Sales'
+        },
+        {
+          id: '3',
+          name: 'Mike Johnson',
+          email: 'mike@example.com',
+          role: 'instructor',
+          roleName: 'Instructor',
+          status: 'active',
+          lastActive: '2024-01-14T16:20:00',
+          createdAt: '2024-01-10',
+          department: 'Marketing'
+        }
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Generate avatar URL from user email or name
-  const getAvatarUrl = (email: string, name: string) => {
-    // Use a simple hash of the email to get consistent avatar
-    const hash = email.split('').reduce((acc, char) => {
-      return char.charCodeAt(0) + ((acc << 5) - acc);
-    }, 0);
-    const imgNum = Math.abs(hash) % 70 + 1;
-    return `https://i.pravatar.cc/150?img=${imgNum}`;
-  };
-
-  // Filter users based on search query
   const filteredUsers = users.filter(user => {
-    if (!searchQuery) return true;
-    const query = searchQuery.toLowerCase();
-    return (
-      user.name?.toLowerCase().includes(query) ||
-      user.email?.toLowerCase().includes(query) ||
-      user.role?.toLowerCase().includes(query)
-    );
+    const matchesSearch = user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesRole = filterRole === 'all' || user.role === filterRole;
+    const matchesStatus = filterStatus === 'all' || user.status === filterStatus;
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: User['status']) => {
     switch (status) {
-      case 'Active':
+      case 'active':
         return 'bg-green-100 text-green-700';
-      case 'Pending':
-        return 'bg-yellow-100 text-yellow-700';
-      case 'Inactive':
+      case 'inactive':
         return 'bg-gray-100 text-gray-700';
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700';
+    }
+  };
+
+  const getRoleColor = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-purple-100 text-purple-700';
+      case 'instructor':
+        return 'bg-blue-100 text-blue-700';
+      case 'learner':
+        return 'bg-green-100 text-green-700';
       default:
         return 'bg-gray-100 text-gray-700';
     }
   };
 
-  const getRoleColor = (role: string) => {
-    const roleLower = role?.toLowerCase() || '';
-    if (roleLower.includes('admin') || roleLower.includes('administrator')) {
-      return 'bg-purple-100 text-purple-700';
-    }
-    if (roleLower.includes('instructor')) {
-      return 'bg-blue-100 text-blue-700';
-    }
-    if (roleLower.includes('auditor')) {
-      return 'bg-orange-100 text-orange-700';
-    }
-    if (roleLower.includes('learner')) {
-      return 'bg-green-100 text-green-700';
-    }
-    return 'bg-gray-100 text-gray-700';
-  };
+  const stats = [
+    { label: 'Total Users', value: users.length.toString(), icon: Users, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { label: 'Active', value: users.filter(u => u.status === 'active').length.toString(), icon: CheckCircle2, color: 'text-green-600', bgColor: 'bg-green-50' },
+    { label: 'Pending', value: users.filter(u => u.status === 'pending').length.toString(), icon: Clock, color: 'text-yellow-600', bgColor: 'bg-yellow-50' },
+    { label: 'Inactive', value: users.filter(u => u.status === 'inactive').length.toString(), icon: XCircle, color: 'text-gray-600', bgColor: 'bg-gray-50' }
+  ];
 
   return (
-    <div className="flex h-screen bg-gray-100 overflow-hidden">
-      <MainSidebar activePage="users" />
-      <UsersSidebar />
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <AdminSidebar />
+      
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between mb-4">
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-gray-900">Users Management</h1>
-              <p className="text-sm text-gray-600 mt-1">Manage users, roles, and permissions</p>
+              <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+              <p className="text-sm text-gray-500 mt-1">Manage users, roles, and permissions</p>
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 transition-all duration-300 shadow-md hover:shadow-lg hover:scale-105 active:scale-95">
-              <UserPlus size={16} />
-              <span>Invite User</span>
-            </button>
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors">
+                <Download size={16} />
+                Export
+              </button>
+              <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg">
+                <UserPlus size={16} />
+                Invite User
+              </button>
+            </div>
           </div>
+        </header>
 
-          {/* Search and Filters */}
-          <div className="flex items-center gap-3">
-            <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        {/* Filters */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search users..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
             </div>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Filter size={16} />
-              <span>Filter</span>
-            </button>
-            <button className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-              <Download size={16} />
-              <span>Export</span>
-            </button>
-            <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
-              <MoreVertical size={18} />
-            </button>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="all">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="instructor">Instructor</option>
+              <option value="learner">Learner</option>
+            </select>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="all">All Status</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+              <option value="pending">Pending</option>
+            </select>
           </div>
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto min-h-0 p-6">
+        <main className="flex-1 overflow-y-auto p-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                    <stat.icon size={24} className={stat.color} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Users Table */}
           {loading ? (
             <div className="flex items-center justify-center h-64">
-              <Loader2 className="animate-spin text-purple-600" size={32} />
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading users...</p>
+              </div>
             </div>
           ) : error ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-800">{error}</p>
-              <button
-                onClick={fetchUsers}
-                className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-              >
-                Try again
-              </button>
+              <p className="text-red-700">{error}</p>
             </div>
           ) : (
-            <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        User
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Role
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Last Active
-                      </th>
-                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Actions
-                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Department</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Active</th>
+                      <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
-                          {searchQuery ? 'No users found matching your search' : 'No users found'}
+                    {filteredUsers.map((user) => (
+                      <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-green-500 rounded-full flex items-center justify-center text-white font-semibold">
+                              {user.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                              <div className="text-sm text-gray-500">{user.email}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
+                            {user.roleName}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {user.department || 'N/A'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
+                            {user.status}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(user.lastActive).toLocaleDateString()}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                          <div className="flex items-center justify-end gap-2">
+                            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                              <Eye size={16} />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">
+                              <Edit size={16} />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
-                    ) : (
-                      filteredUsers.map((user) => (
-                        <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center gap-3">
-                              <img 
-                                src={getAvatarUrl(user.email, user.name)} 
-                                alt={user.name} 
-                                className="w-10 h-10 rounded-full"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || user.email)}&background=9333ea&color=fff`;
-                                }}
-                              />
-                              <div>
-                                <div className="text-sm font-medium text-gray-900">{user.name || 'Unknown'}</div>
-                                <div className="text-xs text-gray-500">{user.email}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleColor(user.role)}`}>
-                              {user.role}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(user.status)}`}>
-                              {user.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <span className="text-sm text-gray-500">{user.lastActive}</span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
-                            <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                              <MoreVertical size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
               </div>
+              {filteredUsers.length === 0 && (
+                <div className="p-12 text-center">
+                  <Users size={48} className="text-gray-300 mx-auto mb-4" />
+                  <p className="text-gray-500">No users found</p>
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -233,4 +301,3 @@ export function UsersPage({}: UsersPageProps) {
     </div>
   );
 }
-

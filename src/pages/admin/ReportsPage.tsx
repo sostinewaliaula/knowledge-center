@@ -1,364 +1,264 @@
-import React, { useState } from 'react';
-import { MainSidebar } from '../../components/MainSidebar';
-import { Search, Plus, MoreVertical, ChevronDown, X } from 'lucide-react';
+import { useState } from 'react';
+import { 
+  BarChart3,
+  Download,
+  Filter,
+  Calendar,
+  Users,
+  BookOpen,
+  CheckCircle2,
+  Clock,
+  TrendingUp,
+  FileText,
+  Mail,
+  Search
+} from 'lucide-react';
+import { AdminSidebar } from '../../components/AdminSidebar';
 
-interface Learner {
+interface Report {
   id: string;
-  name: string;
-  role: string;
   title: string;
-  avatar: string;
-  status: 'Not started' | 'In progress' | 'Overdue';
-  points: number;
-  progress: number;
-  assignedTo: string;
-  assignedToAvatar: string;
+  type: 'course' | 'user' | 'compliance' | 'engagement';
+  generatedAt: string;
+  generatedBy: string;
+  format: 'pdf' | 'excel' | 'csv';
+  size: string;
 }
 
-interface ReportsPageProps {}
+interface ReportsProps {}
 
-export function ReportsPage({}: ReportsPageProps) {
-  const [showFilters, setShowFilters] = useState(false);
-  const learners: Learner[] = [{
-    id: '1',
-    name: 'Adit Irwan',
-    role: 'Design',
-    title: 'Jr UI/UX Designer',
-    avatar: 'https://i.pravatar.cc/150?img=1',
-    status: 'Not started',
-    points: 0,
-    progress: 0,
-    assignedTo: 'Rohan Baiq',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=20'
-  }, {
-    id: '2',
-    name: 'Arif Brata',
-    role: 'Design',
-    title: 'Jr UI/UX Designer',
-    avatar: 'https://i.pravatar.cc/150?img=2',
-    status: 'Overdue',
-    points: 0,
-    progress: 0,
-    assignedTo: 'Rohan Baiq',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=20'
-  }, {
-    id: '3',
-    name: 'Bagus Yuli',
-    role: 'HR',
-    title: 'Ld Human Resources',
-    avatar: 'https://i.pravatar.cc/150?img=3',
-    status: 'In progress',
-    points: 0,
-    progress: 0,
-    assignedTo: 'Pandji Manjiw',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=21'
-  }, {
-    id: '4',
-    name: 'Beni Neon',
-    role: 'Design',
-    title: 'Jr UI/UX Designer',
-    avatar: 'https://i.pravatar.cc/150?img=4',
-    status: 'In progress',
-    points: 4,
-    progress: 30,
-    assignedTo: 'Pandji Manjiw',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=21'
-  }, {
-    id: '5',
-    name: 'Brian Domoni',
-    role: 'HR',
-    title: 'Staff Human Resources',
-    avatar: 'https://i.pravatar.cc/150?img=5',
-    status: 'Not started',
-    points: 2,
-    progress: 0,
-    assignedTo: 'Pandji Manjiw',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=21'
-  }, {
-    id: '6',
-    name: 'Depe Prada',
-    role: 'Design',
-    title: 'PM UI/UX Designer',
-    avatar: 'https://i.pravatar.cc/150?img=6',
-    status: 'Not started',
-    points: 0,
-    progress: 0,
-    assignedTo: 'Rohan Baiq',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=20'
-  }, {
-    id: '7',
-    name: 'Fauzan Aziz',
-    role: 'Design',
-    title: 'Md UI/UX Designer',
-    avatar: 'https://i.pravatar.cc/150?img=7',
-    status: 'In progress',
-    points: 4,
-    progress: 70,
-    assignedTo: 'Pandji Manjiw',
-    assignedToAvatar: 'https://i.pravatar.cc/150?img=21'
-  }];
+export function ReportsPage({}: ReportsProps) {
+  const [reports, setReports] = useState<Report[]>([
+    {
+      id: '1',
+      title: 'Course Completion Report - Q1 2024',
+      type: 'course',
+      generatedAt: '2024-01-15T10:30:00',
+      generatedBy: 'Admin',
+      format: 'pdf',
+      size: '2.4 MB'
+    },
+    {
+      id: '2',
+      title: 'User Activity Report',
+      type: 'user',
+      generatedAt: '2024-01-14T14:20:00',
+      generatedBy: 'Admin',
+      format: 'excel',
+      size: '1.8 MB'
+    },
+    {
+      id: '3',
+      title: 'Compliance Status Report',
+      type: 'compliance',
+      generatedAt: '2024-01-13T09:15:00',
+      generatedBy: 'Admin',
+      format: 'pdf',
+      size: '3.1 MB'
+    }
+  ]);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'In progress':
-        return 'text-orange-600';
-      case 'Not started':
-        return 'text-gray-500';
-      case 'Overdue':
-        return 'text-red-600';
-      default:
-        return 'text-gray-600';
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
+
+  const filteredReports = reports.filter(report => {
+    const matchesSearch = report.title.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesFilter = filterType === 'all' || report.type === filterType;
+    return matchesSearch && matchesFilter;
+  });
+
+  const stats = [
+    { label: 'Total Reports', value: '24', icon: FileText, color: 'text-blue-600', bgColor: 'bg-blue-50' },
+    { label: 'This Month', value: '8', icon: Calendar, color: 'text-purple-600', bgColor: 'bg-purple-50' },
+    { label: 'Generated Today', value: '3', icon: TrendingUp, color: 'text-green-600', bgColor: 'bg-green-50' }
+  ];
+
+  const quickReports = [
+    { name: 'Course Completion', type: 'course', icon: BookOpen },
+    { name: 'User Progress', type: 'user', icon: Users },
+    { name: 'Compliance Status', type: 'compliance', icon: CheckCircle2 },
+    { name: 'Engagement Metrics', type: 'engagement', icon: TrendingUp }
+  ];
+
+  const getTypeIcon = (type: Report['type']) => {
+    switch (type) {
+      case 'course':
+        return <BookOpen size={20} className="text-blue-600" />;
+      case 'user':
+        return <Users size={20} className="text-purple-600" />;
+      case 'compliance':
+        return <CheckCircle2 size={20} className="text-green-600" />;
+      case 'engagement':
+        return <TrendingUp size={20} className="text-orange-600" />;
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'In progress':
-        return '🔄';
-      case 'Overdue':
-        return '⚠️';
-      default:
-        return '⚪';
+  const getTypeColor = (type: Report['type']) => {
+    switch (type) {
+      case 'course':
+        return 'bg-blue-100 text-blue-700';
+      case 'user':
+        return 'bg-purple-100 text-purple-700';
+      case 'compliance':
+        return 'bg-green-100 text-green-700';
+      case 'engagement':
+        return 'bg-orange-100 text-orange-700';
     }
   };
 
-  return <div className="flex h-screen bg-gray-50">
-      <MainSidebar activePage="reports" />
+  return (
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      <AdminSidebar />
+      
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header */}
+        <header className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Reports</h1>
+              <p className="text-sm text-gray-500 mt-1">Generate and manage learning reports</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors">
+                <Filter size={16} />
+                Filter
+              </button>
+              <button className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg">
+                <BarChart3 size={16} />
+                Generate Report
+              </button>
+            </div>
+          </div>
+        </header>
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-auto">
-          <div className="p-8">
-            <div className="mb-6">
-              <h1 className="text-3xl font-semibold text-gray-900 mb-6">
-                Learners
-              </h1>
+        {/* Filters */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div className="flex-1 relative">
+              <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search reports..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="all">All Types</option>
+              <option value="course">Course</option>
+              <option value="user">User</option>
+              <option value="compliance">Compliance</option>
+              <option value="engagement">Engagement</option>
+            </select>
+          </div>
+        </div>
 
-              <div className="flex gap-8 border-b border-gray-200">
-                <button className="pb-3 text-sm text-gray-600 hover:text-gray-900">
-                  Overview
-                </button>
-                <button className="pb-3 text-sm text-gray-900 font-semibold border-b-2 border-gray-900">
-                  Progress
-                </button>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-6">
+          {/* Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            {stats.map((stat, index) => (
+              <div key={index} className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3 rounded-lg ${stat.bgColor}`}>
+                    <stat.icon size={24} className={stat.color} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">{stat.label}</p>
+                    <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Quick Reports */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Reports</h2>
+                <div className="space-y-3">
+                  {quickReports.map((report, index) => (
+                    <button
+                      key={index}
+                      className="w-full p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                          <report.icon size={20} className="text-gray-600" />
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{report.name}</div>
+                          <div className="text-xs text-gray-500">Generate now</div>
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-lg border border-gray-200 mb-6">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <div className="flex items-center gap-3">
-                    <button onClick={() => setShowFilters(!showFilters)} className="flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">
-                      <Users size={18} />
-                      <span>Peoples (160)</span>
-                      <ChevronDown size={16} />
-                    </button>
-                    <button className="flex items-center gap-2 px-4 py-2 text-gray-700 text-sm font-medium hover:bg-gray-50 rounded-lg">
-                      <Filter size={18} />
-                      <span>Add Filter</span>
-                    </button>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <input type="text" placeholder="Search..." className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 w-64" />
-                    </div>
-                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
-                      Export
-                    </button>
-                    <button className="p-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                      <MoreVertical size={18} />
-                    </button>
-                  </div>
+            {/* Reports List */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Recent Reports</h2>
                 </div>
-
-                <div className="flex items-center gap-8 pb-6 border-b border-gray-200">
-                  <div className="flex items-center gap-4">
-                    <div className="relative w-20 h-20">
-                      <svg className="w-full h-full -rotate-90">
-                        <circle cx="40" cy="40" r="32" fill="none" stroke="#e5e7eb" strokeWidth="6" />
-                        <circle cx="40" cy="40" r="32" fill="none" stroke="#10b981" strokeWidth="6" strokeDasharray={`${2 * Math.PI * 32 * 0.5} ${2 * Math.PI * 32}`} strokeLinecap="round" />
-                      </svg>
-                      <div className="absolute inset-0ità flex items-center justify-center">
-                        <span className="text-xl font-bold text-gray-900">
-                          50%
-                        </span>
-                      </div>
+                <div className="divide-y divide-gray-200">
+                  {filteredReports.length === 0 ? (
+                    <div className="p-12 text-center">
+                      <FileText size={48} className="text-gray-300 mx-auto mb-4" />
+                      <p className="text-gray-500">No reports found</p>
                     </div>
-                    <div>
-                      <div className="text-sm text-gray-600 mb-1">Trained</div>
-                      <div className="text-xs text-gray-500">0</div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 rounded-lg">
-                    <div className="text-sm text-gray-600">
-                      This week progress overview
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6">
-                    <div>
-                      <div className="text-2xl font-semibold text-gray-900">
-                        50
-                      </div>
-                      <div className="text-xs text-gray-500">In progress</div>
-                      <div className="text-xs text-green-600 font-medium">
-                        ↑3%
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-semibold text-gray-900">
-                        35
-                      </div>
-                      <div className="text-xs text-gray-500">Overdue</div>
-                      <div className="text-xs text-red-600 font-medium">
-                        ↑2%
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-semibold text-gray-900">
-                        75
-                      </div>
-                      <div className="text-xs text-gray-500">Passed</div>
-                      <div className="text-xs text-green-600 font-medium">
-                        ↑6%
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-2xl font-semibold text-gray-900">
-                        15
-                      </div>
-                      <div className="text-xs text-gray-500">Failed</div>
-                      <div className="text-xs text-red-600 font-medium">
-                        ↑5%
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-y border-gray-200">
-                    <tr>
-                      <th className="px-6 py-3 text-left">
-                        <input type="checkbox" className="rounded border-gray-300" />
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Full name
-                        <ChevronDown className="inline ml-1" size={14} />
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Status
-                        <ChevronDown className="inline ml-1" size={14} />
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Points
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Progress
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
-                        Assigned to
-                        <ChevronDown className="inline ml-1" size={14} />
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {learners.map(learner => <tr key={learner.id} className="hover:bg-gray-50">
-                        <td className="px-6 py-4">
-                          <input type="checkbox" className="rounded border-gray-300" />
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <img src={learner.avatar} alt={learner.name} className="w-10 h-10 rounded-full" />
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">
-                                {learner.name}
+                  ) : (
+                    filteredReports.map((report) => (
+                      <div key={report.id} className="p-6 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between">
+                          <div className="flex items-start gap-4 flex-1">
+                            <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${getTypeColor(report.type).replace('text-', 'bg-').replace('-700', '-50')}`}>
+                              {getTypeIcon(report.type)}
+                            </div>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-2">
+                                <h3 className="font-semibold text-gray-900">{report.title}</h3>
+                                <span className={`px-2 py-1 rounded text-xs font-medium ${getTypeColor(report.type)}`}>
+                                  {report.type}
+                                </span>
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {learner.title}
+                              <div className="flex items-center gap-4 text-sm text-gray-500">
+                                <span>{report.format.toUpperCase()}</span>
+                                <span>•</span>
+                                <span>{report.size}</span>
+                                <span>•</span>
+                                <span>{new Date(report.generatedAt).toLocaleString()}</span>
+                                <span>•</span>
+                                <span>By {report.generatedBy}</span>
                               </div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className={`flex items-center gap-1.5 text-sm ${getStatusColor(learner.status)}`}>
-                            <span className="text-base">
-                              {getStatusIcon(learner.status)}
-                            </span>
-                            <span>{learner.status}</span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-base">⭐</span>
-                            <span className="text-sm font-medium text-gray-900">
-                              {learner.points}pts
-                            </span>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          {learner.progress > 0 ? <div className="flex items-center gap-3">
-                              <div className="relative w-12 h-12">
-                                <svg className="w-full h-full -rotate-90">
-                                  <circle cx="24" cy="24" r="20" fill="none" stroke="#e5e7eb" strokeWidth="4" />
-                                  <circle cx="24" cy="24" r="20" fill="none" stroke="#10b981" strokeWidth="4" strokeDasharray={`${2 * Math.PI * 20 * (learner.progress / 100)} ${2 * Math.PI * 20}`} strokeLinecap="round" />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                  <span className="text-xs font-medium text-gray-900">
-                                    {learner.progress}%
-                                  </span>
-                                </div>
-                              </div>
-                            </div> : <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 rounded-full border-4 border-gray-200 flex items-center justify-center">
-                                <span className="text-xs font-medium text-gray-400">
-                                  0%
-                                </span>
-                              </div>
-                            </div>}
-                        </td>
-                        <td className="px-6 py-4">
                           <div className="flex items-center gap-2">
-                            <img src={learner.assignedToAvatar} alt={learner.assignedTo} className="w-6 h-6 rounded-full" />
-                            <span className="text-sm text-gray-900">
-                              {learner.assignedTo}
-                            </span>
+                            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                              <Download size={18} />
+                            </button>
+                            <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">
+                              <Mail size={18} />
+                            </button>
                           </div>
-                        </td>
-                      </tr>)}
-                  </tbody>
-                </table>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </main>
       </div>
-    </div>;
+    </div>
+  );
 }
-
-function Users({
-  size
-}: {
-  size: number;
-}) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-      <circle cx="9" cy="7" r="4" />
-      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-    </svg>;
-}
-
-function Filter({
-  size
-}: {
-  size: number;
-}) {
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>;
-}
-
