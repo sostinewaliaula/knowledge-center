@@ -254,11 +254,15 @@ export function UsersPage({}: UsersPageProps) {
 
   const availableRoles = roles.filter(r => ['admin', 'instructor', 'learner'].includes(r.name));
 
+  const isModalOpen = showCreateModal || showEditModal || showDeleteModal;
+
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <AdminSidebar />
+    <div className={`flex h-screen bg-gray-50 overflow-hidden ${isModalOpen ? 'relative' : ''}`}>
+      <div className={isModalOpen ? 'blur-[2px] pointer-events-none select-none transition-all duration-300' : 'transition-all duration-300'}>
+        <AdminSidebar />
+      </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
