@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentUploadModal } from '../../components/ContentUploadModal';
+import { VideoPlayerModal } from '../../components/VideoPlayerModal';
 import { api } from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -61,7 +62,9 @@ export function ContentLibrary({}: ContentLibraryProps) {
   const [totalContent, setTotalContent] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
+  const [selectedVideoContent, setSelectedVideoContent] = useState<ContentItem | null>(null);
 
   useEffect(() => {
     fetchContents();
@@ -133,18 +136,48 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleDownload = async (content: ContentItem) => {
+  const handleView = async (content: ContentItem) => {
     try {
-      // If it's an external source, open the source URL
-      if (content.source_type && content.source_type !== 'local' && content.source_url) {
-        window.open(content.source_url, '_blank');
+      // Check if it's a video (local or external)
+      const isVideo = content.file_type === 'video' || 
+        (content.source_type && ['youtube', 'vimeo', 'dailymotion'].includes(content.source_type));
+
+      if (isVideo) {
+        // Open video player modal
+        setSelectedVideoContent(content);
+        setShowVideoPlayer(true);
       } else {
-        // Local file download
-        const url = api.getContentDownloadUrl(content.id);
-        window.open(url, '_blank');
+        // For non-video content, open in new tab
+        if (content.source_type && content.source_type !== 'local' && content.source_url) {
+          window.open(content.source_url, '_blank');
+        } else {
+          // Local file - open in new tab for viewing (with view=true parameter)
+          const url = api.getContentDownloadUrl(content.id, true);
+          window.open(url, '_blank');
+        }
       }
     } catch (err: any) {
-      showError(err.message || 'Failed to open content');
+      showError(err.message || 'Failed to view content');
+    }
+  };
+
+  const handleDownload = async (content: ContentItem) => {
+    try {
+      // Only for local files - trigger download
+      if (!content.source_type || content.source_type === 'local') {
+        const url = api.getContentDownloadUrl(content.id);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = content.file_name || 'download';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        // For external content, viewing is the same as downloading
+        handleView(content);
+      }
+    } catch (err: any) {
+      showError(err.message || 'Failed to download content');
     }
   };
 
@@ -187,11 +220,13 @@ export function ContentLibrary({}: ContentLibraryProps) {
 
   const filteredContent = contentItems;
 
-  const isModalOpen = showDeleteModal || showUploadModal;
+  const isModalOpen = showDeleteModal || showUploadModal || showVideoPlayer;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <AdminSidebar />
+      <div className={`transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
+        <AdminSidebar />
+      </div>
       
       <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Header */}
@@ -339,22 +374,32 @@ export function ContentLibrary({}: ContentLibraryProps) {
                       <span>{new Date(item.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button 
-                        onClick={() => handleDownload(item)}
-                        className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
-                      >
-                        {item.source_type && item.source_type !== 'local' ? (
-                          <>
+                      {item.source_type && item.source_type !== 'local' ? (
+                        <button 
+                          onClick={() => handleView(item)}
+                          className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                        >
+                          <Eye size={14} />
+                          View
+                        </button>
+                      ) : (
+                        <>
+                          <button 
+                            onClick={() => handleView(item)}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                          >
                             <Eye size={14} />
                             View
-                          </>
-                        ) : (
-                          <>
+                          </button>
+                          <button 
+                            onClick={() => handleDownload(item)}
+                            className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
+                          >
                             <Download size={14} />
                             Download
-                          </>
-                        )}
-                      </button>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -451,6 +496,23 @@ export function ContentLibrary({}: ContentLibraryProps) {
         onAddFromUrl={handleAddFromUrl}
         uploading={uploading}
       />
+
+      {/* Video Player Modal */}
+      {selectedVideoContent && (
+        <VideoPlayerModal
+          isOpen={showVideoPlayer}
+          onClose={() => {
+            setShowVideoPlayer(false);
+            setSelectedVideoContent(null);
+          }}
+          content={selectedVideoContent}
+          videoUrl={
+            selectedVideoContent.source_type === 'local' || !selectedVideoContent.source_type
+              ? api.getContentDownloadUrl(selectedVideoContent.id, true)
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

@@ -333,11 +333,12 @@ export const deleteContent = async (req, res, next) => {
 };
 
 /**
- * Download content file
+ * Download or view content file
  */
 export const downloadContent = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const { view } = req.query; // Check if viewing (true) or downloading (false/undefined)
 
     const content = await ContentLibrary.findById(id);
     if (!content) {
@@ -347,8 +348,10 @@ export const downloadContent = async (req, res, next) => {
       });
     }
 
-    // Increment download count
-    await ContentLibrary.incrementDownloadCount(id);
+    // Only increment download count if actually downloading
+    if (!view || view !== 'true') {
+      await ContentLibrary.incrementDownloadCount(id);
+    }
 
     // Get full file path
     const filePath = path.join(process.cwd(), content.file_path);
@@ -363,18 +366,38 @@ export const downloadContent = async (req, res, next) => {
       });
     }
 
-    // Send file
-    res.download(filePath, content.file_name, (err) => {
-      if (err) {
-        console.error('Error downloading file:', err);
-        if (!res.headersSent) {
-          res.status(500).json({
-            success: false,
-            error: 'Error downloading file'
-          });
-        }
+    // Set appropriate headers based on whether viewing or downloading
+    if (view === 'true') {
+      // For viewing: send file with inline disposition so browser can display it
+      res.setHeader('Content-Disposition', `inline; filename="${content.file_name}"`);
+      if (content.mime_type) {
+        res.setHeader('Content-Type', content.mime_type);
       }
-    });
+      res.sendFile(filePath, (err) => {
+        if (err) {
+          console.error('Error sending file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              error: 'Error viewing file'
+            });
+          }
+        }
+      });
+    } else {
+      // For downloading: force download
+      res.download(filePath, content.file_name, (err) => {
+        if (err) {
+          console.error('Error downloading file:', err);
+          if (!res.headersSent) {
+            res.status(500).json({
+              success: false,
+              error: 'Error downloading file'
+            });
+          }
+        }
+      });
+    }
   } catch (error) {
     next(error);
   }

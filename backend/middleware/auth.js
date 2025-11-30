@@ -2,11 +2,18 @@ import { verifyToken, extractToken } from '../utils/jwt.js';
 
 /**
  * Middleware to authenticate JWT tokens
+ * Supports both Authorization header and query parameter (for file downloads/views)
  */
 export const authenticateToken = async (req, res, next) => {
   try {
+    // Try Authorization header first
     const authHeader = req.headers.authorization;
-    const token = extractToken(authHeader);
+    let token = extractToken(authHeader);
+
+    // If no token in header, try query parameter (for file downloads/views)
+    if (!token && req.query.token) {
+      token = req.query.token;
+    }
 
     if (!token) {
       return res.status(401).json({

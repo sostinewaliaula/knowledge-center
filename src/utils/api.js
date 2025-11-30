@@ -186,10 +186,11 @@ export const api = {
     });
   },
 
-  getContentDownloadUrl(id) {
+  getContentDownloadUrl(id, view = false) {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const token = localStorage.getItem('authToken');
-    return `${API_BASE_URL}/content/${id}/download?token=${token}`;
+    const viewParam = view ? '&view=true' : '';
+    return `${API_BASE_URL}/content/${id}/download?token=${token}${viewParam}`;
   },
 };
 
