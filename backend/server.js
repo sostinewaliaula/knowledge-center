@@ -19,6 +19,7 @@ import learningPathRoutes from './routes/learningPath.routes.js';
 import categoryRoutes from './routes/category.routes.js';
 import tagRoutes from './routes/tag.routes.js';
 import templateRoutes from './routes/template.routes.js';
+import assessmentRoutes from './routes/assessment.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -73,7 +74,8 @@ app.get('/api', (req, res) => {
           learningPaths: '/api/learning-paths',
           categories: '/api/categories',
           tags: '/api/tags',
-          templates: '/api/templates'
+          templates: '/api/templates',
+          assessments: '/api/assessments'
         }
   });
 });
@@ -88,6 +90,7 @@ app.use('/api/learning-paths', learningPathRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/tags', tagRoutes);
 app.use('/api/templates', templateRoutes);
+app.use('/api/assessments', assessmentRoutes);
 
 // 404 handler
 app.use(notFound);

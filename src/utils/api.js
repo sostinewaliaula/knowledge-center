@@ -509,6 +509,99 @@ export const api = {
         body: JSON.stringify({ title, description }),
       });
       return response;
+    },
+
+    // Assessment API methods
+    async getAssessments(page = 1, limit = 20, search = '', status = 'all', type = 'all') {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      if (search) params.append('search', search);
+      if (status && status !== 'all') params.append('status', status);
+      if (type && type !== 'all') params.append('type', type);
+      const queryString = params.toString();
+      return this.request(`/assessments${queryString ? `?${queryString}` : ''}`);
+    },
+
+    async getAssessment(id) {
+      const response = await this.request(`/assessments/${id}`);
+      return response.assessment;
+    },
+
+    async createAssessment(assessmentData) {
+      const response = await this.request('/assessments', {
+        method: 'POST',
+        body: JSON.stringify(assessmentData),
+      });
+      return response.assessment;
+    },
+
+    async updateAssessment(id, assessmentData) {
+      const response = await this.request(`/assessments/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(assessmentData),
+      });
+      return response.assessment;
+    },
+
+    async deleteAssessment(id) {
+      return this.request(`/assessments/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    // Question methods
+    async getQuestions(assessmentId) {
+      const response = await this.request(`/assessments/${assessmentId}/questions`);
+      return response.questions;
+    },
+
+    async createQuestion(assessmentId, questionData) {
+      const response = await this.request(`/assessments/${assessmentId}/questions`, {
+        method: 'POST',
+        body: JSON.stringify(questionData),
+      });
+      return response.question;
+    },
+
+    async updateQuestion(questionId, questionData) {
+      const response = await this.request(`/assessments/questions/${questionId}`, {
+        method: 'PUT',
+        body: JSON.stringify(questionData),
+      });
+      return response.question;
+    },
+
+    async deleteQuestion(questionId) {
+      return this.request(`/assessments/questions/${questionId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    async reorderQuestions(assessmentId, questionOrders) {
+      return this.request(`/assessments/${assessmentId}/questions/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({ questionOrders }),
+      });
+    },
+
+    async publishQuestion(questionId) {
+      const response = await this.request(`/assessments/questions/${questionId}/publish`, {
+        method: 'PUT',
+      });
+      return response.question;
+    },
+
+    async unpublishQuestion(questionId) {
+      const response = await this.request(`/assessments/questions/${questionId}/unpublish`, {
+        method: 'PUT',
+      });
+      return response.question;
+    },
+
+    async getQuestionHistory(questionId) {
+      const response = await this.request(`/assessments/questions/${questionId}/history`);
+      return response.history;
     }
 };
 
