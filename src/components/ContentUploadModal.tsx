@@ -8,7 +8,7 @@ import {
 interface ContentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (files: File[]) => Promise<void>;
+  onUpload: (files: File[], title: string, description: string) => Promise<void>;
   onAddFromUrl: (url: string, title: string, description: string) => Promise<void>;
   uploading?: boolean;
 }
@@ -137,7 +137,7 @@ export function ContentUploadModal({
         setUrlError('Please select at least one file');
         return;
       }
-      await onUpload(files);
+      await onUpload(files, title.trim() || '', description.trim() || '');
       handleClose();
     } else {
       await validateAndSubmitUrl();
@@ -286,6 +286,38 @@ export function ContentUploadModal({
                     ))}
                   </div>
                 )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Title (Optional)</label>
+                <input
+                  type="text"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Content title (filename will be used if not provided)"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={uploading}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  {files.length > 0 && files.length === 1 
+                    ? `Default: ${files[0].name.replace(/\.[^/.]+$/, '')}`
+                    : files.length > 1 
+                      ? 'Title will be applied to all files (you can edit individual titles later)'
+                      : 'Enter a title to help identify this content'
+                  }
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Content description"
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={uploading}
+                />
               </div>
             </div>
           ) : (

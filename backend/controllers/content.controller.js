@@ -333,12 +333,31 @@ export const deleteContent = async (req, res, next) => {
 };
 
 /**
- * Download or view content file
+ * Public view endpoint for Office Online viewer
+ * Validates token from query parameter but doesn't require auth header
  */
-export const downloadContent = async (req, res, next) => {
+export const viewContent = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { view } = req.query; // Check if viewing (true) or downloading (false/undefined)
+    const { token } = req.query;
+
+    // Verify token if provided
+    if (token) {
+      try {
+        const { verifyToken } = await import('../utils/jwt.js');
+        verifyToken(token);
+      } catch (error) {
+        return res.status(403).json({
+          success: false,
+          error: 'Invalid or expired token'
+        });
+      }
+    } else {
+      return res.status(401).json({
+        success: false,
+        error: 'Token required'
+      });
+    }
 
     const content = await ContentLibrary.findById(id);
     if (!content) {
@@ -348,9 +367,12 @@ export const downloadContent = async (req, res, next) => {
       });
     }
 
-    // Only increment download count if actually downloading
-    if (!view || view !== 'true') {
-      await ContentLibrary.incrementDownloadCount(id);
+    // Only serve local files (external files should use their own URLs)
+    if (content.source_type && content.source_type !== 'local') {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot view external content through this endpoint'
+      });
     }
 
     // Get full file path
@@ -366,13 +388,145 @@ export const downloadContent = async (req, res, next) => {
       });
     }
 
+    // Detect file type from extension for proper Content-Type
+    const fileExt = path.extname(content.file_name || '').toLowerCase();
+    let contentType = content.mime_type;
+    
+    // Ensure proper Content-Type for common file types
+    if (!contentType) {
+      const mimeTypes = {
+        '.pdf': 'application/pdf',
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.json': 'application/json',
+        '.xml': 'application/xml',
+        '.html': 'text/html',
+        '.htm': 'text/html',
+        '.css': 'text/css',
+        '.js': 'text/javascript',
+        '.doc': 'application/msword',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.xls': 'application/vnd.ms-excel',
+        '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        '.ppt': 'application/vnd.ms-powerpoint',
+        '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+      };
+      contentType = mimeTypes[fileExt] || 'application/octet-stream';
+    }
+    
+    // Set headers for viewing (not downloading)
+    // For PDFs, ensure we set Content-Type BEFORE any other headers
+    if (fileExt === '.pdf') {
+      res.setHeader('Content-Type', 'application/pdf');
+      // Don't set Content-Disposition for PDFs to prevent download
+      // Some browsers force download if Content-Disposition is present
+    } else {
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(content.file_name || 'file')}"`);
+    }
+    
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    
+    // Add CORS headers for viewing (allows iframe/img/fetch to work)
+    res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    
+    // For PDFs, also set Cache-Control to prevent caching issues
+    if (fileExt === '.pdf') {
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+    }
+    
+    res.sendFile(filePath, (err) => {
+      if (err) {
+        console.error('Error sending file:', err);
+        if (!res.headersSent) {
+          res.status(500).json({
+            success: false,
+            error: 'Error viewing file'
+          });
+        }
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Download or view content file
+ */
+export const downloadContent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { view } = req.query; // Check if viewing (true) or downloading (false/undefined)
+
+    const content = await ContentLibrary.findById(id);
+    if (!content) {
+      return res.status(404).json({
+        success: false,
+        error: 'Content not found'
+      });
+    }
+
+    // Handle external content (Google Drive, OneDrive, etc.)
+    if (content.source_type && content.source_type !== 'local' && content.source_url) {
+      return await downloadExternalContent(req, res, content, view === 'true');
+    }
+
+    // Only increment download count if actually downloading
+    if (!view || view !== 'true') {
+      await ContentLibrary.incrementDownloadCount(id);
+    }
+
+    // Get full file path for local files
+    const filePath = path.join(process.cwd(), content.file_path);
+    
+    // Check if file exists
+    try {
+      await fs.access(filePath);
+    } catch (error) {
+      return res.status(404).json({
+        success: false,
+        error: 'File not found on server'
+      });
+    }
+
+    // Detect file type from extension for proper Content-Type
+    const fileExt = path.extname(content.file_name || '').toLowerCase();
+    let contentType = content.mime_type;
+    
+    // Ensure proper Content-Type for common file types
+    if (!contentType) {
+      const mimeTypes = {
+        '.pdf': 'application/pdf',
+        '.txt': 'text/plain',
+        '.md': 'text/markdown',
+        '.json': 'application/json',
+        '.xml': 'application/xml',
+        '.html': 'text/html',
+        '.htm': 'text/html',
+        '.css': 'text/css',
+        '.js': 'text/javascript'
+      };
+      contentType = mimeTypes[fileExt] || 'application/octet-stream';
+    }
+    
     // Set appropriate headers based on whether viewing or downloading
     if (view === 'true') {
-      // For viewing: send file with inline disposition so browser can display it
-      res.setHeader('Content-Disposition', `inline; filename="${content.file_name}"`);
-      if (content.mime_type) {
-        res.setHeader('Content-Type', content.mime_type);
+      // For PDFs, do NOT set Content-Disposition - it causes downloads
+      if (fileExt === '.pdf') {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Cache-Control', 'public, max-age=3600');
+        // Don't set Content-Disposition for PDFs
+      } else {
+        // For other files, set Content-Disposition inline
+        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(content.file_name || 'file')}"`);
       }
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      // Add CORS headers for viewing
+      res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
       res.sendFile(filePath, (err) => {
         if (err) {
           console.error('Error sending file:', err);
@@ -400,6 +554,147 @@ export const downloadContent = async (req, res, next) => {
     }
   } catch (error) {
     next(error);
+  }
+};
+
+/**
+ * Download external content (Google Drive, OneDrive, etc.)
+ */
+const downloadExternalContent = async (req, res, content, isView = false) => {
+  try {
+    const https = await import('https');
+    const http = await import('http');
+    const { URL } = await import('url');
+
+    let downloadUrl = content.source_url;
+    const sourceUrl = content.source_url;
+
+    // Convert Google Drive view URL to download URL
+    if (content.source_type === 'googledrive') {
+      // Try multiple patterns to extract file ID
+      let fileId = null;
+      
+      // Pattern 1: /file/d/FILE_ID/view
+      const driveIdMatch1 = sourceUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+      if (driveIdMatch1) {
+        fileId = driveIdMatch1[1];
+      }
+      
+      // Pattern 2: /document/d/FILE_ID/edit (Google Docs)
+      if (!fileId) {
+        const docsIdMatch = sourceUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
+        if (docsIdMatch) {
+          fileId = docsIdMatch[1];
+        }
+      }
+      
+      // Pattern 3: /spreadsheets/d/FILE_ID/edit (Google Sheets)
+      if (!fileId) {
+        const sheetsIdMatch = sourceUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+        if (sheetsIdMatch) {
+          fileId = sheetsIdMatch[1];
+        }
+      }
+      
+      // Pattern 4: /presentation/d/FILE_ID/edit (Google Slides)
+      if (!fileId) {
+        const slidesIdMatch = sourceUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
+        if (slidesIdMatch) {
+          fileId = slidesIdMatch[1];
+        }
+      }
+      
+      if (fileId) {
+        // Use Google Drive direct download URL with confirm parameter to bypass virus scan
+        downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
+      }
+    }
+
+    // Convert OneDrive view URL to download URL
+    if (content.source_type === 'microsoft' || content.source_type === 'onedrive') {
+      // OneDrive URLs can be converted by replacing /view with /download
+      if (sourceUrl.includes('/view')) {
+        downloadUrl = sourceUrl.replace('/view', '/download');
+      } else if (sourceUrl.includes('onedrive.live.com')) {
+        // For OneDrive sharing links, try to get download link
+        downloadUrl = sourceUrl.replace('redir?', 'download?');
+      }
+    }
+
+    // Parse URL
+    const urlObj = new URL(downloadUrl);
+    const protocol = urlObj.protocol === 'https:' ? https : http;
+
+    // Only increment download count if actually downloading
+    if (!isView) {
+      await ContentLibrary.incrementDownloadCount(content.id);
+    }
+
+    // Make request to external URL
+    const request = protocol.get(downloadUrl, (externalRes) => {
+      // Handle redirects (especially for Google Drive)
+      if (externalRes.statusCode === 302 || externalRes.statusCode === 301 || externalRes.statusCode === 303) {
+        const redirectUrl = externalRes.headers.location;
+        if (redirectUrl) {
+          return downloadExternalContent(req, res, { ...content, source_url: redirectUrl }, isView);
+        }
+      }
+
+      // Check if request was successful
+      if (externalRes.statusCode !== 200) {
+        return res.status(externalRes.statusCode || 500).json({
+          success: false,
+          error: `Failed to download from external source: ${externalRes.statusMessage || 'Unknown error'}`
+        });
+      }
+
+      // Set headers
+      const contentType = externalRes.headers['content-type'] || content.mime_type || 'application/octet-stream';
+      const contentDisposition = externalRes.headers['content-disposition'] || 
+        (isView 
+          ? `inline; filename="${content.file_name || 'document'}"`
+          : `attachment; filename="${content.file_name || 'document'}"`);
+
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', contentDisposition);
+      
+      // Copy content length if available
+      if (externalRes.headers['content-length']) {
+        res.setHeader('Content-Length', externalRes.headers['content-length']);
+      }
+
+      // Pipe the response
+      externalRes.pipe(res);
+    });
+
+    request.on('error', (error) => {
+      console.error('Error downloading external content:', error);
+      if (!res.headersSent) {
+        res.status(500).json({
+          success: false,
+          error: 'Failed to download from external source'
+        });
+      }
+    });
+
+    request.setTimeout(30000, () => {
+      request.destroy();
+      if (!res.headersSent) {
+        res.status(504).json({
+          success: false,
+          error: 'Download timeout'
+        });
+      }
+    });
+
+  } catch (error) {
+    console.error('Error in downloadExternalContent:', error);
+    if (!res.headersSent) {
+      res.status(500).json({
+        success: false,
+        error: 'Failed to process external download'
+      });
+    }
   }
 };
 

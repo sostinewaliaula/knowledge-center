@@ -5,7 +5,11 @@ import { upload } from '../middleware/upload.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Public route for viewing files (used by Office Online viewer)
+// Must be before the authenticateToken middleware
+router.get('/:id/view', contentController.viewContent);
+
+// All other routes require authentication
 router.use(authenticateToken);
 
 // Get all content (admin only)

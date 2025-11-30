@@ -189,8 +189,14 @@ export const api = {
   getContentDownloadUrl(id, view = false) {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const token = localStorage.getItem('authToken');
-    const viewParam = view ? '&view=true' : '';
-    return `${API_BASE_URL}/content/${id}/download?token=${token}${viewParam}`;
+    
+    // For viewing, use the public view endpoint
+    if (view) {
+      return `${API_BASE_URL}/content/${id}/view?token=${token}`;
+    }
+    
+    // For downloading, use the download endpoint
+    return `${API_BASE_URL}/content/${id}/download?token=${token}`;
   },
 };
 

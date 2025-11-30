@@ -232,8 +232,15 @@ export function VideoPlayerModal({ isOpen, onClose, content, videoUrl }: VideoPl
             ) : videoUrl ? (
               <>
                 {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black">
-                    <Loader2 size={48} className="text-white animate-spin" />
+                  <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-10">
+                    <Loader2 size={48} className="text-white animate-spin mb-4" />
+                    <p className="text-white text-lg font-medium">
+                      {content.source_type && ['youtube', 'vimeo', 'dailymotion'].includes(content.source_type)
+                        ? 'Loading video player...' 
+                        : 'Loading video...'
+                      }
+                    </p>
+                    <p className="text-gray-300 text-sm mt-2">Please wait while we prepare your video</p>
                   </div>
                 )}
                 <video

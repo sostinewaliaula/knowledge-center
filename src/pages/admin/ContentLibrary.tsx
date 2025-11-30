@@ -23,6 +23,7 @@ import {
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentUploadModal } from '../../components/ContentUploadModal';
 import { VideoPlayerModal } from '../../components/VideoPlayerModal';
+import { DocumentViewerModal } from '../../components/DocumentViewerModal';
 import { api } from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -63,8 +64,10 @@ export function ContentLibrary({}: ContentLibraryProps) {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+  const [showDocumentViewer, setShowDocumentViewer] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [selectedVideoContent, setSelectedVideoContent] = useState<ContentItem | null>(null);
+  const [selectedDocumentContent, setSelectedDocumentContent] = useState<ContentItem | null>(null);
 
   useEffect(() => {
     fetchContents();
@@ -85,14 +88,16 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleFileUpload = async (files: File[]) => {
+  const handleFileUpload = async (files: File[], title: string, description: string) => {
     setUploading(true);
     
     try {
       // Upload files one by one
       for (const file of files) {
         try {
-          await api.uploadContent(file, null, null, null, false);
+          // Use provided title, or generate from filename if not provided
+          const fileTitle = title.trim() || file.name.replace(/\.[^/.]+$/, '');
+          await api.uploadContent(file, fileTitle, description || null, null, false);
         } catch (err: any) {
           showError(`Failed to upload ${file.name}: ${err.message}`);
         }
@@ -147,14 +152,10 @@ export function ContentLibrary({}: ContentLibraryProps) {
         setSelectedVideoContent(content);
         setShowVideoPlayer(true);
       } else {
-        // For non-video content, open in new tab
-        if (content.source_type && content.source_type !== 'local' && content.source_url) {
-          window.open(content.source_url, '_blank');
-        } else {
-          // Local file - open in new tab for viewing (with view=true parameter)
-          const url = api.getContentDownloadUrl(content.id, true);
-          window.open(url, '_blank');
-        }
+        // Open document viewer modal for all other file types (PDFs, images, documents, text files, etc.)
+        // The document viewer will handle all file types appropriately
+        setSelectedDocumentContent(content);
+        setShowDocumentViewer(true);
       }
     } catch (err: any) {
       showError(err.message || 'Failed to view content');
@@ -220,7 +221,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
 
   const filteredContent = contentItems;
 
-  const isModalOpen = showDeleteModal || showUploadModal || showVideoPlayer;
+  const isModalOpen = showDeleteModal || showUploadModal || showVideoPlayer || showDocumentViewer;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -509,6 +510,23 @@ export function ContentLibrary({}: ContentLibraryProps) {
           videoUrl={
             selectedVideoContent.source_type === 'local' || !selectedVideoContent.source_type
               ? api.getContentDownloadUrl(selectedVideoContent.id, true)
+              : undefined
+          }
+        />
+      )}
+
+      {/* Document Viewer Modal */}
+      {selectedDocumentContent && (
+        <DocumentViewerModal
+          isOpen={showDocumentViewer}
+          onClose={() => {
+            setShowDocumentViewer(false);
+            setSelectedDocumentContent(null);
+          }}
+          content={selectedDocumentContent}
+          documentUrl={
+            selectedDocumentContent.source_type === 'local' || !selectedDocumentContent.source_type
+              ? api.getContentDownloadUrl(selectedDocumentContent.id, true)
               : undefined
           }
         />
