@@ -754,7 +754,7 @@ export function Assessments({}: AssessmentsProps) {
     return localQuestions.reduce((sum, q) => sum + q.points, 0);
   };
 
-  const isModalOpen = showCreateModal || showDeleteModal || showDeleteQuestionModal || viewingHistoryQuestionId !== null;
+  const isModalOpen = showDeleteModal || showDeleteQuestionModal;
 
   if (loading && !selectedAssessment) {
     return (
@@ -771,12 +771,13 @@ export function Assessments({}: AssessmentsProps) {
   }
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <div className={`transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
-        <AdminSidebar />
-      </div>
-      
-      <div className="flex-1 flex overflow-hidden min-w-0">
+    <>
+      <div className="flex h-screen bg-gray-50 overflow-hidden">
+        <div className={`transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
+          <AdminSidebar />
+        </div>
+        
+        <div className={`flex-1 flex overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Sidebar */}
         <aside className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
           <div className="p-4 border-b border-gray-200">
@@ -1767,6 +1768,8 @@ export function Assessments({}: AssessmentsProps) {
             </div>
           )}
         </main>
+        </div>
+        </div>
       </div>
 
       {/* Create Assessment Modal */}
@@ -2168,7 +2171,6 @@ export function Assessments({}: AssessmentsProps) {
           </div>
         </div>
       )}
-      </div>
-    </div>
+    </>
   );
 }
