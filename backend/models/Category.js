@@ -171,6 +171,7 @@ export class Category {
 
   /**
    * Delete category
+   * Automatically disassociates the category from all items before deletion
    */
   static async delete(id) {
     // Check if category has children
@@ -179,17 +180,34 @@ export class Category {
       throw new Error('Cannot delete category with subcategories. Please delete or move subcategories first.');
     }
 
-    // Check if category is used by courses, content, or learning paths
+    // Get category info for return value
     const category = await this.findById(id);
-    const totalUsage = (category.course_count || 0) + (category.content_count || 0) + (category.learning_path_count || 0);
-    
-    if (totalUsage > 0) {
-      throw new Error(`Cannot delete category that is used by ${totalUsage} item(s). Please reassign items first.`);
+    if (!category) {
+      throw new Error('Category not found');
     }
 
+    const totalUsage = (category.course_count || 0) + (category.content_count || 0) + (category.learning_path_count || 0);
+    
+    // Disassociate category from all items before deletion
+    if (totalUsage > 0) {
+      // Remove category from courses
+      await query('UPDATE courses SET category_id = NULL WHERE category_id = ?', [id]);
+      
+      // Remove category from content library
+      await query('UPDATE content_library SET category_id = NULL WHERE category_id = ?', [id]);
+      
+      // Remove category from learning paths
+      await query('UPDATE learning_paths SET category_id = NULL WHERE category_id = ?', [id]);
+    }
+
+    // Delete the category
     const sql = 'DELETE FROM categories WHERE id = ?';
     await query(sql, [id]);
-    return { message: 'Category deleted successfully' };
+    
+    return { 
+      message: 'Category deleted successfully',
+      disassociatedItems: totalUsage
+    };
   }
 }
 

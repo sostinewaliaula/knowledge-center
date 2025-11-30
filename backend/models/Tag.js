@@ -34,7 +34,8 @@ export class Tag {
     const sql = `
       SELECT t.*,
              0 as course_count,
-             0 as content_count
+             0 as content_count,
+             0 as learning_path_count
       FROM tags t
       ${whereClause}
       ORDER BY t.name ASC
@@ -57,6 +58,13 @@ export class Tag {
         tag.content_count = contentCount.count || 0;
       } catch (error) {
         tag.content_count = 0;
+      }
+      
+      try {
+        const learningPathCount = await queryOne('SELECT COUNT(*) as count FROM learning_path_tags WHERE tag_id = ?', [tag.id]);
+        tag.learning_path_count = learningPathCount.count || 0;
+      } catch (error) {
+        tag.learning_path_count = 0;
       }
     }
     
@@ -93,6 +101,13 @@ export class Tag {
       tag.content_count = contentCount.count || 0;
     } catch (error) {
       tag.content_count = 0;
+    }
+    
+    try {
+      const learningPathCount = await queryOne('SELECT COUNT(*) as count FROM learning_path_tags WHERE tag_id = ?', [id]);
+      tag.learning_path_count = learningPathCount.count || 0;
+    } catch (error) {
+      tag.learning_path_count = 0;
     }
     
     return tag;
@@ -154,19 +169,49 @@ export class Tag {
 
   /**
    * Delete tag
+   * Automatically disassociates the tag from all items before deletion
    */
   static async delete(id) {
-    // Check if tag is used
+    // Get tag info for return value
     const tag = await this.findById(id);
-    const totalUsage = (tag.course_count || 0) + (tag.content_count || 0);
-    
-    if (totalUsage > 0) {
-      throw new Error(`Cannot delete tag that is used by ${totalUsage} item(s). Please remove tag from items first.`);
+    if (!tag) {
+      throw new Error('Tag not found');
     }
 
+    const totalUsage = (tag.course_count || 0) + (tag.content_count || 0) + (tag.learning_path_count || 0);
+    
+    // Disassociate tag from all items before deletion
+    if (totalUsage > 0) {
+      // Remove tag from courses (via course_tags table)
+      try {
+        await query('DELETE FROM course_tags WHERE tag_id = ?', [id]);
+      } catch (error) {
+        // Table might not exist, ignore
+      }
+      
+      // Remove tag from content (via content_tags table)
+      try {
+        await query('DELETE FROM content_tags WHERE tag_id = ?', [id]);
+      } catch (error) {
+        // Table might not exist, ignore
+      }
+      
+      // Remove tag from learning paths (via learning_path_tags table)
+      try {
+        await query('DELETE FROM learning_path_tags WHERE tag_id = ?', [id]);
+      } catch (error) {
+        // Table might not exist, ignore
+      }
+    }
+
+    // Delete the tag
     const sql = 'DELETE FROM tags WHERE id = ?';
     await query(sql, [id]);
-    return { message: 'Tag deleted successfully' };
+    
+    return { 
+      message: 'Tag deleted successfully',
+      disassociatedItems: totalUsage
+    };
   }
 }
 

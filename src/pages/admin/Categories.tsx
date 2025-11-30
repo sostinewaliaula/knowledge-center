@@ -79,6 +79,7 @@ interface Tag {
   slug: string;
   course_count?: number;
   content_count?: number;
+  learning_path_count?: number;
   created_at: string;
 }
 
@@ -454,7 +455,7 @@ export function Categories({}: CategoriesProps) {
   };
 
   const getTotalUsageCount = (tag: Tag) => {
-    return (tag.course_count || 0) + (tag.content_count || 0);
+    return (tag.course_count || 0) + (tag.content_count || 0) + (tag.learning_path_count || 0);
   };
 
   const filteredCategories = categories.filter(cat =>
@@ -1106,17 +1107,45 @@ export function Categories({}: CategoriesProps) {
       {showDeleteCategoryModal && selectedCategory && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={20} className="text-red-600" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Category</h3>
             </div>
             <div className="p-6">
-              <p className="text-gray-600 mb-4">
-                Are you sure you want to delete <span className="font-semibold">"{selectedCategory.name}"</span>? 
-                {getTotalItemCount(selectedCategory) > 0 && (
-                  <span className="block mt-2 text-sm text-red-600">
-                    This category is used by {getTotalItemCount(selectedCategory)} item(s). You cannot delete it until all items are reassigned.
-                  </span>
-                )}
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">"{selectedCategory.name}"</span>?
+              </p>
+              {getTotalItemCount(selectedCategory) > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-yellow-800 mb-1">Warning: This category is currently in use</p>
+                      <p className="text-sm text-yellow-700">
+                        This category will be automatically removed from:
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-yellow-700 list-disc list-inside">
+                        {selectedCategory.course_count > 0 && (
+                          <li>{selectedCategory.course_count} course{selectedCategory.course_count !== 1 ? 's' : ''}</li>
+                        )}
+                        {selectedCategory.content_count > 0 && (
+                          <li>{selectedCategory.content_count} content item{selectedCategory.content_count !== 1 ? 's' : ''}</li>
+                        )}
+                        {selectedCategory.learning_path_count > 0 && (
+                          <li>{selectedCategory.learning_path_count} learning path{selectedCategory.learning_path_count !== 1 ? 's' : ''}</li>
+                        )}
+                      </ul>
+                      <p className="mt-2 text-sm font-medium text-yellow-800">
+                        Total: {getTotalItemCount(selectedCategory)} item{getTotalItemCount(selectedCategory) !== 1 ? 's' : ''} will be affected
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p className="text-sm text-gray-600">
+                This action cannot be undone. The category will be permanently deleted.
               </p>
             </div>
             <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
@@ -1132,10 +1161,20 @@ export function Categories({}: CategoriesProps) {
               </button>
               <button
                 onClick={handleDeleteCategory}
-                disabled={submitting || getTotalItemCount(selectedCategory) > 0}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {submitting ? 'Deleting...' : 'Delete'}
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete Category
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -1282,17 +1321,45 @@ export function Categories({}: CategoriesProps) {
       {showDeleteTagModal && selectedTag && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
-            <div className="p-6 border-b border-gray-200">
+            <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                <AlertCircle size={20} className="text-red-600" />
+              </div>
               <h3 className="text-lg font-semibold text-gray-900">Delete Tag</h3>
             </div>
             <div className="p-6">
-              <p className="text-gray-600 mb-4">
-                Are you sure you want to delete <span className="font-semibold">"{selectedTag.name}"</span>?
-                {getTotalUsageCount(selectedTag) > 0 && (
-                  <span className="block mt-2 text-sm text-red-600">
-                    This tag is used by {getTotalUsageCount(selectedTag)} item(s). You cannot delete it until it's removed from all items.
-                  </span>
-                )}
+              <p className="text-gray-700 mb-4">
+                Are you sure you want to delete <span className="font-semibold text-gray-900">"{selectedTag.name}"</span>?
+              </p>
+              {getTotalUsageCount(selectedTag) > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+                  <div className="flex items-start gap-2">
+                    <AlertCircle size={18} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-yellow-800 mb-1">Warning: This tag is currently in use</p>
+                      <p className="text-sm text-yellow-700">
+                        This tag will be automatically removed from:
+                      </p>
+                      <ul className="mt-2 space-y-1 text-sm text-yellow-700 list-disc list-inside">
+                        {selectedTag.course_count > 0 && (
+                          <li>{selectedTag.course_count} course{selectedTag.course_count !== 1 ? 's' : ''}</li>
+                        )}
+                        {selectedTag.content_count > 0 && (
+                          <li>{selectedTag.content_count} content item{selectedTag.content_count !== 1 ? 's' : ''}</li>
+                        )}
+                        {selectedTag.learning_path_count > 0 && (
+                          <li>{selectedTag.learning_path_count} learning path{selectedTag.learning_path_count !== 1 ? 's' : ''}</li>
+                        )}
+                      </ul>
+                      <p className="mt-2 text-sm font-medium text-yellow-800">
+                        Total: {getTotalUsageCount(selectedTag)} item{getTotalUsageCount(selectedTag) !== 1 ? 's' : ''} will be affected
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <p className="text-sm text-gray-600">
+                This action cannot be undone. The tag will be permanently deleted.
               </p>
             </div>
             <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
@@ -1308,10 +1375,20 @@ export function Categories({}: CategoriesProps) {
               </button>
               <button
                 onClick={handleDeleteTag}
-                disabled={submitting || getTotalUsageCount(selectedTag) > 0}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={submitting}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
               >
-                {submitting ? 'Deleting...' : 'Delete'}
+                {submitting ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={16} />
+                    Delete Tag
+                  </>
+                )}
               </button>
             </div>
           </div>
