@@ -704,7 +704,7 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                         onClick={() => fetchLearningPath(path.id)}
                         className="w-full text-left p-3 rounded-lg"
                       >
-                        <div className="font-semibold text-gray-900 mb-1">{path.title}</div>
+                        <div className="text-sm font-semibold text-gray-900 mb-1 break-words">{path.title}</div>
                         <div className="text-xs text-gray-500">
                           {path.course_count || 0} courses • {path.status}
                         </div>
@@ -736,7 +736,7 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                     type="text"
                     value={selectedPath.title}
                     onChange={(e) => updatePathField('title', e.target.value)}
-                    className="text-2xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+                    className="text-xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
                     placeholder="Learning path title"
                   />
                   <textarea
@@ -757,7 +757,7 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                 {/* Courses in Path */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
                   <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">Courses in Path</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Courses in Path</h2>
                     <button
                       onClick={() => setShowCourseSelector(true)}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 flex items-center gap-2"
@@ -794,8 +794,8 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                               <span className="text-sm font-semibold text-purple-700">{index + 1}</span>
                             </div>
                             <div className="flex-1">
-                              <h3 className="font-semibold text-gray-900">{course.title}</h3>
-                              <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                              <h3 className="text-sm font-semibold text-gray-900 break-words">{course.title}</h3>
+                              <div className="flex items-center gap-4 mt-1 text-xs text-gray-500">
                                 <span className="flex items-center gap-1">
                                   <BookOpen size={14} />
                                   {course.modules?.length || 0} modules

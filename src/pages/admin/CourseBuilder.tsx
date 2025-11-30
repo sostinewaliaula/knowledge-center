@@ -1146,7 +1146,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                       target.style.height = 'auto';
                       target.style.height = Math.max(target.scrollHeight, 48) + 'px';
                     }}
-                    className="text-2xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 resize-none"
+                    className="text-xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 resize-none"
                     placeholder="Course Title"
                     style={{ 
                       minHeight: '3rem',
@@ -1205,7 +1205,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                 {/* Modules */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100">
                   <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                    <h2 className="text-lg font-semibold text-gray-900">Modules</h2>
+                    <h2 className="text-base font-semibold text-gray-900">Modules</h2>
                     <button
                       onClick={addModule}
                       className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 flex items-center gap-2"
@@ -1254,7 +1254,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                   type="text"
                                   value={module.title}
                                   onChange={(e) => updateModule(module.id, { title: e.target.value })}
-                                  className="flex-1 font-medium text-gray-900 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+                                  className="flex-1 text-sm font-medium text-gray-900 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
                                   onClick={(e) => e.stopPropagation()}
                                 />
                               </button>
@@ -1313,7 +1313,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                               <ChevronRight size={14} className="text-gray-400" />
                                             )}
                                             {getContentTypeIcon(lesson.content_type)}
-                                            <span className="font-medium text-gray-700">{lesson.title}</span>
+                                            <span className="text-sm font-medium text-gray-700 break-words">{lesson.title}</span>
                                             {lesson.duration_minutes > 0 && (
                                               <span className="text-xs text-gray-500 flex items-center gap-1">
                                                 <Clock size={12} />
