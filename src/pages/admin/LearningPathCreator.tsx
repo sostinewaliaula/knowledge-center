@@ -468,7 +468,7 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
         <AdminSidebar />
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -851,10 +851,11 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
             )}
           </main>
         </div>
+      </div>
 
-        {/* Course Selector Modal */}
-        {showCourseSelector && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {/* Course Selector Modal */}
+      {showCourseSelector && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] flex flex-col">
               <div className="p-6 border-b border-gray-200 flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-gray-900">Select Course to Add</h3>
@@ -918,9 +919,9 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
           </div>
         )}
 
-        {/* Delete Path Modal */}
-        {showDeletePathModal && pathToDelete && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {/* Delete Path Modal */}
+      {showDeletePathModal && pathToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Delete Learning Path</h3>
@@ -951,9 +952,9 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
           </div>
         )}
 
-        {/* Delete Course Modal */}
-        {showDeleteCourseModal && courseToDelete && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      {/* Delete Course Modal */}
+      {showDeleteCourseModal && courseToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-lg font-semibold text-gray-900">Remove Course from Path</h3>
@@ -983,7 +984,6 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

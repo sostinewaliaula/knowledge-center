@@ -118,39 +118,38 @@ export function CourseBuilder({}: CourseBuilderProps) {
       const activeSearchQuery = searchOverride !== undefined ? searchOverride : searchQuery;
       const data = await api.getCourses(1, 100, activeSearchQuery, statusFilter !== 'all' ? statusFilter : 'all');
       
+      console.log('Courses API response:', data);
+      
       // Filter by difficulty if needed (since API doesn't support difficulty filter yet, we'll filter client-side)
       let filteredCourses = data.courses || [];
       if (difficultyFilter !== 'all') {
         filteredCourses = filteredCourses.filter((course: any) => course.difficulty_level === difficultyFilter);
       }
       
-      const coursesWithModules = await Promise.all(
-        filteredCourses.map(async (course: any) => {
-          try {
-            const fullCourse = await api.getCourse(course.id);
-            return fullCourse;
-          } catch {
-            return { ...course, modules: [] };
-          }
-        })
-      );
+      // Don't fetch full course details for each course - just use the list data
+      // Full details will be fetched when a course is selected
+      const coursesWithEmptyModules = filteredCourses.map((course: any) => ({
+        ...course,
+        modules: course.modules || []
+      }));
       
       // Sort courses
-      const sortedCourses = sortCourses(coursesWithModules, sortBy);
+      const sortedCourses = sortCourses(coursesWithEmptyModules, sortBy);
+      console.log('Sorted courses:', sortedCourses);
       setCourses(sortedCourses);
       
       // If current selected course is not in filtered results, clear selection
       if (selectedCourse && !sortedCourses.find((c: any) => c.id === selectedCourse.id)) {
         setSelectedCourse(null);
         setLocalModules([]);
+        setHasUnsavedChanges(false);
       }
       
-      if (sortedCourses.length > 0 && !selectedCourse) {
-        // Fetch full course details with modules for the first course
-        await fetchCourse(sortedCourses[0].id);
-      }
+      // Don't auto-select first course - let user select manually
     } catch (err: any) {
+      console.error('Error fetching courses:', err);
       showError(err.message || 'Failed to fetch courses');
+      setCourses([]);
     } finally {
       setLoading(false);
     }
@@ -834,7 +833,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
         <AdminSidebar />
       </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
