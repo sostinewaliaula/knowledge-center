@@ -19,7 +19,44 @@ import {
   Search,
   Filter,
   XCircle,
-  ArrowUpDown
+  ArrowUpDown,
+  FolderOpen,
+  DollarSign,
+  Building2,
+  GraduationCap,
+  Briefcase,
+  Shield,
+  Target,
+  TrendingUp,
+  Settings,
+  Image as ImageIcon,
+  Music,
+  Code,
+  Globe,
+  Heart,
+  Star,
+  Zap,
+  Award,
+  Lightbulb,
+  Rocket,
+  Palette,
+  ShoppingBag,
+  Car,
+  Home,
+  Plane,
+  Gamepad2,
+  Camera,
+  Phone,
+  Mail,
+  MessageSquare,
+  Calendar,
+  Bell,
+  Gift,
+  Coffee,
+  Utensils,
+  Smile,
+  ThumbsUp,
+  Tag
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentLibrarySelector } from '../../components/ContentLibrarySelector';
@@ -94,10 +131,103 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest' | 'modified-newest' | 'modified-oldest' | 'status' | 'modules-asc' | 'modules-desc' | 'difficulty'>('title-asc');
   const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [newCourseCategoryId, setNewCourseCategoryId] = useState<string>('');
+  const [newCourseTags, setNewCourseTags] = useState<Set<string>>(new Set());
+  const [courseCategoryId, setCourseCategoryId] = useState<string>('');
+  const [courseTags, setCourseTags] = useState<Set<string>>(new Set());
+  const [editingCourseId, setEditingCourseId] = useState<string | null>(null);
+  const [editCourseTitle, setEditCourseTitle] = useState('');
+  const [editCourseDescription, setEditCourseDescription] = useState('');
+  const [editCourseCategoryId, setEditCourseCategoryId] = useState<string>('');
+  const [editCourseTags, setEditCourseTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchCourses();
+    fetchCategories();
+    fetchTags();
   }, [statusFilter, difficultyFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getCategories();
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const data = await api.getTags();
+      setTags(data.tags || []);
+    } catch (err: any) {
+      console.error('Error fetching tags:', err);
+    }
+  };
+
+  // Icon mapping function for categories (same as in Categories.tsx)
+  const getCategoryIcon = (iconName: string | null, color: string | null) => {
+    if (!iconName) {
+      return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
+    }
+
+    const iconMap: { [key: string]: any } = {
+      'DollarSign': DollarSign,
+      'Users': Users,
+      'Building2': Building2,
+      'GraduationCap': GraduationCap,
+      'BookOpen': BookOpen,
+      'Briefcase': Briefcase,
+      'Shield': Shield,
+      'Target': Target,
+      'TrendingUp': TrendingUp,
+      'Settings': Settings,
+      'FileText': FileText,
+      'Video': Video,
+      'Image': ImageIcon,
+      'Music': Music,
+      'Code': Code,
+      'Globe': Globe,
+      'Heart': Heart,
+      'Star': Star,
+      'Zap': Zap,
+      'Award': Award,
+      'Lightbulb': Lightbulb,
+      'Rocket': Rocket,
+      'Palette': Palette,
+      'ShoppingBag': ShoppingBag,
+      'Car': Car,
+      'Home': Home,
+      'Plane': Plane,
+      'Gamepad2': Gamepad2,
+      'Camera': Camera,
+      'Phone': Phone,
+      'Mail': Mail,
+      'MessageSquare': MessageSquare,
+      'Calendar': Calendar,
+      'Bell': Bell,
+      'Gift': Gift,
+      'Coffee': Coffee,
+      'Utensils': Utensils,
+      'Smile': Smile,
+      'ThumbsUp': ThumbsUp,
+      'FolderOpen': FolderOpen,
+      'Tag': Tag
+    };
+
+    const IconComponent = iconMap[iconName];
+    if (IconComponent) {
+      return <IconComponent size={20} style={{ color: color || '#3B82F6' }} />;
+    }
+
+    if (iconName.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(iconName)) {
+      return <span className="text-lg leading-none">{iconName}</span>;
+    }
+
+    return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
+  };
 
   // Sort courses when sortBy changes (without re-fetching)
   useEffect(() => {
@@ -240,6 +370,10 @@ export function CourseBuilder({}: CourseBuilderProps) {
       setLocalModules(course.modules || []);
       setHasUnsavedChanges(false);
       setCourses(courses.map(c => c.id === courseId ? course : c));
+      // Set category and tags for editing
+      setCourseCategoryId(course.category_id || '');
+      // TODO: Load course tags when API supports it
+      setCourseTags(new Set());
       // Resize title textarea after course is loaded
       setTimeout(() => {
         if (titleTextareaRef.current) {
@@ -283,11 +417,17 @@ export function CourseBuilder({}: CourseBuilderProps) {
       const course = await api.createCourse({
         title: newCourseTitle,
         description: newCourseDescription || null,
+        category_id: newCourseCategoryId || null,
         status: 'draft'
       });
+      
+      // TODO: Add tags to course after creation (when tag assignment API is ready)
+      // For now, tags are stored in state but not sent to API yet
       showSuccess('Course created successfully!');
       setNewCourseTitle('');
       setNewCourseDescription('');
+      setNewCourseCategoryId('');
+      setNewCourseTags(new Set());
       setIsCreatingCourse(false);
       await fetchCourses();
       setSelectedCourse(course);
@@ -927,8 +1067,8 @@ export function CourseBuilder({}: CourseBuilderProps) {
 
         <div className="flex-1 flex overflow-hidden">
           {/* Sidebar - Course List */}
-          <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto">
-            <div className="p-4">
+          <aside className="w-80 bg-white border-r border-gray-200 flex flex-col relative">
+            <div className="p-4 flex-1 overflow-y-auto">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">My Courses</h2>
               
               {/* Search Bar */}
@@ -1057,6 +1197,55 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows={3}
                   />
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                    <select
+                      value={newCourseCategoryId}
+                      onChange={(e) => setNewCourseCategoryId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">No Category</option>
+                      {categories.filter(cat => !cat.parent_id).map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                      {tags.length === 0 ? (
+                        <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                      ) : (
+                        tags.map((tag) => {
+                          const isSelected = newCourseTags.has(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                const newTags = new Set(newCourseTags);
+                                if (isSelected) {
+                                  newTags.delete(tag.id);
+                                } else {
+                                  newTags.add(tag.id);
+                                }
+                                setNewCourseTags(newTags);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                isSelected
+                                  ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                              }`}
+                            >
+                              {tag.name}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={createCourse}
@@ -1067,9 +1256,11 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     </button>
                     <button
                       onClick={() => {
-                        setIsCreatingCourse(false);
-                        setNewCourseTitle('');
-                        setNewCourseDescription('');
+      setIsCreatingCourse(false);
+      setNewCourseTitle('');
+      setNewCourseDescription('');
+      setNewCourseCategoryId('');
+      setNewCourseTags(new Set());
                       }}
                       className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
                     >
@@ -1078,6 +1269,138 @@ export function CourseBuilder({}: CourseBuilderProps) {
                   </div>
                 </div>
               ) : null}
+
+              {/* Edit Course Form */}
+              {editingCourseId && (() => {
+                const courseToEdit = courses.find(c => c.id === editingCourseId);
+                if (!courseToEdit) return null;
+                return (
+                  <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
+                    <input
+                      type="text"
+                      placeholder="Course Title *"
+                      value={editCourseTitle}
+                      onChange={(e) => setEditCourseTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      autoFocus
+                    />
+                    <textarea
+                      placeholder="Description (optional)"
+                      value={editCourseDescription}
+                      onChange={(e) => setEditCourseDescription(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                      rows={3}
+                    />
+                    <div className="mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={editCourseCategoryId}
+                        onChange={(e) => setEditCourseCategoryId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">No Category</option>
+                        {categories.filter(cat => !cat.parent_id).map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                        {tags.length === 0 ? (
+                          <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                        ) : (
+                          tags.map((tag) => {
+                            const isSelected = editCourseTags.has(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => {
+                                  const newTags = new Set(editCourseTags);
+                                  if (isSelected) {
+                                    newTags.delete(tag.id);
+                                  } else {
+                                    newTags.add(tag.id);
+                                  }
+                                  setEditCourseTags(newTags);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  isSelected
+                                    ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                                }`}
+                              >
+                                {tag.name}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          if (!editCourseTitle.trim()) {
+                            showError('Course title is required');
+                            return;
+                          }
+
+                          try {
+                            setSaving(true);
+                            
+                            // Update course details
+                            await api.updateCourse(editingCourseId, {
+                              title: editCourseTitle.trim(),
+                              description: editCourseDescription.trim() || null,
+                              category_id: editCourseCategoryId || null,
+                            });
+
+                            // Update local state
+                            if (selectedCourse?.id === editingCourseId) {
+                              setSelectedCourse({
+                                ...selectedCourse,
+                                title: editCourseTitle.trim(),
+                                description: editCourseDescription.trim() || null,
+                              });
+                            }
+                            setCourseCategoryId(editCourseCategoryId);
+                            setCourseTags(new Set(editCourseTags));
+                            
+                            showSuccess('Course details updated successfully!');
+                            setEditingCourseId(null);
+                            
+                            // Refresh courses list
+                            await fetchCourses();
+                          } catch (err: any) {
+                            showError(err.message || 'Failed to update course details');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                        disabled={saving || !editCourseTitle.trim()}
+                        className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingCourseId(null);
+                          setEditCourseTitle('');
+                          setEditCourseDescription('');
+                          setEditCourseCategoryId('');
+                          setEditCourseTags(new Set());
+                        }}
+                        className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
               
               <div className="space-y-2">
                 {courses.map((course) => (
@@ -1097,15 +1420,37 @@ export function CourseBuilder({}: CourseBuilderProps) {
                           {course.modules?.length || 0} modules • {course.status}
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteCourseClick(course);
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors ml-2"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // If course is not selected, fetch it first to get full details
+                            if (selectedCourse?.id !== course.id) {
+                              await fetchCourse(course.id);
+                            }
+                            // Use current course data
+                            const currentCourse = selectedCourse?.id === course.id ? selectedCourse : course;
+                            setEditCourseTitle(currentCourse.title);
+                            setEditCourseDescription(currentCourse.description || '');
+                            setEditCourseCategoryId(courseCategoryId || currentCourse.category_id || '');
+                            setEditCourseTags(new Set(courseTags));
+                            setEditingCourseId(course.id);
+                          }}
+                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-purple-100 transition-colors group"
+                          title="Edit Course Details"
+                        >
+                          <Edit size={14} className="text-gray-400 group-hover:text-purple-700 transition-colors" strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCourseClick(course);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1127,6 +1472,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                 )}
               </div>
             </div>
+            
           </aside>
 
           {/* Main Content */}
@@ -1198,6 +1544,94 @@ export function CourseBuilder({}: CourseBuilderProps) {
                         <option value="intermediate">Intermediate</option>
                         <option value="advanced">Advanced</option>
                       </select>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-xs text-gray-600 mb-1">Category</label>
+                    {courseCategoryId ? (
+                      <div className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50">
+                        {(() => {
+                          const selectedCategory = categories.find(cat => cat.id === courseCategoryId);
+                          if (selectedCategory) {
+                            return (
+                              <>
+                                <div
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ backgroundColor: (selectedCategory.color || '#3B82F6') + '20' }}
+                                >
+                                  {getCategoryIcon(selectedCategory.icon, selectedCategory.color)}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">{selectedCategory.name}</div>
+                                  {selectedCategory.description && (
+                                    <div className="text-xs text-gray-500 mt-0.5">{selectedCategory.description}</div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setCourseCategoryId('');
+                                    setHasUnsavedChanges(true);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Remove category"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </div>
+                    ) : (
+                      <select
+                        value={courseCategoryId}
+                        onChange={(e) => {
+                          setCourseCategoryId(e.target.value);
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.filter(cat => !cat.parent_id).map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div className="mt-4">
+                    <label className="block text-xs text-gray-600 mb-1">Tags</label>
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-lg bg-gray-50 min-h-[48px]">
+                      {courseTags.size > 0 ? (
+                        Array.from(courseTags).map((tagId) => {
+                          const tag = tags.find(t => t.id === tagId);
+                          if (!tag) return null;
+                          return (
+                            <div
+                              key={tag.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md flex items-center gap-2"
+                            >
+                              <span>{tag.name}</span>
+                              <button
+                                onClick={() => {
+                                  const newTags = new Set(courseTags);
+                                  newTags.delete(tag.id);
+                                  setCourseTags(newTags);
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="hover:bg-white/20 rounded p-0.5 transition-colors"
+                                title="Remove tag"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No tags applied</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1663,6 +2097,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
           </div>
         </div>
       )}
+
     </div>
   );
 }

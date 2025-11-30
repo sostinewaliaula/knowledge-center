@@ -49,7 +49,9 @@ import {
   Coffee,
   Utensils,
   Smile,
-  ThumbsUp
+  ThumbsUp,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
@@ -175,6 +177,7 @@ export function Categories({}: CategoriesProps) {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'categories' | 'tags'>('categories');
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   
   // Category modals
   const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
@@ -555,6 +558,18 @@ export function Categories({}: CategoriesProps) {
               {organizeCategories(filteredCategories).map(({ category, subcategories }) => {
                 const itemCount = getTotalItemCount(category);
                 const isParent = !category.parent_id;
+                const hasSubcategories = subcategories.length > 0;
+                const isExpanded = expandedCategories.has(category.id);
+                
+                const toggleExpand = () => {
+                  const newExpanded = new Set(expandedCategories);
+                  if (isExpanded) {
+                    newExpanded.delete(category.id);
+                  } else {
+                    newExpanded.add(category.id);
+                  }
+                  setExpandedCategories(newExpanded);
+                };
                 
                 return (
                   <div key={category.id} className="space-y-2">
@@ -564,6 +579,20 @@ export function Categories({}: CategoriesProps) {
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex items-start gap-4 flex-1">
+                          {hasSubcategories && (
+                            <button
+                              onClick={toggleExpand}
+                              className="mt-1 p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors flex-shrink-0"
+                              title={isExpanded ? 'Collapse subcategories' : 'Expand subcategories'}
+                            >
+                              {isExpanded ? (
+                                <ChevronDown size={20} />
+                              ) : (
+                                <ChevronRight size={20} />
+                              )}
+                            </button>
+                          )}
+                          {!hasSubcategories && <div className="w-5" />}
                           <div
                             className="w-12 h-12 rounded-lg flex items-center justify-center"
                             style={{ backgroundColor: (category.color || '#3B82F6') + '20' }}
@@ -584,7 +613,7 @@ export function Categories({}: CategoriesProps) {
                             )}
                             <div className="flex items-center gap-4 text-xs text-gray-500">
                               <span>{itemCount} items</span>
-                              {subcategories.length > 0 && (
+                              {hasSubcategories && (
                                 <>
                                   <span>•</span>
                                   <span>{subcategories.length} subcategor{subcategories.length === 1 ? 'y' : 'ies'}</span>
@@ -615,9 +644,14 @@ export function Categories({}: CategoriesProps) {
                     </div>
                     
                     {/* Subcategories */}
-                    {subcategories.length > 0 && (
-                      <div className="ml-8 space-y-2 border-l-2 border-gray-200 pl-6">
-                        {subcategories.map((subcategory) => {
+                    {hasSubcategories && (
+                      <div
+                        className={`ml-8 space-y-2 border-l-2 border-gray-200 pl-6 transition-all duration-300 overflow-hidden ${
+                          isExpanded ? 'max-h-[5000px] opacity-100' : 'max-h-0 opacity-0'
+                        }`}
+                      >
+                        <div className="space-y-2">
+                          {subcategories.map((subcategory) => {
                           const subItemCount = getTotalItemCount(subcategory);
                           return (
                             <div
@@ -664,8 +698,9 @@ export function Categories({}: CategoriesProps) {
                                 </div>
                               </div>
                             </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
                   </div>
@@ -673,45 +708,96 @@ export function Categories({}: CategoriesProps) {
               })}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTags.map((tag) => {
-                const tagColor = generateColor(tag.name);
-                const usageCount = getTotalUsageCount(tag);
-                return (
-                  <div
-                    key={tag.id}
-                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <div
-                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                        style={{ backgroundColor: tagColor + '20', color: tagColor }}
-                      >
-                        {tag.name}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => openEditTag(tag)}
-                          className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
-                          title="Edit tag"
-                        >
-                          <Edit size={14} />
-                        </button>
-                        <button
-                          onClick={() => openDeleteTag(tag)}
-                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                          title="Delete tag"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      Used in {usageCount} items
-                    </div>
+            <div className="space-y-6">
+              {/* Tags Header Info */}
+              <div className="bg-white rounded-xl border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 mb-1">Tags</h2>
+                    <p className="text-sm text-gray-600">
+                      Tags are flexible labels that can be applied to multiple courses and content items. 
+                      Use tags to organize and filter your learning materials.
+                    </p>
                   </div>
-                );
-              })}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowCreateTagModal(true)}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
+                    >
+                      <Plus size={16} />
+                      New Tag
+                    </button>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 text-sm text-gray-500 pt-4 border-t border-gray-200">
+                  <span>Total Tags: <span className="font-semibold text-gray-900">{filteredTags.length}</span></span>
+                  {filteredTags.length > 0 && (
+                    <span>• Used in: <span className="font-semibold text-gray-900">
+                      {filteredTags.reduce((sum, tag) => sum + getTotalUsageCount(tag), 0)} items
+                    </span></span>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags as Cards */}
+              {filteredTags.length > 0 ? (
+                <div className="flex flex-wrap gap-3">
+                  {filteredTags.map((tag) => {
+                    const tagColor = generateColor(tag.name);
+                    const usageCount = getTotalUsageCount(tag);
+                    return (
+                      <div
+                        key={tag.id}
+                        className="group relative bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-all min-w-[120px]"
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div
+                            className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                            style={{ backgroundColor: tagColor + '20', color: tagColor }}
+                          >
+                            {tag.name}
+                          </div>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                              onClick={() => openEditTag(tag)}
+                              className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                              title="Edit tag"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => openDeleteTag(tag)}
+                              className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                              title="Delete tag"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {usageCount} {usageCount === 1 ? 'item' : 'items'}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
+                  <Tag size={48} className="text-gray-300 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No tags found</h3>
+                  <p className="text-gray-500 mb-6">
+                    {searchQuery ? 'No tags match your search. Try a different query.' : 'Create your first tag to label content'}
+                  </p>
+                  {!searchQuery && (
+                    <button
+                      onClick={() => setShowCreateTagModal(true)}
+                      className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                    >
+                      Create Tag
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
