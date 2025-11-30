@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   Search, 
@@ -20,7 +20,48 @@ import {
   Send,
   History,
   CheckCircle,
-  XCircle
+  XCircle,
+  FolderOpen,
+  DollarSign,
+  Building2,
+  GraduationCap,
+  Briefcase,
+  Shield,
+  Target,
+  TrendingUp,
+  Settings,
+  Image as ImageIcon,
+  Music,
+  Code,
+  Globe,
+  Heart,
+  Star,
+  Zap,
+  Award,
+  Lightbulb,
+  Rocket,
+  Palette,
+  ShoppingBag,
+  Car,
+  Home,
+  Plane,
+  Gamepad2,
+  Camera,
+  Phone,
+  Mail,
+  MessageSquare,
+  Calendar,
+  Bell,
+  Gift,
+  Coffee,
+  Utensils,
+  Smile,
+  ThumbsUp,
+  Tag,
+  Users,
+  BookOpen,
+  FileText,
+  Video
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
@@ -75,6 +116,8 @@ export function Assessments({}: AssessmentsProps) {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [filterType, setFilterType] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('date-newest');
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalAssessment, setOriginalAssessment] = useState<any>(null);
   
   // Modals
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -95,6 +138,22 @@ export function Assessments({}: AssessmentsProps) {
     randomize_questions: false,
     show_results: true,
     status: 'draft' as Assessment['status'],
+    course_id: '',
+    lesson_id: ''
+  });
+
+  // Edit states
+  const [editingAssessmentId, setEditingAssessmentId] = useState<string | null>(null);
+  const [editAssessmentForm, setEditAssessmentForm] = useState({
+    title: '',
+    description: '',
+    type: 'quiz' as Assessment['type'],
+    passing_score: 70,
+    time_limit_minutes: null as number | null,
+    max_attempts: 1,
+    is_required: true,
+    randomize_questions: false,
+    show_results: true,
     course_id: '',
     lesson_id: ''
   });
@@ -121,6 +180,9 @@ export function Assessments({}: AssessmentsProps) {
   // Available courses and lessons for assignment
   const [availableCourses, setAvailableCourses] = useState<any[]>([]);
   const [availableLessons, setAvailableLessons] = useState<any[]>([]);
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
 
   useEffect(() => {
     fetchAssessments();
@@ -179,6 +241,98 @@ export function Assessments({}: AssessmentsProps) {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getCategories();
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const data = await api.getTags();
+      setTags(data.tags || []);
+    } catch (err: any) {
+      console.error('Error fetching tags:', err);
+    }
+  };
+
+  // Icon mapping function for categories (same as in CourseBuilder)
+  const getCategoryIcon = (iconName: string | null, color: string | null) => {
+    if (!iconName) {
+      return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
+    }
+
+    const iconMap: { [key: string]: any } = {
+      'DollarSign': DollarSign,
+      'Users': Users,
+      'Building2': Building2,
+      'GraduationCap': GraduationCap,
+      'BookOpen': BookOpen,
+      'Briefcase': Briefcase,
+      'Shield': Shield,
+      'Target': Target,
+      'TrendingUp': TrendingUp,
+      'Settings': Settings,
+      'FileText': FileText,
+      'Video': Video,
+      'Image': ImageIcon,
+      'Music': Music,
+      'Code': Code,
+      'Globe': Globe,
+      'Heart': Heart,
+      'Star': Star,
+      'Zap': Zap,
+      'Award': Award,
+      'Lightbulb': Lightbulb,
+      'Rocket': Rocket,
+      'Palette': Palette,
+      'ShoppingBag': ShoppingBag,
+      'Car': Car,
+      'Home': Home,
+      'Plane': Plane,
+      'Gamepad2': Gamepad2,
+      'Camera': Camera,
+      'Phone': Phone,
+      'Mail': Mail,
+      'MessageSquare': MessageSquare,
+      'Calendar': Calendar,
+      'Bell': Bell,
+      'Gift': Gift,
+      'Coffee': Coffee,
+      'Utensils': Utensils,
+      'Smile': Smile,
+      'ThumbsUp': ThumbsUp,
+      'FolderOpen': FolderOpen,
+      'Tag': Tag
+    };
+
+    const IconComponent = iconMap[iconName];
+    if (IconComponent) {
+      return <IconComponent size={20} style={{ color: color || '#3B82F6' }} />;
+    }
+
+    if (iconName.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(iconName)) {
+      return <span className="text-lg leading-none">{iconName}</span>;
+    }
+
+    return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
+  };
+
+  // Resize title textarea when selectedAssessment changes
+  useEffect(() => {
+    if (titleTextareaRef.current && selectedAssessment?.title) {
+      setTimeout(() => {
+        if (titleTextareaRef.current) {
+          titleTextareaRef.current.style.height = 'auto';
+          titleTextareaRef.current.style.height = titleTextareaRef.current.scrollHeight + 'px';
+        }
+      }, 0);
+    }
+  }, [selectedAssessment?.title, selectedAssessment?.id]);
+
   const fetchAssessment = async (id: string) => {
     try {
       setLoading(true);
@@ -187,7 +341,7 @@ export function Assessments({}: AssessmentsProps) {
       setLocalQuestions(assessment.questions || []);
       
       // Set form values
-      setAssessmentForm({
+      const formData = {
         title: assessment.title,
         description: assessment.description || '',
         type: assessment.type,
@@ -200,7 +354,11 @@ export function Assessments({}: AssessmentsProps) {
         status: assessment.status,
         course_id: assessment.course_id || '',
         lesson_id: assessment.lesson_id || ''
-      });
+      };
+      
+      setAssessmentForm(formData);
+      setOriginalAssessment(JSON.parse(JSON.stringify(formData))); // Deep copy
+      setHasUnsavedChanges(false);
       
       // Fetch lessons if course is assigned
       if (assessment.course_id) {
@@ -272,6 +430,29 @@ export function Assessments({}: AssessmentsProps) {
     }
   };
 
+  // Check for unsaved changes
+  useEffect(() => {
+    if (!originalAssessment || !selectedAssessment) {
+      setHasUnsavedChanges(false);
+      return;
+    }
+
+    const hasChanges = 
+      assessmentForm.title !== originalAssessment.title ||
+      assessmentForm.description !== originalAssessment.description ||
+      assessmentForm.type !== originalAssessment.type ||
+      assessmentForm.passing_score !== originalAssessment.passing_score ||
+      assessmentForm.time_limit_minutes !== originalAssessment.time_limit_minutes ||
+      assessmentForm.max_attempts !== originalAssessment.max_attempts ||
+      assessmentForm.is_required !== originalAssessment.is_required ||
+      assessmentForm.randomize_questions !== originalAssessment.randomize_questions ||
+      assessmentForm.show_results !== originalAssessment.show_results ||
+      assessmentForm.course_id !== originalAssessment.course_id ||
+      assessmentForm.lesson_id !== originalAssessment.lesson_id;
+
+    setHasUnsavedChanges(hasChanges);
+  }, [assessmentForm, originalAssessment, selectedAssessment]);
+
   const handleSaveAssessment = async () => {
     if (!selectedAssessment) return;
 
@@ -297,6 +478,42 @@ export function Assessments({}: AssessmentsProps) {
       await fetchAssessments();
     } catch (err: any) {
       showError(err.message || 'Failed to save assessment');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handlePublishAssessment = async () => {
+    if (!selectedAssessment || hasUnsavedChanges) return;
+
+    try {
+      setSaving(true);
+      await api.updateAssessment(selectedAssessment.id, {
+        status: 'published'
+      });
+      showSuccess('Assessment published successfully!');
+      await fetchAssessment(selectedAssessment.id);
+      await fetchAssessments();
+    } catch (err: any) {
+      showError(err.message || 'Failed to publish assessment');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleUnpublishAssessment = async () => {
+    if (!selectedAssessment || hasUnsavedChanges) return;
+
+    try {
+      setSaving(true);
+      await api.updateAssessment(selectedAssessment.id, {
+        status: 'draft'
+      });
+      showSuccess('Assessment unpublished successfully!');
+      await fetchAssessment(selectedAssessment.id);
+      await fetchAssessments();
+    } catch (err: any) {
+      showError(err.message || 'Failed to unpublish assessment');
     } finally {
       setSaving(false);
     }
@@ -639,6 +856,223 @@ export function Assessments({}: AssessmentsProps) {
 
           {/* Assessments List */}
           <div className="flex-1 overflow-y-auto p-4">
+            {/* Edit Assessment Form */}
+            {editingAssessmentId && (() => {
+              const assessmentToEdit = assessments.find(a => a.id === editingAssessmentId);
+              if (!assessmentToEdit) return null;
+              return (
+                <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
+                  <input
+                    type="text"
+                    placeholder="Assessment Title *"
+                    value={editAssessmentForm.title}
+                    onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    autoFocus
+                  />
+                  <textarea
+                    placeholder="Description (optional)"
+                    value={editAssessmentForm.description}
+                    onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    rows={3}
+                  />
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                      <select
+                        value={editAssessmentForm.type}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, type: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="quiz">Quiz</option>
+                        <option value="exam">Exam</option>
+                        <option value="assignment">Assignment</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Passing Score (%)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={editAssessmentForm.passing_score}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, passing_score: parseFloat(e.target.value) || 70 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={editAssessmentForm.time_limit_minutes || ''}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, time_limit_minutes: e.target.value ? parseInt(e.target.value) : null })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        placeholder="No limit"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Max Attempts</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={editAssessmentForm.max_attempts}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, max_attempts: parseInt(e.target.value) || 1 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Course (Optional)</label>
+                      <select
+                        value={editAssessmentForm.course_id}
+                        onChange={async (e) => {
+                          const courseId = e.target.value;
+                          setEditAssessmentForm({ ...editAssessmentForm, course_id: courseId, lesson_id: '' });
+                          if (courseId) {
+                            await fetchAvailableLessons(courseId);
+                          } else {
+                            setAvailableLessons([]);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">No Course</option>
+                        {availableCourses.map((course) => (
+                          <option key={course.id} value={course.id}>
+                            {course.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Lesson (Optional)</label>
+                      <select
+                        value={editAssessmentForm.lesson_id}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, lesson_id: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={!editAssessmentForm.course_id}
+                      >
+                        <option value="">No Lesson</option>
+                        {availableLessons.map((lesson) => (
+                          <option key={lesson.id} value={lesson.id}>
+                            {lesson.module_title}: {lesson.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4 mb-2">
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={editAssessmentForm.is_required}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, is_required: e.target.checked })}
+                        className="rounded"
+                      />
+                      Required
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={editAssessmentForm.randomize_questions}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, randomize_questions: e.target.checked })}
+                        className="rounded"
+                      />
+                      Randomize Questions
+                    </label>
+                    <label className="flex items-center gap-2 text-xs text-gray-700">
+                      <input
+                        type="checkbox"
+                        checked={editAssessmentForm.show_results}
+                        onChange={(e) => setEditAssessmentForm({ ...editAssessmentForm, show_results: e.target.checked })}
+                        className="rounded"
+                      />
+                      Show Results
+                    </label>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        if (!editAssessmentForm.title.trim()) {
+                          showError('Assessment title is required');
+                          return;
+                        }
+
+                        try {
+                          setSaving(true);
+                          
+                          // Update assessment details
+                          await api.updateAssessment(editingAssessmentId, {
+                            title: editAssessmentForm.title.trim(),
+                            description: editAssessmentForm.description.trim() || null,
+                            type: editAssessmentForm.type,
+                            passing_score: editAssessmentForm.passing_score,
+                            time_limit_minutes: editAssessmentForm.time_limit_minutes,
+                            max_attempts: editAssessmentForm.max_attempts,
+                            is_required: editAssessmentForm.is_required,
+                            randomize_questions: editAssessmentForm.randomize_questions,
+                            show_results: editAssessmentForm.show_results,
+                            course_id: editAssessmentForm.course_id || null,
+                            lesson_id: editAssessmentForm.lesson_id || null
+                          });
+
+                          // Update local state
+                          if (selectedAssessment?.id === editingAssessmentId) {
+                            setSelectedAssessment({
+                              ...selectedAssessment,
+                              title: editAssessmentForm.title.trim(),
+                              description: editAssessmentForm.description.trim() || null,
+                            });
+                            setAssessmentForm(editAssessmentForm);
+                          }
+                          
+                          showSuccess('Assessment details updated successfully!');
+                          setEditingAssessmentId(null);
+                          
+                          // Refresh assessments list
+                          await fetchAssessments();
+                        } catch (err: any) {
+                          showError(err.message || 'Failed to update assessment details');
+                        } finally {
+                          setSaving(false);
+                        }
+                      }}
+                      disabled={saving || !editAssessmentForm.title.trim()}
+                      className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                    >
+                      {saving ? 'Saving...' : 'Save'}
+                    </button>
+                    <button
+                      onClick={() => {
+                        setEditingAssessmentId(null);
+                        setEditAssessmentForm({
+                          title: '',
+                          description: '',
+                          type: 'quiz',
+                          passing_score: 70,
+                          time_limit_minutes: null,
+                          max_attempts: 1,
+                          is_required: false,
+                          randomize_questions: false,
+                          show_results: true,
+                          course_id: '',
+                          lesson_id: ''
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="space-y-2">
               {assessments.length === 0 ? (
                 <div className="text-center py-8 text-gray-500 text-sm">
@@ -675,17 +1109,51 @@ export function Assessments({}: AssessmentsProps) {
                           </span>
                         </div>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAssessmentToDelete(assessment);
-                          setShowDeleteModal(true);
-                        }}
-                        className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                        title="Delete assessment"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="flex items-center gap-1 ml-2">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // If assessment is not selected, fetch it first to get full details
+                            if (selectedAssessment?.id !== assessment.id) {
+                              await fetchAssessment(assessment.id);
+                            }
+                            // Use current assessment data
+                            const currentAssessment = selectedAssessment?.id === assessment.id ? selectedAssessment : assessment;
+                            setEditAssessmentForm({
+                              title: currentAssessment.title,
+                              description: currentAssessment.description || '',
+                              type: currentAssessment.type,
+                              passing_score: currentAssessment.passing_score,
+                              time_limit_minutes: currentAssessment.time_limit_minutes,
+                              max_attempts: currentAssessment.max_attempts,
+                              is_required: currentAssessment.is_required,
+                              randomize_questions: currentAssessment.randomize_questions,
+                              show_results: currentAssessment.show_results,
+                              course_id: currentAssessment.course_id || '',
+                              lesson_id: currentAssessment.lesson_id || ''
+                            });
+                            if (currentAssessment.course_id) {
+                              await fetchAvailableLessons(currentAssessment.course_id);
+                            }
+                            setEditingAssessmentId(assessment.id);
+                          }}
+                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-purple-100 transition-colors group"
+                          title="Edit Assessment Details"
+                        >
+                          <Edit size={14} className="text-gray-400 group-hover:text-purple-700 transition-colors" strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAssessmentToDelete(assessment);
+                            setShowDeleteModal(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete assessment"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))
@@ -694,190 +1162,201 @@ export function Assessments({}: AssessmentsProps) {
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-y-auto p-6">
-          {selectedAssessment ? (
-            <div className="max-w-4xl mx-auto">
-              {/* Assessment Info */}
-              <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Assessment Title *</label>
-                    <input
-                      type="text"
-                      value={assessmentForm.title}
-                      onChange={(e) => setAssessmentForm({ ...assessmentForm, title: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      placeholder="Assessment title"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Description</label>
-                    <textarea
-                      value={assessmentForm.description}
-                      onChange={(e) => setAssessmentForm({ ...assessmentForm, description: e.target.value })}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                      rows={3}
-                      placeholder="Assessment description"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Type</label>
-                      <select
-                        value={assessmentForm.type}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, type: e.target.value as Assessment['type'] })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="quiz">Quiz</option>
-                        <option value="exam">Exam</option>
-                        <option value="assignment">Assignment</option>
-                      </select>
+        <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+          {/* Header */}
+          {selectedAssessment && (
+            <header className="bg-white border-b border-gray-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Assessment Builder</h1>
+                  <p className="text-sm text-gray-500 mt-1">Create and manage your assessments</p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {hasUnsavedChanges && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <AlertCircle size={16} className="text-yellow-600" />
+                      <span className="text-sm text-yellow-700 font-medium">Unsaved changes</span>
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Status</label>
-                      <select
-                        value={assessmentForm.status}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, status: e.target.value as Assessment['status'] })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="draft">Draft</option>
-                        <option value="published">Published</option>
-                        <option value="archived">Archived</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Passing Score (%)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        value={assessmentForm.passing_score}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, passing_score: parseFloat(e.target.value) || 70 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Time Limit (minutes)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={assessmentForm.time_limit_minutes || ''}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, time_limit_minutes: e.target.value ? parseInt(e.target.value) : null })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        placeholder="No limit"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Max Attempts</label>
-                      <input
-                        type="number"
-                        min="1"
-                        value={assessmentForm.max_attempts}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, max_attempts: parseInt(e.target.value) || 1 })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Course (Optional)</label>
-                      <select
-                        value={assessmentForm.course_id}
-                        onChange={async (e) => {
-                          const courseId = e.target.value;
-                          setAssessmentForm({ ...assessmentForm, course_id: courseId, lesson_id: '' });
-                          if (courseId) {
-                            await fetchAvailableLessons(courseId);
-                          } else {
-                            setAvailableLessons([]);
-                          }
-                        }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      >
-                        <option value="">No Course</option>
-                        {availableCourses.map((course) => (
-                          <option key={course.id} value={course.id}>
-                            {course.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Lesson (Optional)</label>
-                      <select
-                        value={assessmentForm.lesson_id}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, lesson_id: e.target.value })}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        disabled={!assessmentForm.course_id}
-                      >
-                        <option value="">No Lesson</option>
-                        {availableLessons.map((lesson) => (
-                          <option key={lesson.id} value={lesson.id}>
-                            {lesson.module_title}: {lesson.title}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-6">
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={assessmentForm.is_required}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, is_required: e.target.checked })}
-                        className="rounded"
-                      />
-                      Required
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={assessmentForm.randomize_questions}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, randomize_questions: e.target.checked })}
-                        className="rounded"
-                      />
-                      Randomize Questions
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-700">
-                      <input
-                        type="checkbox"
-                        checked={assessmentForm.show_results}
-                        onChange={(e) => setAssessmentForm({ ...assessmentForm, show_results: e.target.checked })}
-                        className="rounded"
-                      />
-                      Show Results
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                  )}
+                  <button
+                    onClick={handleSaveAssessment}
+                    disabled={saving || !hasUnsavedChanges}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                      hasUnsavedChanges
+                        ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white hover:from-purple-700 hover:to-green-700'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        {hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
+                      </>
+                    )}
+                  </button>
+                  {selectedAssessment.status === 'draft' && (
                     <button
-                      onClick={handleSaveAssessment}
-                      disabled={saving || !assessmentForm.title.trim()}
-                      className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50 flex items-center gap-2"
+                      onClick={handlePublishAssessment}
+                      disabled={saving || hasUnsavedChanges}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={hasUnsavedChanges ? 'Save changes before publishing' : 'Publish assessment'}
                     >
-                      {saving ? (
-                        <>
-                          <Loader2 size={16} className="animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save size={16} />
-                          Save Assessment
-                        </>
-                      )}
+                      <Send size={16} />
+                      Publish
                     </button>
-                  </div>
+                  )}
+                  {selectedAssessment.status === 'published' && (
+                    <button
+                      onClick={handleUnpublishAssessment}
+                      disabled={saving || hasUnsavedChanges}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={hasUnsavedChanges ? 'Save changes before unpublishing' : 'Unpublish assessment'}
+                    >
+                      <XCircle size={16} />
+                      Unpublish
+                    </button>
+                  )}
                 </div>
               </div>
+            </header>
+          )}
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto p-6">
+            {selectedAssessment ? (
+              <div className="max-w-4xl mx-auto">
+                {/* Assessment Info */}
+                <div className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200 mb-6 bg-gradient-to-br from-white to-gray-50/50">
+                  <textarea
+                    ref={titleTextareaRef}
+                    value={assessmentForm.title}
+                    onChange={(e) => {
+                      setAssessmentForm({ ...assessmentForm, title: e.target.value });
+                      setHasUnsavedChanges(true);
+                      // Auto-resize
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.max(target.scrollHeight, 48) + 'px';
+                    }}
+                    className="text-2xl font-bold bg-transparent text-gray-900 w-full mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg px-3 py-2 resize-none transition-all"
+                    placeholder="Assessment Title"
+                    style={{ 
+                      minHeight: '3rem',
+                      lineHeight: '1.6',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'normal',
+                      overflow: 'hidden',
+                      height: 'auto',
+                      letterSpacing: '-0.02em'
+                    }}
+                  />
+                  <textarea
+                    value={assessmentForm.description}
+                    onChange={(e) => {
+                      setAssessmentForm({ ...assessmentForm, description: e.target.value });
+                      setHasUnsavedChanges(true);
+                    }}
+                    placeholder="Assessment description..."
+                    className="w-full text-gray-600 bg-transparent focus:outline-none focus:ring-2 focus:ring-purple-500 rounded-lg px-3 py-2 resize-none transition-all leading-relaxed"
+                    rows={3}
+                  />
+                  <div className="mt-4 grid grid-cols-3 gap-x-8 gap-y-2">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Type</span>
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-purple-100 to-purple-50 text-purple-700 rounded-lg text-sm font-semibold capitalize shadow-sm">
+                        {assessmentForm.type}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold capitalize shadow-sm ${
+                        selectedAssessment.status === 'published'
+                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700'
+                          : selectedAssessment.status === 'archived'
+                          ? 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-700'
+                          : 'bg-gradient-to-r from-yellow-100 to-yellow-50 text-yellow-700'
+                      }`}>
+                        {selectedAssessment.status === 'published' ? 'Published' : selectedAssessment.status === 'archived' ? 'Archived' : 'Draft'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Passing Score</span>
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-blue-100 to-blue-50 text-blue-700 rounded-lg text-sm font-bold shadow-sm">
+                        {assessmentForm.passing_score}%
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Time Limit</span>
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-indigo-100 to-indigo-50 text-indigo-700 rounded-lg text-sm font-semibold shadow-sm">
+                        {assessmentForm.time_limit_minutes ? `${assessmentForm.time_limit_minutes} min` : 'No limit'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Max Attempts</span>
+                      <span className="px-3 py-1.5 bg-gradient-to-r from-pink-100 to-pink-50 text-pink-700 rounded-lg text-sm font-semibold shadow-sm">
+                        {assessmentForm.max_attempts}
+                      </span>
+                    </div>
+                    {assessmentForm.course_id && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Course</span>
+                        <span className="px-3 py-1.5 bg-gradient-to-r from-emerald-100 to-emerald-50 text-emerald-700 rounded-lg text-sm font-medium shadow-sm max-w-xs truncate">
+                          {(() => {
+                            const course = availableCourses.find(c => c.id === assessmentForm.course_id);
+                            return course?.title || 'Unknown Course';
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    {assessmentForm.lesson_id && (
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Lesson</span>
+                        <span className="px-3 py-1.5 bg-gradient-to-r from-teal-100 to-teal-50 text-teal-700 rounded-lg text-sm font-medium shadow-sm max-w-xs truncate">
+                          {(() => {
+                            const lesson = availableLessons.find(l => l.id === assessmentForm.lesson_id);
+                            return lesson ? `${lesson.module_title}: ${lesson.title}` : 'Unknown Lesson';
+                          })()}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Required</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm ${
+                        assessmentForm.is_required
+                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700'
+                          : 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600'
+                      }`}>
+                        {assessmentForm.is_required ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Randomize</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm ${
+                        assessmentForm.randomize_questions
+                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700'
+                          : 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600'
+                      }`}>
+                        {assessmentForm.randomize_questions ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Show Results</span>
+                      <span className={`px-3 py-1.5 rounded-lg text-sm font-semibold shadow-sm ${
+                        assessmentForm.show_results
+                          ? 'bg-gradient-to-r from-green-100 to-green-50 text-green-700'
+                          : 'bg-gradient-to-r from-gray-100 to-gray-50 text-gray-600'
+                      }`}>
+                        {assessmentForm.show_results ? 'Yes' : 'No'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
 
               {/* Questions Section */}
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
@@ -1689,6 +2168,7 @@ export function Assessments({}: AssessmentsProps) {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
