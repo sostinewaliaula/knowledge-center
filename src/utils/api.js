@@ -301,6 +301,74 @@ export const api = {
       body: JSON.stringify({ lessonOrders }),
     });
     return response.lessons;
+  },
+
+  // ============================================
+  // LEARNING PATH API METHODS
+  // ============================================
+
+  async getLearningPaths(page = 1, limit = 20, search = '', status = 'all') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (status && status !== 'all') params.append('status', status);
+    const queryString = params.toString();
+    return this.request(`/learning-paths${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async getLearningPath(id) {
+    const response = await this.request(`/learning-paths/${id}`);
+    return response.path;
+  },
+
+  async createLearningPath(pathData) {
+    const response = await this.request('/learning-paths', {
+      method: 'POST',
+      body: JSON.stringify(pathData),
+    });
+    return response.path;
+  },
+
+  async updateLearningPath(id, pathData) {
+    const response = await this.request(`/learning-paths/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(pathData),
+    });
+    return response.path;
+  },
+
+  async deleteLearningPath(id) {
+    return this.request(`/learning-paths/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async addCourseToPath(pathId, courseId, orderIndex = null, isRequired = true) {
+    return this.request(`/learning-paths/${pathId}/courses`, {
+      method: 'POST',
+      body: JSON.stringify({ course_id: courseId, order_index: orderIndex, is_required: isRequired }),
+    });
+  },
+
+  async removeCourseFromPath(pathId, courseId) {
+    return this.request(`/learning-paths/${pathId}/courses/${courseId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async reorderCoursesInPath(pathId, courseIds) {
+    return this.request(`/learning-paths/${pathId}/courses/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ courseIds }),
+    });
+  },
+
+  async updateCourseRequirement(pathId, courseId, isRequired) {
+    return this.request(`/learning-paths/${pathId}/courses/${courseId}/requirement`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_required: isRequired }),
+    });
   }
 };
 

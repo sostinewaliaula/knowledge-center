@@ -15,6 +15,7 @@ import userRoutes from './routes/user.routes.js';
 import roleRoutes from './routes/role.routes.js';
 import contentRoutes from './routes/content.routes.js';
 import courseRoutes from './routes/course.routes.js';
+import learningPathRoutes from './routes/learningPath.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,7 +66,8 @@ app.get('/api', (req, res) => {
       users: '/api/users',
       roles: '/api/roles',
       content: '/api/content',
-      courses: '/api/courses'
+      courses: '/api/courses',
+      learningPaths: '/api/learning-paths'
     }
   });
 });
@@ -76,6 +78,7 @@ app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/courses', courseRoutes);
+app.use('/api/learning-paths', learningPathRoutes);
 
 // 404 handler
 app.use(notFound);
