@@ -602,6 +602,52 @@ export const api = {
     async getQuestionHistory(questionId) {
       const response = await this.request(`/assessments/questions/${questionId}/history`);
       return response.history;
-    }
+    },
+
+  // Assignments endpoints
+  async getAssignments(page = 1, limit = 20, search = '', status = 'all', type = 'all') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (type) params.append('type', type);
+    const queryString = params.toString();
+    const response = await this.request(`/assignments${queryString ? `?${queryString}` : ''}`);
+    return {
+      assignments: response.assignments || [],
+      total: response.total || 0,
+      page: response.page || 1,
+      limit: response.limit || 20,
+      totalPages: response.totalPages || 1
+    };
+  },
+
+  async getAssignment(id) {
+    const response = await this.request(`/assignments/${id}`);
+    return response.assignment;
+  },
+
+  async createAssignment(assignmentData) {
+    const response = await this.request('/assignments', {
+      method: 'POST',
+      body: JSON.stringify(assignmentData),
+    });
+    return response.assignment;
+  },
+
+  async updateAssignment(id, assignmentData) {
+    const response = await this.request(`/assignments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(assignmentData),
+    });
+    return response.assignment;
+  },
+
+  async deleteAssignment(id) {
+    return this.request(`/assignments/${id}`, {
+      method: 'DELETE',
+    });
+  }
 };
 
