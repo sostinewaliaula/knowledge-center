@@ -112,10 +112,11 @@ export function CourseBuilder({}: CourseBuilderProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
 
-  const fetchCourses = async () => {
+  const fetchCourses = async (searchOverride?: string) => {
     try {
       setLoading(true);
-      const data = await api.getCourses(1, 100, searchQuery, statusFilter !== 'all' ? statusFilter : 'all');
+      const activeSearchQuery = searchOverride !== undefined ? searchOverride : searchQuery;
+      const data = await api.getCourses(1, 100, activeSearchQuery, statusFilter !== 'all' ? statusFilter : 'all');
       
       // Filter by difficulty if needed (since API doesn't support difficulty filter yet, we'll filter client-side)
       let filteredCourses = data.courses || [];
@@ -944,7 +945,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                       onClick={() => {
                         setSearchInput('');
                         setSearchQuery('');
-                        fetchCourses();
+                        fetchCourses(''); // Pass empty string to clear search immediately
                       }}
                       className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
                       title="Clear search"
