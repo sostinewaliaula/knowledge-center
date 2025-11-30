@@ -1,5 +1,15 @@
 import { ContentLibrary } from '../models/ContentLibrary.js';
 import { getFileType, getRelativePath } from '../middleware/upload.js';
+import {
+  detectSourceType,
+  validateUrl,
+  validateYouTubeUrl,
+  validateVimeoUrl,
+  validateGoogleDriveUrl,
+  validateMicrosoftOfficeUrl,
+  generateEmbedCode,
+  getFileTypeFromUrl
+} from '../utils/contentSources.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs/promises';
@@ -87,6 +97,162 @@ export const uploadContent = async (req, res, next) => {
       file_type: getFileType(file.mimetype),
       file_size: file.size,
       mime_type: file.mimetype,
+      uploaded_by: req.user.id,
+      category_id: category_id || null,
+      is_public: is_public === 'true' || is_public === true
+    };
+
+    const content = await ContentLibrary.create(contentData);
+
+    res.status(201).json({
+      success: true,
+      content
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Add content from URL
+ */
+export const addContentFromUrl = async (req, res, next) => {
+  try {
+    const { url, title, description, category_id, is_public } = req.body;
+
+    if (!url || !url.trim()) {
+      return res.status(400).json({
+        success: false,
+        error: 'URL is required'
+      });
+    }
+
+    const sourceUrl = url.trim();
+    const sourceType = detectSourceType(sourceUrl);
+    let validatedUrl;
+    let embedCode = null;
+    let thumbnailUrl = null;
+    let videoId = null;
+    let fileId = null;
+
+    // Validate based on source type
+    switch (sourceType) {
+      case 'youtube':
+        validatedUrl = validateYouTubeUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid YouTube URL'
+          });
+        }
+        embedCode = generateEmbedCode('youtube', sourceUrl);
+        thumbnailUrl = validatedUrl.thumbnailUrl;
+        videoId = validatedUrl.videoId;
+        break;
+
+      case 'vimeo':
+        validatedUrl = validateVimeoUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid Vimeo URL'
+          });
+        }
+        embedCode = generateEmbedCode('vimeo', sourceUrl);
+        videoId = validatedUrl.videoId;
+        break;
+
+      case 'dailymotion':
+        // Basic validation for Dailymotion
+        if (!sourceUrl.includes('dailymotion.com')) {
+          return res.status(400).json({
+            success: false,
+            error: 'Invalid Dailymotion URL'
+          });
+        }
+        embedCode = generateEmbedCode('dailymotion', sourceUrl);
+        break;
+
+      case 'googledrive':
+        validatedUrl = validateGoogleDriveUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid Google Drive/Docs URL. Make sure the file has "Anyone with the link can view" permission.'
+          });
+        }
+        embedCode = generateEmbedCode('googledrive', sourceUrl);
+        fileId = validatedUrl.fileId;
+        break;
+
+      case 'microsoft':
+        validatedUrl = validateMicrosoftOfficeUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid Microsoft Office URL'
+          });
+        }
+        embedCode = generateEmbedCode('microsoft', sourceUrl);
+        fileId = validatedUrl.fileId;
+        break;
+
+      case 'url':
+        validatedUrl = validateUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid URL'
+          });
+        }
+        break;
+
+      default:
+        // For other types (onedrive, dropbox, etc.), just validate as URL
+        validatedUrl = validateUrl(sourceUrl);
+        if (!validatedUrl.valid) {
+          return res.status(400).json({
+            success: false,
+            error: validatedUrl.error || 'Invalid URL'
+          });
+        }
+        break;
+    }
+
+    // Generate title from URL if not provided
+    let contentTitle = title?.trim();
+    if (!contentTitle) {
+      if (sourceType === 'youtube' && videoId) {
+        // For YouTube, we could fetch the title via API, but for now use a default
+        contentTitle = `YouTube Video - ${videoId}`;
+      } else if (sourceType === 'googledrive' && fileId) {
+        contentTitle = `Google Drive File - ${fileId.substring(0, 8)}...`;
+      } else {
+        // Extract from URL
+        try {
+          const urlObj = new URL(sourceUrl);
+          contentTitle = urlObj.pathname.split('/').pop() || 'External Content';
+          contentTitle = contentTitle.replace(/[_-]/g, ' ').replace(/\.[^/.]+$/, '');
+        } catch {
+          contentTitle = 'External Content';
+        }
+      }
+    }
+
+    const fileType = getFileTypeFromUrl(sourceUrl);
+
+    const contentData = {
+      title: contentTitle,
+      description: description || null,
+      file_name: sourceUrl,
+      source_type: sourceType,
+      source_url: sourceUrl,
+      thumbnail_url: thumbnailUrl,
+      embed_code: embedCode,
+      file_path: sourceUrl, // Use URL as path for external sources
+      file_type: fileType,
+      file_size: null, // Cannot determine size for external URLs
+      mime_type: null,
       uploaded_by: req.user.id,
       category_id: category_id || null,
       is_public: is_public === 'true' || is_public === true

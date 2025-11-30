@@ -137,7 +137,7 @@ const executeMigration = async (filePath, fileName) => {
 };
 
 // Main migration function
-const migrate = async () => {
+const migrate = async (specificMigration = null) => {
   try {
     console.log('🔄 Starting database migrations...\n');
     
@@ -153,7 +153,35 @@ const migrate = async () => {
     // Get already executed migrations
     const executed = await getExecutedMigrations();
     
-    // Execute pending migrations
+    // If specific migration is requested
+    if (specificMigration) {
+      // Find the migration file
+      const migrationFile = files.find(file => 
+        file === specificMigration || 
+        file.includes(specificMigration) ||
+        file.startsWith(specificMigration)
+      );
+      
+      if (!migrationFile) {
+        console.error(`\n❌ Migration not found: ${specificMigration}`);
+        console.log('\nAvailable migrations:');
+        files.forEach(file => console.log(`  - ${file}`));
+        process.exit(1);
+      }
+      
+      if (executed.includes(migrationFile)) {
+        console.log(`⏭️  Migration already executed: ${migrationFile}`);
+        console.log('   Use --force to re-run (not recommended)');
+        process.exit(0);
+      }
+      
+      const filePath = path.join(migrationsDir, migrationFile);
+      await executeMigration(filePath, migrationFile);
+      console.log(`\n✅ Successfully executed: ${migrationFile}`);
+      process.exit(0);
+    }
+    
+    // Execute all pending migrations
     let executedCount = 0;
     for (const file of files) {
       if (!executed.includes(file)) {
@@ -179,5 +207,9 @@ const migrate = async () => {
   }
 };
 
-migrate();
+// Get migration name from command line arguments
+const args = process.argv.slice(2);
+const migrationName = args.find(arg => !arg.startsWith('--'));
+
+migrate(migrationName);
 

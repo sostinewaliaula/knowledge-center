@@ -14,8 +14,11 @@ router.get('/', requireAdmin, contentController.getContents);
 // Get content by ID
 router.get('/:id', contentController.getContentById);
 
-// Upload content (admin only, single file)
+// Upload content from file (admin only, single file)
 router.post('/upload', requireAdmin, upload.single('file'), contentController.uploadContent);
+
+// Add content from URL (admin only)
+router.post('/url', requireAdmin, contentController.addContentFromUrl);
 
 // Update content metadata (admin only)
 router.put('/:id', requireAdmin, contentController.updateContent);

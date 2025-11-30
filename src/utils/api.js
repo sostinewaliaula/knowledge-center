@@ -159,6 +159,19 @@ export const api = {
     return data.content;
   },
 
+  async addContentFromUrl(url, title, description, categoryId, isPublic) {
+    return this.request('/content/url', {
+      method: 'POST',
+      body: JSON.stringify({
+        url,
+        title,
+        description,
+        category_id: categoryId,
+        is_public: isPublic
+      }),
+    }).then(response => response.content);
+  },
+
   async updateContent(id, contentData) {
     const response = await this.request(`/content/${id}`, {
       method: 'PUT',

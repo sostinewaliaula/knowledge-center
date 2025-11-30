@@ -85,22 +85,30 @@ export class ContentLibrary {
       mime_type,
       uploaded_by,
       category_id,
-      is_public = false
+      is_public = false,
+      source_type = 'local',
+      source_url = null,
+      thumbnail_url = null,
+      embed_code = null
     } = contentData;
     
     const sql = `
       INSERT INTO content_library (
-        title, description, file_name, file_path, file_type, 
-        file_size, mime_type, uploaded_by, category_id, is_public
+        title, description, file_name, source_type, source_url, thumbnail_url, embed_code,
+        file_path, file_type, file_size, mime_type, uploaded_by, category_id, is_public
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
     
     await query(sql, [
       title,
       description || null,
-      file_name,
-      file_path,
+      file_name || title || 'Untitled',
+      source_type,
+      source_url,
+      thumbnail_url,
+      embed_code,
+      file_path || source_url || '',
       file_type || null,
       file_size || null,
       mime_type || null,

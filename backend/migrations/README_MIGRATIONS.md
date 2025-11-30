@@ -6,10 +6,15 @@
 
 ```bash
 # Run all pending migrations
-node migrations/migrate.js
+npm run migrate
+
+# Run a specific migration by name
+npm run migrate 005_add_content_sources.sql
+npm run migrate 005
+npm run migrate add_content_sources
 
 # Check which migrations have been executed
-node migrations/status.js
+npm run migrate:status
 ```
 
 ### Creating New Migrations

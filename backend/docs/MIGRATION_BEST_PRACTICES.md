@@ -75,11 +75,38 @@ Use sequential numbers with descriptive names:
 
 Migrations are executed in order by the migration runner. The `migrations` table tracks which migrations have been executed.
 
+### Run All Pending Migrations
+
 ```bash
 # Run all pending migrations
-node migrations/migrate.js
+npm run migrate
 
-# Check migration status
+# Or directly:
+node migrations/migrate.js
+```
+
+### Run a Specific Migration by Name
+
+You can run a specific migration by providing its name:
+
+```bash
+# By full filename
+npm run migrate 005_add_content_sources.sql
+
+# By number
+npm run migrate 005
+
+# By partial name match
+npm run migrate add_content_sources
+npm run migrate content_sources
+```
+
+### Check Migration Status
+
+```bash
+npm run migrate:status
+
+# Or directly:
 node migrations/status.js
 ```
 

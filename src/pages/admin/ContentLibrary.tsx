@@ -13,9 +13,15 @@ import {
   Edit,
   Trash2,
   Download,
-  AlertCircle
+  AlertCircle,
+  Youtube,
+  HardDrive,
+  Link as LinkIcon,
+  FileSpreadsheet,
+  PlayCircle
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { ContentUploadModal } from '../../components/ContentUploadModal';
 import { api } from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -28,6 +34,10 @@ interface ContentItem {
   file_type: string | null;
   file_size: number | null;
   mime_type: string | null;
+  source_type?: string;
+  source_url?: string | null;
+  thumbnail_url?: string | null;
+  embed_code?: string | null;
   uploaded_by: string;
   uploaded_by_name: string | null;
   category_id: string | null;
@@ -50,8 +60,8 @@ export function ContentLibrary({}: ContentLibraryProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalContent, setTotalContent] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchContents();
@@ -72,15 +82,12 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
+  const handleFileUpload = async (files: File[]) => {
     setUploading(true);
     
     try {
       // Upload files one by one
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         try {
           await api.uploadContent(file, null, null, null, false);
         } catch (err: any) {
@@ -94,9 +101,21 @@ export function ContentLibrary({}: ContentLibraryProps) {
       showError(err.message || 'Failed to upload files');
     } finally {
       setUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
+    }
+  };
+
+  const handleAddFromUrl = async (url: string, title: string, description: string) => {
+    setUploading(true);
+    
+    try {
+      await api.addContentFromUrl(url, title, description, null, false);
+      showSuccess('Content added successfully!');
+      fetchContents();
+    } catch (err: any) {
+      showError(err.message || 'Failed to add content from URL');
+      throw err; // Re-throw to let modal handle it
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -116,10 +135,16 @@ export function ContentLibrary({}: ContentLibraryProps) {
 
   const handleDownload = async (content: ContentItem) => {
     try {
-      const url = api.getContentDownloadUrl(content.id);
-      window.open(url, '_blank');
+      // If it's an external source, open the source URL
+      if (content.source_type && content.source_type !== 'local' && content.source_url) {
+        window.open(content.source_url, '_blank');
+      } else {
+        // Local file download
+        const url = api.getContentDownloadUrl(content.id);
+        window.open(url, '_blank');
+      }
     } catch (err: any) {
-      showError(err.message || 'Failed to download file');
+      showError(err.message || 'Failed to open content');
     }
   };
 
@@ -162,7 +187,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
 
   const filteredContent = contentItems;
 
-  const isModalOpen = showDeleteModal;
+  const isModalOpen = showDeleteModal || showUploadModal;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -177,24 +202,16 @@ export function ContentLibrary({}: ContentLibraryProps) {
               <p className="text-sm text-gray-500 mt-1">Upload and manage your learning content files</p>
             </div>
             <div className="flex items-center gap-3">
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                multiple
-                className="hidden"
-                id="file-upload"
+              <button
+                onClick={() => setShowUploadModal(true)}
                 disabled={uploading}
-              />
-              <label
-                htmlFor="file-upload"
-                className={`px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors cursor-pointer ${
-                  uploading ? 'opacity-50 cursor-not-allowed' : ''
+                className={`px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 ${
+                  uploading ? 'cursor-not-allowed' : ''
                 }`}
               >
                 <Upload size={16} className={uploading ? 'animate-spin' : ''} />
-                {uploading ? 'Uploading...' : 'Upload Files'}
-              </label>
+                {uploading ? 'Uploading...' : 'Add Content'}
+              </button>
             </div>
           </div>
         </header>
@@ -246,18 +263,27 @@ export function ContentLibrary({}: ContentLibraryProps) {
               </div>
             </div>
           ) : filteredContent.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-              <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                <FileText size={40} className="text-gray-400" />
+            <div 
+              onClick={() => setShowUploadModal(true)}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-purple-400 transition-colors bg-gray-50 cursor-pointer"
+            >
+              <div className="flex flex-col items-center">
+                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
+                  <Upload size={32} className="text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Add more content</h3>
+                <p className="text-gray-500 mb-4">Click to upload files or add from URL</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowUploadModal(true);
+                  }}
+                  className="px-6 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  Add Content
+                </button>
+                <p className="text-xs text-gray-400 mt-3">Supports: Local files, URLs, YouTube, Google Drive</p>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">No content found</h3>
-              <p className="text-gray-500 mb-6">Upload your first file to get started</p>
-              <label
-                htmlFor="file-upload"
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg cursor-pointer"
-              >
-                Upload Files
-              </label>
             </div>
           ) : (
             <>
@@ -268,8 +294,18 @@ export function ContentLibrary({}: ContentLibraryProps) {
                     className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow group"
                   >
                     <div className="flex items-start justify-between mb-3">
-                      <div className={`w-12 h-12 ${getFileBgColor(item.file_type)} rounded-lg flex items-center justify-center`}>
+                      <div className={`w-12 h-12 ${getFileBgColor(item.file_type)} rounded-lg flex items-center justify-center relative`}>
                         {getFileIcon(item.file_type)}
+                        {item.source_type && item.source_type !== 'local' && (
+                          <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5">
+                            {item.source_type === 'youtube' && <Youtube size={12} className="text-red-600" />}
+                            {item.source_type === 'vimeo' && <PlayCircle size={12} className="text-blue-600" />}
+                            {item.source_type === 'dailymotion' && <Video size={12} className="text-purple-600" />}
+                            {item.source_type === 'googledrive' && <HardDrive size={12} className="text-blue-600" />}
+                            {item.source_type === 'microsoft' && <FileSpreadsheet size={12} className="text-orange-600" />}
+                            {item.source_type === 'url' && <LinkIcon size={12} className="text-purple-600" />}
+                          </div>
+                        )}
                       </div>
                       <div className="relative">
                         <button 
@@ -284,8 +320,22 @@ export function ContentLibrary({}: ContentLibraryProps) {
                       </div>
                     </div>
                     <h3 className="font-semibold text-gray-900 mb-1 line-clamp-2 text-sm">{item.title || item.file_name}</h3>
+                    {item.source_type && item.source_type !== 'local' && (
+                      <div className="mb-2">
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-700">
+                          {item.source_type === 'youtube' && 'YouTube'}
+                          {item.source_type === 'vimeo' && 'Vimeo'}
+                          {item.source_type === 'dailymotion' && 'Dailymotion'}
+                          {item.source_type === 'googledrive' && 'Google Drive'}
+                          {item.source_type === 'microsoft' && 'Microsoft Office'}
+                          {item.source_type === 'onedrive' && 'OneDrive'}
+                          {item.source_type === 'dropbox' && 'Dropbox'}
+                          {item.source_type === 'url' && 'External URL'}
+                        </span>
+                      </div>
+                    )}
                     <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <span>{formatFileSize(item.file_size)}</span>
+                      <span>{item.file_size ? formatFileSize(item.file_size) : 'External'}</span>
                       <span>{new Date(item.created_at).toLocaleDateString()}</span>
                     </div>
                     <div className="flex items-center gap-2">
@@ -293,8 +343,17 @@ export function ContentLibrary({}: ContentLibraryProps) {
                         onClick={() => handleDownload(item)}
                         className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors flex items-center justify-center gap-1"
                       >
-                        <Download size={14} />
-                        Download
+                        {item.source_type && item.source_type !== 'local' ? (
+                          <>
+                            <Eye size={14} />
+                            View
+                          </>
+                        ) : (
+                          <>
+                            <Download size={14} />
+                            Download
+                          </>
+                        )}
                       </button>
                     </div>
                   </div>
@@ -325,24 +384,6 @@ export function ContentLibrary({}: ContentLibraryProps) {
                   </div>
                 </div>
               )}
-
-              {/* Upload Drop Zone */}
-              <div className="mt-8 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center hover:border-purple-400 transition-colors bg-gray-50">
-                <div className="flex flex-col items-center">
-                  <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                    <Upload size={32} className="text-purple-600" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Drop files here to upload</h3>
-                  <p className="text-gray-500 mb-4">or click to browse</p>
-                  <label
-                    htmlFor="file-upload"
-                    className="px-6 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg cursor-pointer inline-block"
-                  >
-                    Select Files
-                  </label>
-                  <p className="text-xs text-gray-400 mt-3">Supports: PDF, Video, Images, Documents (Max 500MB per file)</p>
-                </div>
-              </div>
             </>
           )}
         </main>
@@ -401,6 +442,15 @@ export function ContentLibrary({}: ContentLibraryProps) {
           </div>
         </div>
       )}
+
+      {/* Upload Modal */}
+      <ContentUploadModal
+        isOpen={showUploadModal}
+        onClose={() => setShowUploadModal(false)}
+        onUpload={handleFileUpload}
+        onAddFromUrl={handleAddFromUrl}
+        uploading={uploading}
+      />
     </div>
   );
 }
