@@ -13,7 +13,9 @@ import {
   Loader2,
   BookOpen,
   Clock,
-  Users
+  Users,
+  AlertCircle,
+  Upload
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentLibrarySelector } from '../../components/ContentLibrarySelector';
@@ -70,6 +72,16 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [selectedLessonForContent, setSelectedLessonForContent] = useState<{ lessonId: string; contentType: 'video' | 'document' | 'all' } | null>(null);
   const [draggedModule, setDraggedModule] = useState<string | null>(null);
   const [draggedLesson, setDraggedLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
+  const [showDeleteCourseModal, setShowDeleteCourseModal] = useState(false);
+  const [showDeleteModuleModal, setShowDeleteModuleModal] = useState(false);
+  const [showDeleteLessonModal, setShowDeleteLessonModal] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<Course | null>(null);
+  const [moduleToDelete, setModuleToDelete] = useState<{ moduleId: string; moduleTitle: string } | null>(null);
+  const [lessonToDelete, setLessonToDelete] = useState<{ lessonId: string; lessonTitle: string } | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [originalCourse, setOriginalCourse] = useState<Course | null>(null);
+  const [localModules, setLocalModules] = useState<Module[]>([]);
+  const [uploadingFile, setUploadingFile] = useState<{ lessonId: string } | null>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -91,7 +103,8 @@ export function CourseBuilder({}: CourseBuilderProps) {
       );
       setCourses(coursesWithModules);
       if (coursesWithModules.length > 0 && !selectedCourse) {
-        setSelectedCourse(coursesWithModules[0]);
+        // Fetch full course details with modules for the first course
+        await fetchCourse(coursesWithModules[0].id);
       }
     } catch (err: any) {
       showError(err.message || 'Failed to fetch courses');
@@ -104,6 +117,9 @@ export function CourseBuilder({}: CourseBuilderProps) {
     try {
       const course = await api.getCourse(courseId);
       setSelectedCourse(course);
+      setOriginalCourse(JSON.parse(JSON.stringify(course))); // Deep copy for comparison
+      setLocalModules(course.modules || []);
+      setHasUnsavedChanges(false);
       setCourses(courses.map(c => c.id === courseId ? course : c));
     } catch (err: any) {
       showError(err.message || 'Failed to fetch course');
@@ -161,13 +177,131 @@ export function CourseBuilder({}: CourseBuilderProps) {
 
     try {
       setSaving(true);
+      
+      // Save course metadata
       await api.updateCourse(selectedCourse.id, {
         title: selectedCourse.title,
         description: selectedCourse.description,
-        status: selectedCourse.status
+        short_description: selectedCourse.short_description,
+        status: selectedCourse.status,
+        difficulty_level: selectedCourse.difficulty_level
       });
+
+      // Save all modules (create new ones, update existing ones)
+      for (let i = 0; i < localModules.length; i++) {
+        const module = localModules[i];
+        
+        if (module.id.startsWith('temp-')) {
+          // Create new module
+          const newModule = await api.createModule(selectedCourse.id, {
+            title: module.title,
+            description: module.description,
+            is_required: module.is_required
+          });
+          
+          // Replace temp ID with real ID in local state
+          const updatedModules = [...localModules];
+          updatedModules[i] = { ...newModule, lessons: module.lessons || [] };
+          setLocalModules(updatedModules);
+          
+          // Update selected course
+          setSelectedCourse({
+            ...selectedCourse,
+            modules: updatedModules
+          });
+        } else {
+          // Update existing module
+          await api.updateModule(module.id, {
+            title: module.title,
+            description: module.description,
+            is_required: module.is_required
+          });
+        }
+
+        // Save lessons for this module
+        if (module.lessons && module.lessons.length > 0) {
+          const moduleId = module.id.startsWith('temp-') 
+            ? localModules.find(m => m.title === module.title && !m.id.startsWith('temp-'))?.id || module.id
+            : module.id;
+
+          for (let j = 0; j < module.lessons.length; j++) {
+            const lesson = module.lessons[j];
+            
+            if (lesson.id.startsWith('temp-')) {
+              // Create new lesson
+              const newLesson = await api.createLesson(moduleId, {
+                title: lesson.title,
+                description: lesson.description,
+                content_type: lesson.content_type,
+                content_text: lesson.content_text,
+                content_url: lesson.content_url,
+                duration_minutes: lesson.duration_minutes,
+                is_required: lesson.is_required,
+                is_preview: lesson.is_preview
+              });
+              
+              // Replace temp ID with real ID
+              const updatedModules = [...localModules];
+              if (updatedModules[i].lessons) {
+                updatedModules[i].lessons = updatedModules[i].lessons.map(l =>
+                  l.id === lesson.id ? newLesson : l
+                );
+              }
+              setLocalModules(updatedModules);
+              setSelectedCourse({
+                ...selectedCourse,
+                modules: updatedModules
+              });
+            } else {
+              // Update existing lesson
+              await api.updateLesson(lesson.id, {
+                title: lesson.title,
+                description: lesson.description,
+                content_type: lesson.content_type,
+                content_text: lesson.content_text,
+                content_url: lesson.content_url,
+                duration_minutes: lesson.duration_minutes,
+                is_required: lesson.is_required,
+                is_preview: lesson.is_preview
+              });
+            }
+          }
+        }
+      }
+
+      // Save module and lesson orders
+      if (localModules.length > 0) {
+        const moduleOrders = localModules
+          .filter(m => !m.id.startsWith('temp-'))
+          .map((module, index) => ({
+            id: module.id,
+            order_index: index
+          }));
+        
+        if (moduleOrders.length > 0) {
+          await api.reorderModules(selectedCourse.id, moduleOrders);
+        }
+
+        // Save lesson orders for each module
+        for (const module of localModules.filter(m => !m.id.startsWith('temp-'))) {
+          if (module.lessons && module.lessons.length > 0) {
+            const lessonOrders = module.lessons
+              .filter(l => !l.id.startsWith('temp-'))
+              .map((lesson, index) => ({
+                id: lesson.id,
+                order_index: index
+              }));
+            
+            if (lessonOrders.length > 0) {
+              await api.reorderLessons(module.id, lessonOrders);
+            }
+          }
+        }
+      }
+
       showSuccess('Course saved successfully!');
       await fetchCourse(selectedCourse.id);
+      setHasUnsavedChanges(false);
     } catch (err: any) {
       showError(err.message || 'Failed to save course');
     } finally {
@@ -175,59 +309,113 @@ export function CourseBuilder({}: CourseBuilderProps) {
     }
   };
 
-  const deleteCourse = async (courseId: string) => {
-    if (!confirm('Are you sure you want to delete this course? This action cannot be undone.')) {
-      return;
-    }
+  const publishCourse = async () => {
+    if (!selectedCourse) return;
 
     try {
-      await api.deleteCourse(courseId);
+      setSaving(true);
+      await api.updateCourse(selectedCourse.id, {
+        status: 'published'
+      });
+      showSuccess('Course published successfully!');
+      await fetchCourse(selectedCourse.id);
+    } catch (err: any) {
+      showError(err.message || 'Failed to publish course');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const unpublishCourse = async () => {
+    if (!selectedCourse) return;
+
+    try {
+      setSaving(true);
+      await api.updateCourse(selectedCourse.id, {
+        status: 'draft'
+      });
+      showSuccess('Course unpublished successfully!');
+      await fetchCourse(selectedCourse.id);
+    } catch (err: any) {
+      showError(err.message || 'Failed to unpublish course');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteCourse = async () => {
+    if (!courseToDelete) return;
+
+    try {
+      await api.deleteCourse(courseToDelete.id);
       showSuccess('Course deleted successfully!');
-      if (selectedCourse?.id === courseId) {
+      if (selectedCourse?.id === courseToDelete.id) {
         setSelectedCourse(null);
       }
+      setShowDeleteCourseModal(false);
+      setCourseToDelete(null);
       await fetchCourses();
     } catch (err: any) {
       showError(err.message || 'Failed to delete course');
     }
   };
 
-  const addModule = async () => {
-    if (!selectedCourse) return;
-
-    try {
-      const module = await api.createModule(selectedCourse.id, {
-        title: 'New Module',
-        description: null,
-        is_required: true
-      });
-      showSuccess('Module added successfully!');
-      await fetchCourse(selectedCourse.id);
-      setExpandedModules(new Set([...expandedModules, module.id]));
-    } catch (err: any) {
-      showError(err.message || 'Failed to add module');
-    }
+  const handleDeleteCourseClick = (course: Course) => {
+    setCourseToDelete(course);
+    setShowDeleteCourseModal(true);
   };
 
-  const updateModule = async (moduleId: string, updates: Partial<Module>) => {
+  const addModule = () => {
     if (!selectedCourse) return;
 
-    try {
-      await api.updateModule(moduleId, updates);
-      await fetchCourse(selectedCourse.id);
-    } catch (err: any) {
-      showError(err.message || 'Failed to update module');
-    }
+    // Add module locally without saving to backend
+    const newModule: Module = {
+      id: `temp-${Date.now()}`,
+      title: 'New Module',
+      description: null,
+      order_index: localModules.length,
+      is_required: true,
+      lessons: []
+    };
+
+    const updatedModules = [...localModules, newModule];
+    setLocalModules(updatedModules);
+    
+    // Update selected course with new module
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: updatedModules
+    });
+
+    setHasUnsavedChanges(true);
+    setExpandedModules(new Set([...expandedModules, newModule.id]));
   };
 
-  const deleteModule = async (moduleId: string) => {
-    if (!confirm('Are you sure you want to delete this module? All lessons in this module will also be deleted.')) {
-      return;
-    }
+  const updateModule = (moduleId: string, updates: Partial<Module>) => {
+    if (!selectedCourse) return;
+
+    // Update module locally
+    const updatedModules = localModules.map(module =>
+      module.id === moduleId ? { ...module, ...updates } : module
+    );
+
+    setLocalModules(updatedModules);
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: updatedModules
+    });
+
+    setHasUnsavedChanges(true);
+  };
+
+  const deleteModule = async () => {
+    if (!moduleToDelete) return;
 
     try {
-      await api.deleteModule(moduleId);
+      await api.deleteModule(moduleToDelete.moduleId);
       showSuccess('Module deleted successfully!');
+      setShowDeleteModuleModal(false);
+      setModuleToDelete(null);
       if (selectedCourse) {
         await fetchCourse(selectedCourse.id);
       }
@@ -236,53 +424,114 @@ export function CourseBuilder({}: CourseBuilderProps) {
     }
   };
 
-  const addLesson = async (moduleId: string) => {
-    try {
-      const lesson = await api.createLesson(moduleId, {
-        title: 'New Lesson',
-        description: null,
-        content_type: 'text',
-        content_text: null,
-        content_url: null,
-        duration_minutes: 0,
-        is_required: true,
-        is_preview: false
-      });
-      showSuccess('Lesson added successfully!');
-      if (selectedCourse) {
-        await fetchCourse(selectedCourse.id);
-        setExpandedLessons(new Set([...expandedLessons, lesson.id]));
-      }
-    } catch (err: any) {
-      showError(err.message || 'Failed to add lesson');
-    }
+  const handleDeleteModuleClick = (moduleId: string, moduleTitle: string) => {
+    setModuleToDelete({ moduleId, moduleTitle });
+    setShowDeleteModuleModal(true);
   };
 
-  const updateLesson = async (lessonId: string, updates: Partial<Lesson>) => {
+  const addLesson = (moduleId: string) => {
     if (!selectedCourse) return;
 
-    try {
-      await api.updateLesson(lessonId, updates);
-      await fetchCourse(selectedCourse.id);
-    } catch (err: any) {
-      showError(err.message || 'Failed to update lesson');
-    }
+    // Find the module
+    const moduleIndex = localModules.findIndex(m => m.id === moduleId);
+    if (moduleIndex === -1) return;
+
+    // Add lesson locally
+    const newLesson: Lesson = {
+      id: `temp-${Date.now()}`,
+      title: 'New Lesson',
+      description: null,
+      content_type: 'text',
+      content_text: null,
+      content_url: null,
+      duration_minutes: 0,
+      order_index: localModules[moduleIndex].lessons?.length || 0,
+      is_required: true,
+      is_preview: false
+    };
+
+    const updatedModules = [...localModules];
+    updatedModules[moduleIndex] = {
+      ...updatedModules[moduleIndex],
+      lessons: [...(updatedModules[moduleIndex].lessons || []), newLesson]
+    };
+
+    setLocalModules(updatedModules);
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: updatedModules
+    });
+
+    setHasUnsavedChanges(true);
+    setExpandedLessons(new Set([...expandedLessons, newLesson.id]));
   };
 
-  const deleteLesson = async (lessonId: string) => {
-    if (!confirm('Are you sure you want to delete this lesson?')) {
+  const updateLesson = (lessonId: string, updates: Partial<Lesson>) => {
+    if (!selectedCourse) return;
+
+    // Update lesson locally
+    const updatedModules = localModules.map(module => {
+      if (module.lessons) {
+        const updatedLessons = module.lessons.map(lesson =>
+          lesson.id === lessonId ? { ...lesson, ...updates } : lesson
+        );
+        return { ...module, lessons: updatedLessons };
+      }
+      return module;
+    });
+
+    setLocalModules(updatedModules);
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: updatedModules
+    });
+
+    setHasUnsavedChanges(true);
+  };
+
+  const deleteLesson = async () => {
+    if (!lessonToDelete || !selectedCourse) return;
+
+    const lessonId = lessonToDelete.lessonId;
+
+    // If it's a temporary lesson (not saved yet), just remove it locally
+    if (lessonId.startsWith('temp-')) {
+      const updatedModules = localModules.map(module => {
+        if (module.lessons) {
+          return {
+            ...module,
+            lessons: module.lessons.filter(l => l.id !== lessonId)
+          };
+        }
+        return module;
+      });
+
+      setLocalModules(updatedModules);
+      setSelectedCourse({
+        ...selectedCourse,
+        modules: updatedModules
+      });
+      setShowDeleteLessonModal(false);
+      setLessonToDelete(null);
+      setHasUnsavedChanges(true);
       return;
     }
 
+    // Otherwise, delete from backend
     try {
       await api.deleteLesson(lessonId);
       showSuccess('Lesson deleted successfully!');
-      if (selectedCourse) {
-        await fetchCourse(selectedCourse.id);
-      }
+      setShowDeleteLessonModal(false);
+      setLessonToDelete(null);
+      await fetchCourse(selectedCourse.id);
     } catch (err: any) {
       showError(err.message || 'Failed to delete lesson');
     }
+  };
+
+  const handleDeleteLessonClick = (lessonId: string, lessonTitle: string) => {
+    setLessonToDelete({ lessonId, lessonTitle });
+    setShowDeleteLessonModal(true);
   };
 
   const getContentTypeIcon = (type: Lesson['content_type']) => {
@@ -314,6 +563,34 @@ export function CourseBuilder({}: CourseBuilderProps) {
     setShowContentSelector(true);
   };
 
+  const handleFileUpload = async (lessonId: string, file: File) => {
+    if (!selectedCourse) return;
+
+    try {
+      setUploadingFile({ lessonId });
+      
+      // Use filename as title
+      const filenameWithoutExt = file.name.replace(/\.[^/.]+$/, '');
+      const description = `Uploaded for lesson in course: ${selectedCourse.title}`;
+
+      // Upload to content library
+      const response = await api.uploadContent(file, filenameWithoutExt, description, null, false);
+      
+      if (response.content && response.content.id) {
+        // Automatically link the uploaded content to the lesson
+        const contentUrl = `content-library:${response.content.id}`;
+        updateLesson(lessonId, { content_url: contentUrl });
+        showSuccess(`File uploaded and linked to lesson successfully!`);
+      } else {
+        showError('File uploaded but failed to link to lesson');
+      }
+    } catch (err: any) {
+      showError(err.message || 'Failed to upload file');
+    } finally {
+      setUploadingFile(null);
+    }
+  };
+
   const handleModuleDragStart = (e: React.DragEvent, moduleId: string) => {
     setDraggedModule(moduleId);
     e.dataTransfer.effectAllowed = 'move';
@@ -324,43 +601,40 @@ export function CourseBuilder({}: CourseBuilderProps) {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleModuleDrop = async (e: React.DragEvent, targetModuleId: string) => {
+  const handleModuleDrop = (e: React.DragEvent, targetModuleId: string) => {
     e.preventDefault();
     if (!draggedModule || !selectedCourse || draggedModule === targetModuleId) {
       setDraggedModule(null);
       return;
     }
 
-    try {
-      const modules = selectedCourse.modules || [];
-      const draggedIndex = modules.findIndex(m => m.id === draggedModule);
-      const targetIndex = modules.findIndex(m => m.id === targetModuleId);
+    const modules = [...localModules];
+    const draggedIndex = modules.findIndex(m => m.id === draggedModule);
+    const targetIndex = modules.findIndex(m => m.id === targetModuleId);
 
-      if (draggedIndex === -1 || targetIndex === -1) {
-        setDraggedModule(null);
-        return;
-      }
-
-      // Reorder modules
-      const moduleOrders = modules.map((module, index) => {
-        if (index === draggedIndex) {
-          return { id: module.id, order_index: targetIndex };
-        } else if (draggedIndex < targetIndex && index > draggedIndex && index <= targetIndex) {
-          return { id: module.id, order_index: index - 1 };
-        } else if (draggedIndex > targetIndex && index >= targetIndex && index < draggedIndex) {
-          return { id: module.id, order_index: index + 1 };
-        }
-        return { id: module.id, order_index: index };
-      });
-
-      await api.reorderModules(selectedCourse.id, moduleOrders);
-      await fetchCourse(selectedCourse.id);
-      showSuccess('Modules reordered successfully!');
-    } catch (err: any) {
-      showError(err.message || 'Failed to reorder modules');
-    } finally {
+    if (draggedIndex === -1 || targetIndex === -1) {
       setDraggedModule(null);
+      return;
     }
+
+    // Reorder modules locally
+    const [dragged] = modules.splice(draggedIndex, 1);
+    modules.splice(targetIndex, 0, dragged);
+
+    // Update order_index
+    const reorderedModules = modules.map((module, index) => ({
+      ...module,
+      order_index: index
+    }));
+
+    setLocalModules(reorderedModules);
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: reorderedModules
+    });
+
+    setHasUnsavedChanges(true);
+    setDraggedModule(null);
   };
 
   const handleLessonDragStart = (e: React.DragEvent, moduleId: string, lessonId: string) => {
@@ -373,7 +647,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
     e.dataTransfer.dropEffect = 'move';
   };
 
-  const handleLessonDrop = async (e: React.DragEvent, targetModuleId: string, targetLessonId: string) => {
+  const handleLessonDrop = (e: React.DragEvent, targetModuleId: string, targetLessonId: string) => {
     e.preventDefault();
     if (!draggedLesson || !selectedCourse || 
         (draggedLesson.moduleId === targetModuleId && draggedLesson.lessonId === targetLessonId)) {
@@ -381,42 +655,46 @@ export function CourseBuilder({}: CourseBuilderProps) {
       return;
     }
 
-    try {
-      const module = selectedCourse.modules?.find(m => m.id === targetModuleId);
-      if (!module) {
-        setDraggedLesson(null);
-        return;
-      }
-
-      const lessons = module.lessons || [];
-      const draggedIndex = lessons.findIndex(l => l.id === draggedLesson.lessonId);
-      const targetIndex = lessons.findIndex(l => l.id === targetLessonId);
-
-      if (draggedIndex === -1 || targetIndex === -1) {
-        setDraggedLesson(null);
-        return;
-      }
-
-      // Reorder lessons
-      const lessonOrders = lessons.map((lesson, index) => {
-        if (index === draggedIndex) {
-          return { id: lesson.id, order_index: targetIndex };
-        } else if (draggedIndex < targetIndex && index > draggedIndex && index <= targetIndex) {
-          return { id: lesson.id, order_index: index - 1 };
-        } else if (draggedIndex > targetIndex && index >= targetIndex && index < draggedIndex) {
-          return { id: lesson.id, order_index: index + 1 };
-        }
-        return { id: lesson.id, order_index: index };
-      });
-
-      await api.reorderLessons(targetModuleId, lessonOrders);
-      await fetchCourse(selectedCourse.id);
-      showSuccess('Lessons reordered successfully!');
-    } catch (err: any) {
-      showError(err.message || 'Failed to reorder lessons');
-    } finally {
+    const moduleIndex = localModules.findIndex(m => m.id === targetModuleId);
+    if (moduleIndex === -1) {
       setDraggedLesson(null);
+      return;
     }
+
+    const module = localModules[moduleIndex];
+    const lessons = [...(module.lessons || [])];
+    const draggedIndex = lessons.findIndex(l => l.id === draggedLesson.lessonId);
+    const targetIndex = lessons.findIndex(l => l.id === targetLessonId);
+
+    if (draggedIndex === -1 || targetIndex === -1) {
+      setDraggedLesson(null);
+      return;
+    }
+
+    // Reorder lessons locally
+    const [dragged] = lessons.splice(draggedIndex, 1);
+    lessons.splice(targetIndex, 0, dragged);
+
+    // Update order_index
+    const reorderedLessons = lessons.map((lesson, index) => ({
+      ...lesson,
+      order_index: index
+    }));
+
+    const updatedModules = [...localModules];
+    updatedModules[moduleIndex] = {
+      ...updatedModules[moduleIndex],
+      lessons: reorderedLessons
+    };
+
+    setLocalModules(updatedModules);
+    setSelectedCourse({
+      ...selectedCourse,
+      modules: updatedModules
+    });
+
+    setHasUnsavedChanges(true);
+    setDraggedLesson(null);
   };
 
   const getContentDisplayUrl = (contentUrl: string | null): string => {
@@ -442,9 +720,13 @@ export function CourseBuilder({}: CourseBuilderProps) {
     );
   }
 
+  const isModalOpen = showContentSelector || showDeleteCourseModal || showDeleteModuleModal || showDeleteLessonModal;
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <AdminSidebar />
+      <div className={`transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
+        <AdminSidebar />
+      </div>
       
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header */}
@@ -463,23 +745,55 @@ export function CourseBuilder({}: CourseBuilderProps) {
                 New Course
               </button>
               {selectedCourse && (
-                <button
-                  onClick={saveCourse}
-                  disabled={saving}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      Save Course
-                    </>
+                <>
+                  {hasUnsavedChanges && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <AlertCircle size={16} className="text-yellow-600" />
+                      <span className="text-sm text-yellow-700 font-medium">Unsaved changes</span>
+                    </div>
                   )}
-                </button>
+                  <button
+                    onClick={saveCourse}
+                    disabled={saving || !hasUnsavedChanges}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+                      hasUnsavedChanges
+                        ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white hover:from-purple-700 hover:to-green-700'
+                        : 'bg-gray-300 text-gray-600'
+                    }`}
+                  >
+                    {saving ? (
+                      <>
+                        <Loader2 size={16} className="animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      <>
+                        <Save size={16} />
+                        {hasUnsavedChanges ? 'Save Changes' : 'No Changes'}
+                      </>
+                    )}
+                  </button>
+                  {selectedCourse.status === 'draft' && (
+                    <button
+                      onClick={publishCourse}
+                      disabled={saving || hasUnsavedChanges}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={hasUnsavedChanges ? 'Save changes before publishing' : 'Publish course'}
+                    >
+                      Publish
+                    </button>
+                  )}
+                  {selectedCourse.status === 'published' && (
+                    <button
+                      onClick={unpublishCourse}
+                      disabled={saving || hasUnsavedChanges}
+                      className="px-4 py-2 bg-orange-600 text-white rounded-lg text-sm font-medium hover:bg-orange-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={hasUnsavedChanges ? 'Save changes before unpublishing' : 'Unpublish course'}
+                    >
+                      Unpublish
+                    </button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -538,7 +852,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                         ? 'bg-gradient-to-r from-purple-50 to-green-50 border-purple-300'
                         : 'hover:bg-gray-50 border-transparent'
                     }`}
-                    onClick={() => setSelectedCourse(course)}
+                    onClick={() => fetchCourse(course.id)}
                   >
                     <div className="flex items-start justify-between">
                       <div className="flex-1 min-w-0">
@@ -550,7 +864,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteCourse(course.id);
+                          handleDeleteCourseClick(course);
                         }}
                         className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors ml-2"
                       >
@@ -579,6 +893,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     value={selectedCourse.title}
                     onChange={(e) => {
                       setSelectedCourse({ ...selectedCourse, title: e.target.value });
+                      setHasUnsavedChanges(true);
                     }}
                     className="text-2xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
                     placeholder="Course Title"
@@ -587,34 +902,43 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     value={selectedCourse.description || ''}
                     onChange={(e) => {
                       setSelectedCourse({ ...selectedCourse, description: e.target.value });
+                      setHasUnsavedChanges(true);
                     }}
                     placeholder="Course description..."
                     className="w-full text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 resize-none"
                     rows={3}
                   />
                   <div className="mt-4 flex items-center gap-4">
-                    <select
-                      value={selectedCourse.status}
-                      onChange={(e) => {
-                        setSelectedCourse({ ...selectedCourse, status: e.target.value as Course['status'] });
-                      }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="draft">Draft</option>
-                      <option value="published">Published</option>
-                      <option value="archived">Archived</option>
-                    </select>
-                    <select
-                      value={selectedCourse.difficulty_level}
-                      onChange={(e) => {
-                        setSelectedCourse({ ...selectedCourse, difficulty_level: e.target.value as Course['difficulty_level'] });
-                      }}
-                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    >
-                      <option value="beginner">Beginner</option>
-                      <option value="intermediate">Intermediate</option>
-                      <option value="advanced">Advanced</option>
-                    </select>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-600 mb-1">Status</label>
+                      <select
+                        value={selectedCourse.status}
+                        onChange={(e) => {
+                          setSelectedCourse({ ...selectedCourse, status: e.target.value as Course['status'] });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="published">Published</option>
+                        <option value="archived">Archived</option>
+                      </select>
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-600 mb-1">Difficulty Level</label>
+                      <select
+                        value={selectedCourse.difficulty_level}
+                        onChange={(e) => {
+                          setSelectedCourse({ ...selectedCourse, difficulty_level: e.target.value as Course['difficulty_level'] });
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                      </select>
+                    </div>
                   </div>
                 </div>
 
@@ -631,7 +955,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     </button>
                   </div>
                   <div className="p-6">
-                    {selectedCourse.modules?.length === 0 ? (
+                    {localModules.length === 0 ? (
                       <div className="text-center py-12">
                         <p className="text-gray-500 mb-4">No modules yet</p>
                         <button
@@ -643,7 +967,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                       </div>
                     ) : (
                       <div className="space-y-3">
-                        {selectedCourse.modules?.map((module) => (
+                        {localModules.map((module) => (
                           <div
                             key={module.id}
                             className={`border border-gray-200 rounded-lg overflow-hidden transition-all ${
@@ -682,7 +1006,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                 <Plus size={14} />
                               </button>
                               <button
-                                onClick={() => deleteModule(module.id)}
+                                onClick={() => handleDeleteModuleClick(module.id, module.title)}
                                 className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
                               >
                                 <Trash2 size={16} />
@@ -738,7 +1062,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                             )}
                                           </button>
                                           <button
-                                            onClick={() => deleteLesson(lesson.id)}
+                                            onClick={() => handleDeleteLessonClick(lesson.id, lesson.title)}
                                             className="p-1 text-red-400 hover:text-red-600 hover:bg-red-50 rounded"
                                           >
                                             <Trash2 size={14} />
@@ -782,47 +1106,77 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                               />
                                             )}
                                             {(lesson.content_type === 'video' || lesson.content_type === 'document') && (
-                                              <div className="flex gap-2">
-                                                <input
-                                                  type="text"
-                                                  value={getContentDisplayUrl(lesson.content_url)}
-                                                  onChange={(e) => {
-                                                    // Only allow manual URL entry if not from content library
-                                                    if (!lesson.content_url?.startsWith('content-library:')) {
-                                                      updateLesson(lesson.id, { content_url: e.target.value });
-                                                    }
-                                                  }}
-                                                  className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                  placeholder="Content URL or select from library"
-                                                  readOnly={lesson.content_url?.startsWith('content-library:')}
-                                                />
-                                                <button
-                                                  type="button"
-                                                  onClick={() => openContentSelector(lesson.id, lesson.content_type === 'video' ? 'video' : 'document')}
-                                                  className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200 transition-colors whitespace-nowrap"
-                                                >
-                                                  Select from Library
-                                                </button>
-                                                {lesson.content_url?.startsWith('content-library:') && (
+                                              <div className="space-y-2">
+                                                <div className="flex gap-2">
+                                                  <input
+                                                    type="text"
+                                                    value={getContentDisplayUrl(lesson.content_url)}
+                                                    onChange={(e) => {
+                                                      // Only allow manual URL entry if not from content library
+                                                      if (!lesson.content_url?.startsWith('content-library:')) {
+                                                        updateLesson(lesson.id, { content_url: e.target.value });
+                                                      }
+                                                    }}
+                                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                    placeholder="Content URL or select from library"
+                                                    readOnly={lesson.content_url?.startsWith('content-library:')}
+                                                  />
+                                                  <label className="px-3 py-1 bg-green-100 text-green-700 rounded text-sm hover:bg-green-200 transition-colors whitespace-nowrap cursor-pointer flex items-center gap-2">
+                                                    <Upload size={14} />
+                                                    Upload File
+                                                    <input
+                                                      type="file"
+                                                      className="hidden"
+                                                      onChange={(e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                          handleFileUpload(lesson.id, file);
+                                                        }
+                                                        // Reset input so same file can be selected again
+                                                        e.target.value = '';
+                                                      }}
+                                                      disabled={uploadingFile?.lessonId === lesson.id}
+                                                      accept={lesson.content_type === 'video' ? 'video/*' : lesson.content_type === 'document' ? '.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md' : '*'}
+                                                    />
+                                                  </label>
                                                   <button
                                                     type="button"
-                                                    onClick={() => updateLesson(lesson.id, { content_url: null })}
-                                                    className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
-                                                    title="Clear content library selection"
+                                                    onClick={() => openContentSelector(lesson.id, lesson.content_type === 'video' ? 'video' : 'document')}
+                                                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200 transition-colors whitespace-nowrap"
                                                   >
-                                                    <X size={14} />
+                                                    Select from Library
                                                   </button>
+                                                  {lesson.content_url?.startsWith('content-library:') && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => updateLesson(lesson.id, { content_url: null })}
+                                                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
+                                                      title="Clear content library selection"
+                                                    >
+                                                      <X size={14} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                {uploadingFile?.lessonId === lesson.id && (
+                                                  <div className="flex items-center gap-2 text-xs text-purple-600">
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                    <span>Uploading file to content library...</span>
+                                                  </div>
                                                 )}
                                               </div>
                                             )}
                                             <div className="flex items-center gap-4">
-                                              <input
-                                                type="number"
-                                                value={lesson.duration_minutes}
-                                                onChange={(e) => updateLesson(lesson.id, { duration_minutes: parseInt(e.target.value) || 0 })}
-                                                className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                placeholder="Duration (min)"
-                                              />
+                                              <div className="flex items-center gap-2">
+                                                <label className="text-xs text-gray-600 whitespace-nowrap">Duration (min):</label>
+                                                <input
+                                                  type="number"
+                                                  value={lesson.duration_minutes}
+                                                  onChange={(e) => updateLesson(lesson.id, { duration_minutes: parseInt(e.target.value) || 0 })}
+                                                  className="w-24 px-2 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                  placeholder="0"
+                                                  min="0"
+                                                />
+                                              </div>
                                               <label className="flex items-center gap-2 text-xs text-gray-600">
                                                 <input
                                                   type="checkbox"
@@ -886,6 +1240,168 @@ export function CourseBuilder({}: CourseBuilderProps) {
           contentType={selectedLessonForContent.contentType}
           title={`Select ${selectedLessonForContent.contentType === 'video' ? 'Video' : 'Document'} Content`}
         />
+      )}
+
+      {/* Delete Course Modal */}
+      {showDeleteCourseModal && courseToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-red-600">Delete Course</h2>
+              <button
+                onClick={() => {
+                  setShowDeleteCourseModal(false);
+                  setCourseToDelete(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-gray-700 mb-2">
+                    Are you sure you want to delete this course? This action cannot be undone.
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-900">{courseToDelete.title}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {courseToDelete.modules?.length || 0} modules • {courseToDelete.status}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteCourseModal(false);
+                  setCourseToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteCourse}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete Course
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Module Modal */}
+      {showDeleteModuleModal && moduleToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-red-600">Delete Module</h2>
+              <button
+                onClick={() => {
+                  setShowDeleteModuleModal(false);
+                  setModuleToDelete(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-gray-700 mb-2">
+                    Are you sure you want to delete this module? All lessons in this module will also be deleted. This action cannot be undone.
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-900">{moduleToDelete.moduleTitle}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModuleModal(false);
+                  setModuleToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteModule}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete Module
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Lesson Modal */}
+      {showDeleteLessonModal && lessonToDelete && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-red-600">Delete Lesson</h2>
+              <button
+                onClick={() => {
+                  setShowDeleteLessonModal(false);
+                  setLessonToDelete(null);
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="flex items-start gap-3 mb-4">
+                <AlertCircle size={24} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-gray-700 mb-2">
+                    Are you sure you want to delete this lesson? This action cannot be undone.
+                  </p>
+                  <div className="bg-gray-50 rounded-lg p-3">
+                    <p className="text-sm font-medium text-gray-900">{lessonToDelete.lessonTitle}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteLessonModal(false);
+                  setLessonToDelete(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={deleteLesson}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-2"
+              >
+                <Trash2 size={16} />
+                Delete Lesson
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
