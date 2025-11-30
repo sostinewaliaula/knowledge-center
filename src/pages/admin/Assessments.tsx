@@ -754,7 +754,7 @@ export function Assessments({}: AssessmentsProps) {
     return localQuestions.reduce((sum, q) => sum + q.points, 0);
   };
 
-  const isModalOpen = showDeleteModal || showDeleteQuestionModal;
+  const isModalOpen = showDeleteModal || showDeleteQuestionModal || viewingHistoryQuestionId !== null;
 
   if (loading && !selectedAssessment) {
     return (
@@ -2143,24 +2143,34 @@ export function Assessments({}: AssessmentsProps) {
                       </div>
                       {entry.old_data && entry.new_data && (
                         <div className="mt-3 space-y-2 text-xs">
-                          {Object.keys(JSON.parse(entry.new_data)).map((key) => {
-                            const oldVal = JSON.parse(entry.old_data)[key];
-                            const newVal = JSON.parse(entry.new_data)[key];
-                            if (oldVal !== newVal) {
-                              return (
-                                <div key={key} className="bg-gray-50 rounded p-2">
-                                  <div className="font-medium text-gray-700 mb-1">{key.replace('_', ' ')}</div>
-                                  <div className="flex items-start gap-2">
-                                    <div className="flex-1">
-                                      <div className="text-red-600 line-through">{String(oldVal || 'N/A')}</div>
-                                      <div className="text-green-600 font-medium">{String(newVal || 'N/A')}</div>
+                          {(() => {
+                            // Handle both string and object formats
+                            const oldData = typeof entry.old_data === 'string' 
+                              ? JSON.parse(entry.old_data) 
+                              : entry.old_data;
+                            const newData = typeof entry.new_data === 'string' 
+                              ? JSON.parse(entry.new_data) 
+                              : entry.new_data;
+                            
+                            return Object.keys(newData).map((key) => {
+                              const oldVal = oldData[key];
+                              const newVal = newData[key];
+                              if (oldVal !== newVal) {
+                                return (
+                                  <div key={key} className="bg-gray-50 rounded p-2">
+                                    <div className="font-medium text-gray-700 mb-1">{key.replace('_', ' ')}</div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex-1">
+                                        <div className="text-red-600 line-through">{String(oldVal || 'N/A')}</div>
+                                        <div className="text-green-600 font-medium">{String(newVal || 'N/A')}</div>
+                                      </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            }
-                            return null;
-                          })}
+                                );
+                              }
+                              return null;
+                            });
+                          })()}
                         </div>
                       )}
                     </div>
