@@ -14,7 +14,9 @@ import {
   Filter,
   ArrowUpDown,
   Clock,
-  Users
+  Users,
+  Edit,
+  FolderOpen
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
@@ -87,6 +89,11 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
   const [newPathTags, setNewPathTags] = useState<Set<string>>(new Set());
   const [pathCategoryId, setPathCategoryId] = useState<string>('');
   const [pathTags, setPathTags] = useState<Set<string>>(new Set());
+  const [editingPathId, setEditingPathId] = useState<string | null>(null);
+  const [editPathTitle, setEditPathTitle] = useState('');
+  const [editPathDescription, setEditPathDescription] = useState('');
+  const [editPathCategoryId, setEditPathCategoryId] = useState<string>('');
+  const [editPathTags, setEditPathTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchLearningPaths();
@@ -111,6 +118,15 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
     } catch (err: any) {
       console.error('Error fetching tags:', err);
     }
+  };
+
+  // Icon mapping function for categories
+  const getCategoryIcon = (iconName: string | null, color: string | null) => {
+    if (!iconName) {
+      return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
+    }
+    // For now, just return FolderOpen. Can be expanded later if needed
+    return <FolderOpen size={20} style={{ color: color || '#3B82F6' }} />;
   };
 
   // Sort learning paths when sortBy changes
@@ -770,6 +786,136 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                   </div>
                 </div>
               ) : null}
+
+              {/* Edit Path Form */}
+              {editingPathId && (() => {
+                const pathToEdit = learningPaths.find(p => p.id === editingPathId);
+                if (!pathToEdit) return null;
+                return (
+                  <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
+                    <input
+                      type="text"
+                      placeholder="Path Title *"
+                      value={editPathTitle}
+                      onChange={(e) => setEditPathTitle(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      autoFocus
+                    />
+                    <textarea
+                      placeholder="Description (optional)"
+                      value={editPathDescription}
+                      onChange={(e) => setEditPathDescription(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                      rows={3}
+                    />
+                    <div className="mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={editPathCategoryId}
+                        onChange={(e) => setEditPathCategoryId(e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">No Category</option>
+                        {categories.filter(cat => !cat.parent_id).map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                      <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                        {tags.length === 0 ? (
+                          <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                        ) : (
+                          tags.map((tag) => {
+                            const isSelected = editPathTags.has(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => {
+                                  const newTags = new Set(editPathTags);
+                                  if (isSelected) {
+                                    newTags.delete(tag.id);
+                                  } else {
+                                    newTags.add(tag.id);
+                                  }
+                                  setEditPathTags(newTags);
+                                }}
+                                className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                  isSelected
+                                    ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                                }`}
+                              >
+                                {tag.name}
+                              </button>
+                            );
+                          })
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={async () => {
+                          try {
+                            setSaving(true);
+                            await api.updateLearningPath(editingPathId, {
+                              title: editPathTitle.trim(),
+                              description: editPathDescription.trim() || null,
+                              category_id: editPathCategoryId || null,
+                              tags: Array.from(editPathTags)
+                            });
+
+                            // Update local state
+                            if (selectedPath?.id === editingPathId) {
+                              setSelectedPath({
+                                ...selectedPath,
+                                title: editPathTitle.trim(),
+                                description: editPathDescription.trim() || null,
+                              });
+                            }
+                            setPathCategoryId(editPathCategoryId);
+                            setPathTags(new Set(editPathTags));
+                            
+                            showSuccess('Learning path details updated successfully!');
+                            setEditingPathId(null);
+                            
+                            // Refresh paths list
+                            await fetchLearningPaths();
+                            // Refresh selected path if it's the one being edited
+                            if (selectedPath?.id === editingPathId) {
+                              await fetchLearningPath(editingPathId);
+                            }
+                          } catch (err: any) {
+                            showError(err.message || 'Failed to update learning path details');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                        disabled={saving || !editPathTitle.trim()}
+                        className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                      >
+                        {saving ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setEditingPathId(null);
+                          setEditPathTitle('');
+                          setEditPathDescription('');
+                          setEditPathCategoryId('');
+                          setEditPathTags(new Set());
+                        }}
+                        className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
               
               {/* Learning Paths List */}
               <div className="space-y-2">
@@ -798,16 +944,43 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                           {path.course_count || 0} courses • {path.status}
                         </div>
                       </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeletePathClick(path);
-                        }}
-                        className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                        title="Delete path"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                      <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            // If path is not selected, fetch it first to get full details
+                            if (selectedPath?.id !== path.id) {
+                              await fetchLearningPath(path.id);
+                            }
+                            // Use current path data
+                            const currentPath = selectedPath?.id === path.id ? selectedPath : path;
+                            setEditPathTitle(currentPath.title);
+                            setEditPathDescription(currentPath.description || '');
+                            setEditPathCategoryId(pathCategoryId || currentPath.category_id || '');
+                            // Load path tags
+                            if (currentPath.tags && Array.isArray(currentPath.tags)) {
+                              setEditPathTags(new Set(currentPath.tags.map((tag: any) => tag.id)));
+                            } else {
+                              setEditPathTags(new Set());
+                            }
+                            setEditingPathId(path.id);
+                          }}
+                          className="w-7 h-7 rounded-md flex items-center justify-center hover:bg-purple-100 transition-colors group"
+                          title="Edit Path Details"
+                        >
+                          <Edit size={14} className="text-gray-400 group-hover:text-purple-700 transition-colors" strokeWidth={2} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePathClick(path);
+                          }}
+                          className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete path"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -840,20 +1013,39 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                   <div className="mt-4">
                     <label className="block text-xs text-gray-600 mb-1">Category</label>
                     {pathCategoryId ? (
-                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
-                        <span className="text-sm text-gray-700 flex-1">
-                          {categories.find(c => c.id === pathCategoryId)?.name || 'Unknown Category'}
-                        </span>
-                        <button
-                          onClick={() => {
-                            setPathCategoryId('');
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="p-1 hover:bg-gray-200 rounded transition-colors"
-                          title="Remove category"
-                        >
-                          <X size={14} className="text-gray-500" />
-                        </button>
+                      <div className="flex items-center gap-3 p-3 border border-gray-300 rounded-lg bg-gray-50">
+                        {(() => {
+                          const selectedCategory = categories.find(cat => cat.id === pathCategoryId);
+                          if (selectedCategory) {
+                            return (
+                              <>
+                                <div
+                                  className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
+                                  style={{ backgroundColor: (selectedCategory.color || '#3B82F6') + '20' }}
+                                >
+                                  {getCategoryIcon(selectedCategory.icon, selectedCategory.color)}
+                                </div>
+                                <div className="flex-1">
+                                  <div className="text-sm font-medium text-gray-900">{selectedCategory.name}</div>
+                                  {selectedCategory.description && (
+                                    <div className="text-xs text-gray-500 mt-0.5">{selectedCategory.description}</div>
+                                  )}
+                                </div>
+                                <button
+                                  onClick={() => {
+                                    setPathCategoryId('');
+                                    setHasUnsavedChanges(true);
+                                  }}
+                                  className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Remove category"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </>
+                            );
+                          }
+                          return null;
+                        })()}
                       </div>
                     ) : (
                       <select
@@ -862,7 +1054,7 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                           setPathCategoryId(e.target.value);
                           setHasUnsavedChanges(true);
                         }}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                       >
                         <option value="">Select Category</option>
                         {categories.filter(cat => !cat.parent_id).map((category) => (
@@ -907,33 +1099,6 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                         <span className="text-xs text-gray-400 italic">No tags applied</span>
                       )}
                     </div>
-                    {/* Available tags for selection */}
-                    {tags.length > 0 && (
-                      <div className="mt-2">
-                        <div className="text-xs text-gray-500 mb-2">Click to add tags:</div>
-                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-white">
-                          {tags.map((tag) => {
-                            const isSelected = pathTags.has(tag.id);
-                            if (isSelected) return null; // Don't show selected tags
-                            return (
-                              <button
-                                key={tag.id}
-                                type="button"
-                                onClick={() => {
-                                  const newTags = new Set(pathTags);
-                                  newTags.add(tag.id);
-                                  setPathTags(newTags);
-                                  setHasUnsavedChanges(true);
-                                }}
-                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-all duration-200"
-                              >
-                                {tag.name}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
                   </div>
 
                   <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
