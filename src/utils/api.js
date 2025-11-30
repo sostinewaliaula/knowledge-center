@@ -648,6 +648,105 @@ export const api = {
     return this.request(`/assignments/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // Exams endpoints
+  async getExams(page = 1, limit = 20, search = '', status = 'all') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    const queryString = params.toString();
+    const response = await this.request(`/exams${queryString ? `?${queryString}` : ''}`);
+    return {
+      exams: response.exams || [],
+      total: response.total || 0,
+      page: response.page || 1,
+      limit: response.limit || 20,
+      totalPages: response.totalPages || 1
+    };
+  },
+
+  async getExam(id) {
+    const response = await this.request(`/exams/${id}`);
+    return response.exam;
+  },
+
+  async createExam(examData) {
+    const response = await this.request('/exams', {
+      method: 'POST',
+      body: JSON.stringify(examData),
+    });
+    return response.exam;
+  },
+
+  async updateExam(id, examData) {
+    const response = await this.request(`/exams/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(examData),
+    });
+    return response.exam;
+  },
+
+  async deleteExam(id) {
+    return this.request(`/exams/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Exam Questions endpoints
+  async getExamQuestions(examId) {
+    const response = await this.request(`/exams/${examId}/questions`);
+    return response.questions;
+  },
+
+  async createExamQuestion(examId, questionData) {
+    const response = await this.request(`/exams/${examId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
+
+  async updateExamQuestion(questionId, questionData) {
+    const response = await this.request(`/exams/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
+
+  async deleteExamQuestion(questionId) {
+    return this.request(`/exams/questions/${questionId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async reorderExamQuestions(examId, questionOrders) {
+    return this.request(`/exams/${examId}/questions/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ questionOrders }),
+    });
+  },
+
+  async publishExamQuestion(questionId) {
+    const response = await this.request(`/exams/questions/${questionId}/publish`, {
+      method: 'PUT',
+    });
+    return response.question;
+  },
+
+  async unpublishExamQuestion(questionId) {
+    const response = await this.request(`/exams/questions/${questionId}/unpublish`, {
+      method: 'PUT',
+    });
+    return response.question;
+  },
+
+  async getExamQuestionHistory(questionId) {
+    const response = await this.request(`/exams/questions/${questionId}/history`);
+    return response.history;
   }
 };
 

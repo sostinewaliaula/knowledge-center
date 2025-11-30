@@ -18,6 +18,7 @@ import { CourseBuilder } from './pages/admin/CourseBuilder';
 import { LearningPathCreator } from './pages/admin/LearningPathCreator';
 import { Assessments } from './pages/admin/Assessments';
 import { Assignments } from './pages/admin/Assignments';
+import { Exams } from './pages/admin/Exams';
 import { Analytics } from './pages/admin/Analytics';
 import { Compliance } from './pages/admin/Compliance';
 import { Gamification } from './pages/admin/Gamification';
@@ -84,6 +85,11 @@ function AppContent() {
         <Route path="/admin/assignments" element={
           <ProtectedRoute requiredRole="admin">
             <Assignments />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin/exams" element={
+          <ProtectedRoute requiredRole="admin">
+            <Exams />
           </ProtectedRoute>
         } />
         <Route path="/admin/analytics" element={

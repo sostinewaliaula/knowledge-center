@@ -29,7 +29,7 @@ interface AdminSidebarProps {
 export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['content', 'users']));
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['content', 'users', 'evaluations']));
 
   const toggleSection = (section: string) => {
     const newExpanded = new Set(expandedSections);
@@ -69,20 +69,16 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
       ]
     },
     {
-      id: 'assessments',
-      label: 'Assessments',
+      id: 'evaluations',
+      label: 'Evaluations',
       icon: ClipboardList,
-      path: '/admin/assessments',
-      color: 'text-green-600',
-      bgColor: 'bg-green-50'
-    },
-    {
-      id: 'assignments',
-      label: 'Assignments',
-      icon: FileQuestion,
-      path: '/admin/assignments',
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50'
+      color: 'text-purple-600',
+      bgColor: 'bg-purple-50',
+      children: [
+        { label: 'Assessments', path: '/admin/assessments', icon: ClipboardList },
+        { label: 'Assignments', path: '/admin/assignments', icon: FileQuestion },
+        { label: 'Exams', path: '/admin/exams', icon: GraduationCap }
+      ]
     },
     {
       id: 'users',
@@ -185,6 +181,8 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
             const hasChildren = item.children && item.children.length > 0;
             const isExpanded = expandedSections.has(item.id);
             const active = isActive(item.path || '');
+            // Check if any child is active for collapsible sections
+            const hasActiveChild = hasChildren && item.children?.some(child => isActive(child.path));
 
             if (hasChildren) {
               return (
@@ -192,7 +190,7 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
                   <button
                     onClick={() => toggleSection(item.id)}
                     className={`w-full ${collapsed ? 'px-2 justify-center' : 'px-4'} py-2.5 flex items-center gap-3 rounded-lg transition-colors ${
-                      active ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
+                      (active || hasActiveChild) ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
                     }`}
                   >
                     <item.icon size={20} />
