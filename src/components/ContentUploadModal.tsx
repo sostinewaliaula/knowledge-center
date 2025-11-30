@@ -8,9 +8,11 @@ import {
 interface ContentUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onUpload: (files: File[], title: string, description: string) => Promise<void>;
-  onAddFromUrl: (url: string, title: string, description: string) => Promise<void>;
+  onUpload: (files: File[], title: string, description: string, categoryId: string | null, tags: Set<string>) => Promise<void>;
+  onAddFromUrl: (url: string, title: string, description: string, categoryId: string | null, tags: Set<string>) => Promise<void>;
   uploading?: boolean;
+  categories?: Array<{ id: string; name: string; parent_id: string | null }>;
+  tags?: Array<{ id: string; name: string }>;
 }
 
 type UploadMode = 'local' | 'url' | 'videos' | 'documents';
@@ -20,13 +22,17 @@ export function ContentUploadModal({
   onClose,
   onUpload,
   onAddFromUrl,
-  uploading = false
+  uploading = false,
+  categories = [],
+  tags = []
 }: ContentUploadModalProps) {
   const [mode, setMode] = useState<UploadMode>('local');
   const [files, setFiles] = useState<File[]>([]);
   const [url, setUrl] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [urlError, setUrlError] = useState('');
   const [detectedSource, setDetectedSource] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -127,7 +133,7 @@ export function ContentUploadModal({
       return;
     }
 
-    await onAddFromUrl(url.trim(), title.trim() || '', description.trim() || '');
+    await onAddFromUrl(url.trim(), title.trim() || '', description.trim() || '', categoryId || null, selectedTags);
     handleClose();
   };
 
@@ -137,7 +143,7 @@ export function ContentUploadModal({
         setUrlError('Please select at least one file');
         return;
       }
-      await onUpload(files, title.trim() || '', description.trim() || '');
+      await onUpload(files, title.trim() || '', description.trim() || '', categoryId || null, selectedTags);
       handleClose();
     } else {
       await validateAndSubmitUrl();
@@ -149,6 +155,8 @@ export function ContentUploadModal({
     setUrl('');
     setTitle('');
     setDescription('');
+    setCategoryId('');
+    setSelectedTags(new Set());
     setUrlError('');
     setDetectedSource('');
     if (fileInputRef.current) {
@@ -319,6 +327,61 @@ export function ContentUploadModal({
                   disabled={uploading}
                 />
               </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={uploading}
+                >
+                  <option value="">No Category</option>
+                  {categories.filter(cat => !cat.parent_id).map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                  {tags.length === 0 ? (
+                    <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                  ) : (
+                    tags.map((tag) => {
+                      const isSelected = selectedTags.has(tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            const newTags = new Set(selectedTags);
+                            if (isSelected) {
+                              newTags.delete(tag.id);
+                            } else {
+                              newTags.add(tag.id);
+                            }
+                            setSelectedTags(newTags);
+                          }}
+                          disabled={uploading}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                          } disabled:opacity-50`}
+                        >
+                          {tag.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           ) : (
             <div className="space-y-4">
@@ -386,6 +449,61 @@ export function ContentUploadModal({
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
                   disabled={uploading}
                 />
+              </div>
+
+              {/* Category */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                <select
+                  value={categoryId}
+                  onChange={(e) => setCategoryId(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={uploading}
+                >
+                  <option value="">No Category</option>
+                  {categories.filter(cat => !cat.parent_id).map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+                <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                  {tags.length === 0 ? (
+                    <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                  ) : (
+                    tags.map((tag) => {
+                      const isSelected = selectedTags.has(tag.id);
+                      return (
+                        <button
+                          key={tag.id}
+                          type="button"
+                          onClick={() => {
+                            const newTags = new Set(selectedTags);
+                            if (isSelected) {
+                              newTags.delete(tag.id);
+                            } else {
+                              newTags.add(tag.id);
+                            }
+                            setSelectedTags(newTags);
+                          }}
+                          disabled={uploading}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                            isSelected
+                              ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                          } disabled:opacity-50`}
+                        >
+                          {tag.name}
+                        </button>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {helpMessage && (

@@ -372,8 +372,12 @@ export function CourseBuilder({}: CourseBuilderProps) {
       setCourses(courses.map(c => c.id === courseId ? course : c));
       // Set category and tags for editing
       setCourseCategoryId(course.category_id || '');
-      // TODO: Load course tags when API supports it
-      setCourseTags(new Set());
+      // Load course tags
+      if (course.tags && Array.isArray(course.tags)) {
+        setCourseTags(new Set(course.tags.map((tag: any) => tag.id)));
+      } else {
+        setCourseTags(new Set());
+      }
       // Resize title textarea after course is loaded
       setTimeout(() => {
         if (titleTextareaRef.current) {
@@ -418,11 +422,9 @@ export function CourseBuilder({}: CourseBuilderProps) {
         title: newCourseTitle,
         description: newCourseDescription || null,
         category_id: newCourseCategoryId || null,
-        status: 'draft'
+        status: 'draft',
+        tags: Array.from(newCourseTags)
       });
-      
-      // TODO: Add tags to course after creation (when tag assignment API is ready)
-      // For now, tags are stored in state but not sent to API yet
       showSuccess('Course created successfully!');
       setNewCourseTitle('');
       setNewCourseDescription('');
@@ -450,7 +452,9 @@ export function CourseBuilder({}: CourseBuilderProps) {
         description: selectedCourse.description,
         short_description: selectedCourse.short_description,
         status: selectedCourse.status,
-        difficulty_level: selectedCourse.difficulty_level
+        difficulty_level: selectedCourse.difficulty_level,
+        category_id: courseCategoryId || null,
+        tags: Array.from(courseTags)
       });
 
       // Save all modules (create new ones, update existing ones)
@@ -1356,6 +1360,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                               title: editCourseTitle.trim(),
                               description: editCourseDescription.trim() || null,
                               category_id: editCourseCategoryId || null,
+                              tags: Array.from(editCourseTags)
                             });
 
                             // Update local state

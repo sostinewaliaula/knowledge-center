@@ -11,9 +11,13 @@ interface EditContentModalProps {
     source_type?: string | null;
     source_url?: string | null;
     file_name?: string | null;
+    category_id?: string | null;
   };
-  onSave: (id: string, title: string, description: string, newFile?: File, newUrl?: string) => Promise<void>;
+  onSave: (id: string, title: string, description: string, categoryId: string | null, tags: Set<string>, newFile?: File, newUrl?: string) => Promise<void>;
   updating?: boolean;
+  categories?: Array<{ id: string; name: string; parent_id: string | null }>;
+  tags?: Array<{ id: string; name: string }>;
+  contentTags?: Set<string>;
 }
 
 export function EditContentModal({
@@ -21,10 +25,15 @@ export function EditContentModal({
   onClose,
   content,
   onSave,
-  updating = false
+  updating = false,
+  categories = [],
+  tags = [],
+  contentTags = new Set()
 }: EditContentModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [categoryId, setCategoryId] = useState<string>('');
+  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [newFile, setNewFile] = useState<File | null>(null);
   const [newUrl, setNewUrl] = useState('');
   const [error, setError] = useState('');
@@ -36,11 +45,13 @@ export function EditContentModal({
     if (isOpen && content) {
       setTitle(content.title || '');
       setDescription(content.description || '');
+      setCategoryId(content.category_id || '');
+      setSelectedTags(new Set(contentTags));
       setNewUrl(content.source_url || '');
       setNewFile(null);
       setError('');
     }
-  }, [isOpen, content]);
+  }, [isOpen, content, contentTags]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +68,7 @@ export function EditContentModal({
     }
 
     try {
-      await onSave(content.id, title.trim(), description.trim() || '', newFile || undefined, newUrl.trim() || undefined);
+      await onSave(content.id, title.trim(), description.trim() || '', categoryId || null, selectedTags, newFile || undefined, newUrl.trim() || undefined);
       handleClose();
     } catch (err: any) {
       setError(err.message || 'Failed to update content');
@@ -67,6 +78,8 @@ export function EditContentModal({
   const handleClose = () => {
     setTitle('');
     setDescription('');
+    setCategoryId('');
+    setSelectedTags(new Set());
     setNewUrl('');
     setNewFile(null);
     setError('');
@@ -140,6 +153,65 @@ export function EditContentModal({
               placeholder="Content description"
               disabled={updating}
             />
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category
+            </label>
+            <select
+              value={categoryId}
+              onChange={(e) => setCategoryId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              disabled={updating}
+            >
+              <option value="">No Category</option>
+              {categories.filter(cat => !cat.parent_id).map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tags
+            </label>
+            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+              {tags.length === 0 ? (
+                <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+              ) : (
+                tags.map((tag) => {
+                  const isSelected = selectedTags.has(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      type="button"
+                      onClick={() => {
+                        const newTags = new Set(selectedTags);
+                        if (isSelected) {
+                          newTags.delete(tag.id);
+                        } else {
+                          newTags.add(tag.id);
+                        }
+                        setSelectedTags(newTags);
+                      }}
+                      disabled={updating}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                        isSelected
+                          ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                      } disabled:opacity-50`}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
           {/* File Upload (for local content) */}

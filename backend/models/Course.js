@@ -191,5 +191,36 @@ export class Course {
       .replace(/[\s_-]+/g, '-')
       .replace(/^-+|-+$/g, '');
   }
+
+  /**
+   * Get tags for a course
+   */
+  static async getTags(courseId) {
+    const sql = `
+      SELECT t.id, t.name, t.slug
+      FROM tags t
+      INNER JOIN course_tags ct ON t.id = ct.tag_id
+      WHERE ct.course_id = ?
+      ORDER BY t.name ASC
+    `;
+    return await query(sql, [courseId]);
+  }
+
+  /**
+   * Set tags for a course (replaces existing tags)
+   */
+  static async setTags(courseId, tagIds) {
+    // First, delete all existing tags
+    await query('DELETE FROM course_tags WHERE course_id = ?', [courseId]);
+    
+    // Then, insert new tags one by one
+    if (tagIds && tagIds.length > 0) {
+      for (const tagId of tagIds) {
+        await query('INSERT INTO course_tags (course_id, tag_id) VALUES (?, ?)', [courseId, tagId]);
+      }
+    }
+    
+    return await this.getTags(courseId);
+  }
 }
 

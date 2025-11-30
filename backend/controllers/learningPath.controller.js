@@ -32,6 +32,10 @@ export const getLearningPathById = async (req, res, next) => {
 
     // Fetch courses in the path
     const courses = await LearningPath.getCourses(id);
+    
+    // Fetch tags for the path
+    const tags = await LearningPath.getTags(id);
+    path.tags = tags;
 
     res.json({ success: true, path: { ...path, courses } });
   } catch (error) {
@@ -41,7 +45,7 @@ export const getLearningPathById = async (req, res, next) => {
 
 export const createLearningPath = async (req, res, next) => {
   try {
-    const { title, description, category_id, thumbnail_url, status, is_featured, estimated_duration_hours } = req.body;
+    const { title, description, category_id, thumbnail_url, status, is_featured, estimated_duration_hours, tags } = req.body;
     if (!title) {
       return res.status(400).json({ success: false, error: 'Title is required' });
     }
@@ -55,7 +59,21 @@ export const createLearningPath = async (req, res, next) => {
       estimated_duration_hours,
       created_by: req.user.id
     });
-    res.status(201).json({ success: true, path });
+    
+    // Handle tags if provided
+    if (tags) {
+      const tagIds = Array.isArray(tags) ? tags : (typeof tags === 'string' ? JSON.parse(tags) : []);
+      if (tagIds.length > 0) {
+        await LearningPath.setTags(path.id, tagIds);
+      }
+    }
+    
+    // Fetch path with tags
+    const pathWithTags = await LearningPath.findById(path.id);
+    const pathTags = await LearningPath.getTags(path.id);
+    pathWithTags.tags = pathTags;
+    
+    res.status(201).json({ success: true, path: pathWithTags });
   } catch (error) {
     next(error);
   }
@@ -65,11 +83,27 @@ export const updateLearningPath = async (req, res, next) => {
   try {
     const { id } = req.params;
     const updates = req.body;
-    const path = await LearningPath.update(id, updates);
+    
+    // Extract tags from updates
+    const { tags, ...pathUpdates } = updates;
+    
+    const path = await LearningPath.update(id, pathUpdates);
     if (!path) {
       return res.status(404).json({ success: false, error: 'Learning path not found' });
     }
-    res.json({ success: true, path });
+    
+    // Handle tags if provided
+    if (tags !== undefined) {
+      const tagIds = Array.isArray(tags) ? tags : (typeof tags === 'string' ? JSON.parse(tags) : []);
+      await LearningPath.setTags(id, tagIds);
+    }
+    
+    // Fetch path with tags
+    const pathWithTags = await LearningPath.findById(id);
+    const pathTags = await LearningPath.getTags(id);
+    pathWithTags.tags = pathTags;
+    
+    res.json({ success: true, path: pathWithTags });
   } catch (error) {
     next(error);
   }

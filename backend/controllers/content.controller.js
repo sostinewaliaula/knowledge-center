@@ -57,6 +57,10 @@ export const getContentById = async (req, res, next) => {
       });
     }
 
+    // Get tags for this content
+    const tags = await ContentLibrary.getTags(id);
+    content.tags = tags;
+
     res.json({
       success: true,
       content
@@ -78,8 +82,18 @@ export const uploadContent = async (req, res, next) => {
       });
     }
 
-    const { title, description, category_id, is_public } = req.body;
+    const { title, description, category_id, is_public, tags: tagsParam } = req.body;
     const file = req.file;
+    
+    // Parse tags if provided as JSON string (from FormData)
+    let tags = null;
+    if (tagsParam) {
+      try {
+        tags = typeof tagsParam === 'string' ? JSON.parse(tagsParam) : tagsParam;
+      } catch (e) {
+        tags = tagsParam; // If parsing fails, use as-is
+      }
+    }
 
     if (!title || !title.trim()) {
       // Use filename as title if not provided
@@ -104,9 +118,19 @@ export const uploadContent = async (req, res, next) => {
 
     const content = await ContentLibrary.create(contentData);
 
+    // Handle tags if provided
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      await ContentLibrary.setTags(content.id, tags);
+    }
+
+    // Fetch content with tags
+    const contentWithTags = await ContentLibrary.findById(content.id);
+    const contentTags = await ContentLibrary.getTags(content.id);
+    contentWithTags.tags = contentTags;
+
     res.status(201).json({
       success: true,
-      content
+      content: contentWithTags
     });
   } catch (error) {
     next(error);
@@ -118,7 +142,7 @@ export const uploadContent = async (req, res, next) => {
  */
 export const addContentFromUrl = async (req, res, next) => {
   try {
-    const { url, title, description, category_id, is_public } = req.body;
+    const { url, title, description, category_id, is_public, tags } = req.body;
 
     if (!url || !url.trim()) {
       return res.status(400).json({
@@ -260,9 +284,19 @@ export const addContentFromUrl = async (req, res, next) => {
 
     const content = await ContentLibrary.create(contentData);
 
+    // Handle tags if provided
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      await ContentLibrary.setTags(content.id, tags);
+    }
+
+    // Fetch content with tags
+    const contentWithTags = await ContentLibrary.findById(content.id);
+    const contentTags = await ContentLibrary.getTags(content.id);
+    contentWithTags.tags = contentTags;
+
     res.status(201).json({
       success: true,
-      content
+      content: contentWithTags
     });
   } catch (error) {
     next(error);
@@ -297,9 +331,31 @@ export const updateContent = async (req, res, next) => {
 
     const content = await ContentLibrary.update(id, filteredData);
 
+    // Handle tags if provided
+    if (updateData.tags !== undefined) {
+      let tagIds = [];
+      if (Array.isArray(updateData.tags)) {
+        tagIds = updateData.tags;
+      } else if (typeof updateData.tags === 'string') {
+        try {
+          tagIds = JSON.parse(updateData.tags);
+        } catch (e) {
+          tagIds = [];
+        }
+      }
+      if (Array.isArray(tagIds)) {
+        await ContentLibrary.setTags(id, tagIds);
+      }
+    }
+
+    // Fetch content with tags
+    const contentWithTags = await ContentLibrary.findById(id);
+    const contentTags = await ContentLibrary.getTags(id);
+    contentWithTags.tags = contentTags;
+
     res.json({
       success: true,
-      content
+      content: contentWithTags
     });
   } catch (error) {
     next(error);

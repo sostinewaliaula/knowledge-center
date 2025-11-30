@@ -223,5 +223,36 @@ export class LearningPath {
     await query(sql, [isRequired, pathId, courseId]);
     return { message: 'Course requirement updated successfully' };
   }
+
+  /**
+   * Get tags for a learning path
+   */
+  static async getTags(pathId) {
+    const sql = `
+      SELECT t.id, t.name, t.slug
+      FROM tags t
+      INNER JOIN learning_path_tags lpt ON t.id = lpt.tag_id
+      WHERE lpt.learning_path_id = ?
+      ORDER BY t.name ASC
+    `;
+    return await query(sql, [pathId]);
+  }
+
+  /**
+   * Set tags for a learning path (replaces existing tags)
+   */
+  static async setTags(pathId, tagIds) {
+    // First, delete all existing tags
+    await query('DELETE FROM learning_path_tags WHERE learning_path_id = ?', [pathId]);
+    
+    // Then, insert new tags one by one
+    if (tagIds && tagIds.length > 0) {
+      for (const tagId of tagIds) {
+        await query('INSERT INTO learning_path_tags (learning_path_id, tag_id) VALUES (?, ?)', [pathId, tagId]);
+      }
+    }
+    
+    return await this.getTags(pathId);
+  }
 }
 

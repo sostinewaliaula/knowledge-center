@@ -53,6 +53,10 @@ export const getCourseById = async (req, res, next) => {
       })
     );
 
+    // Get tags for this course
+    const tags = await Course.getTags(id);
+    course.tags = tags;
+
     res.json({
       success: true,
       course: {
@@ -70,16 +74,29 @@ export const getCourseById = async (req, res, next) => {
  */
 export const createCourse = async (req, res, next) => {
   try {
-    const courseData = {
-      ...req.body,
+    const { tags, ...courseData } = req.body;
+    
+    const course = await Course.create({
+      ...courseData,
       instructor_id: req.user.id // Set instructor to current user
-    };
+    });
 
-    const course = await Course.create(courseData);
+    // Handle tags if provided
+    if (tags) {
+      const tagIds = Array.isArray(tags) ? tags : (typeof tags === 'string' ? JSON.parse(tags) : []);
+      if (tagIds.length > 0) {
+        await Course.setTags(course.id, tagIds);
+      }
+    }
+
+    // Fetch course with tags
+    const courseWithTags = await Course.findById(course.id);
+    const courseTags = await Course.getTags(course.id);
+    courseWithTags.tags = courseTags;
 
     res.status(201).json({
       success: true,
-      course
+      course: courseWithTags
     });
   } catch (error) {
     next(error);
@@ -110,11 +127,25 @@ export const updateCourse = async (req, res, next) => {
       });
     }
 
-    const course = await Course.update(id, req.body);
+    // Extract tags from request body
+    const { tags, ...courseUpdates } = req.body;
+
+    const course = await Course.update(id, courseUpdates);
+
+    // Handle tags if provided
+    if (tags !== undefined) {
+      const tagIds = Array.isArray(tags) ? tags : (typeof tags === 'string' ? JSON.parse(tags) : []);
+      await Course.setTags(id, tagIds);
+    }
+
+    // Fetch course with tags
+    const courseWithTags = await Course.findById(id);
+    const courseTags = await Course.getTags(id);
+    courseWithTags.tags = courseTags;
 
     res.json({
       success: true,
-      course
+      course: courseWithTags
     });
   } catch (error) {
     next(error);

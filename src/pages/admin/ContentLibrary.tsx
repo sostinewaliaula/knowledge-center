@@ -70,10 +70,33 @@ export function ContentLibrary({}: ContentLibraryProps) {
   const [selectedContent, setSelectedContent] = useState<ContentItem | null>(null);
   const [selectedVideoContent, setSelectedVideoContent] = useState<ContentItem | null>(null);
   const [selectedDocumentContent, setSelectedDocumentContent] = useState<ContentItem | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [contentTags, setContentTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchContents();
+    fetchCategories();
+    fetchTags();
   }, [currentPage, searchQuery, filterType]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getCategories();
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const data = await api.getTags();
+      setTags(data.tags || []);
+    } catch (err: any) {
+      console.error('Error fetching tags:', err);
+    }
+  };
 
   const fetchContents = async () => {
     try {
@@ -90,7 +113,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleFileUpload = async (files: File[], title: string, description: string) => {
+  const handleFileUpload = async (files: File[], title: string, description: string, categoryId: string | null, tags: Set<string>) => {
     setUploading(true);
     
     try {
@@ -99,7 +122,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
         try {
           // Use provided title, or generate from filename if not provided
           const fileTitle = title.trim() || file.name.replace(/\.[^/.]+$/, '');
-          await api.uploadContent(file, fileTitle, description || null, null, false);
+          await api.uploadContent(file, fileTitle, description || null, categoryId, false, tags);
         } catch (err: any) {
           showError(`Failed to upload ${file.name}: ${err.message}`);
         }
@@ -114,11 +137,11 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleAddFromUrl = async (url: string, title: string, description: string) => {
+  const handleAddFromUrl = async (url: string, title: string, description: string, categoryId: string | null, tags: Set<string>) => {
     setUploading(true);
     
     try {
-      await api.addContentFromUrl(url, title, description, null, false);
+      await api.addContentFromUrl(url, title, description, categoryId, false, tags);
       showSuccess('Content added successfully!');
       fetchContents();
     } catch (err: any) {
@@ -143,13 +166,15 @@ export function ContentLibrary({}: ContentLibraryProps) {
     }
   };
 
-  const handleEdit = async (id: string, title: string, description: string, newFile?: File, newUrl?: string) => {
+  const handleEdit = async (id: string, title: string, description: string, categoryId: string | null, tags: Set<string>, newFile?: File, newUrl?: string) => {
     setUploading(true);
     try {
-      // Update metadata (title, description)
+      // Update metadata (title, description, category, tags)
       await api.updateContent(id, {
         title: title,
-        description: description || null
+        description: description || null,
+        category_id: categoryId,
+        tags: Array.from(tags)
       });
 
       // For external content, if URL changed, we need to re-add it (delete old and create new)
@@ -158,7 +183,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
         if (newUrl !== oldUrl) {
           // Delete the old content and re-add with new URL
           await api.deleteContent(id);
-          await api.addContentFromUrl(newUrl, title, description, selectedContent.category_id || null, selectedContent.is_public);
+          await api.addContentFromUrl(newUrl, title, description, selectedContent.category_id || null, selectedContent.is_public, tags);
           showSuccess('Content URL updated successfully!');
           fetchContents();
           setShowEditModal(false);
@@ -398,9 +423,20 @@ export function ContentLibrary({}: ContentLibraryProps) {
                         )}
                       </div>
                       <div className="relative flex items-center gap-1">
-                        <button 
-                          onClick={() => {
+                        <button
+                          onClick={async () => {
                             setSelectedContent(item);
+                            // Fetch tags for this content
+                            try {
+                              const contentData = await api.getContentById(item.id);
+                              if (contentData.tags && Array.isArray(contentData.tags)) {
+                                setContentTags(new Set(contentData.tags.map((tag: any) => tag.id)));
+                              } else {
+                                setContentTags(new Set());
+                              }
+                            } catch (err) {
+                              setContentTags(new Set());
+                            }
                             setShowEditModal(true);
                           }}
                           className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
@@ -507,10 +543,14 @@ export function ContentLibrary({}: ContentLibraryProps) {
           onClose={() => {
             setShowEditModal(false);
             setSelectedContent(null);
+            setContentTags(new Set());
           }}
           content={selectedContent}
           onSave={handleEdit}
           updating={uploading}
+          categories={categories}
+          tags={tags}
+          contentTags={contentTags}
         />
       )}
 
@@ -575,6 +615,8 @@ export function ContentLibrary({}: ContentLibraryProps) {
         onUpload={handleFileUpload}
         onAddFromUrl={handleAddFromUrl}
         uploading={uploading}
+        categories={categories}
+        tags={tags}
       />
 
       {/* Video Player Modal */}

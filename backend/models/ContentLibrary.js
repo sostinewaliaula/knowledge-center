@@ -202,5 +202,36 @@ export class ContentLibrary {
     await query(sql, [id]);
     return await this.findById(id);
   }
+
+  /**
+   * Get tags for a content item
+   */
+  static async getTags(contentId) {
+    const sql = `
+      SELECT t.id, t.name, t.slug
+      FROM tags t
+      INNER JOIN content_tags ct ON t.id = ct.tag_id
+      WHERE ct.content_id = ?
+      ORDER BY t.name ASC
+    `;
+    return await query(sql, [contentId]);
+  }
+
+  /**
+   * Set tags for a content item (replaces existing tags)
+   */
+  static async setTags(contentId, tagIds) {
+    // First, delete all existing tags
+    await query('DELETE FROM content_tags WHERE content_id = ?', [contentId]);
+    
+    // Then, insert new tags one by one
+    if (tagIds && tagIds.length > 0) {
+      for (const tagId of tagIds) {
+        await query('INSERT INTO content_tags (content_id, tag_id) VALUES (?, ?)', [contentId, tagId]);
+      }
+    }
+    
+    return await this.getTags(contentId);
+  }
 }
 

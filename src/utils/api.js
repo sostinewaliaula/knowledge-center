@@ -131,7 +131,7 @@ export const api = {
     return response.content;
   },
 
-  async uploadContent(file, title, description, categoryId, isPublic) {
+  async uploadContent(file, title, description, categoryId, isPublic, tags = null) {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const token = localStorage.getItem('authToken');
     
@@ -141,6 +141,9 @@ export const api = {
     if (description) formData.append('description', description);
     if (categoryId) formData.append('category_id', categoryId);
     if (isPublic !== undefined) formData.append('is_public', isPublic);
+    if (tags && tags.size > 0) {
+      formData.append('tags', JSON.stringify(Array.from(tags)));
+    }
 
     const response = await fetch(`${API_BASE_URL}/content/upload`, {
       method: 'POST',
@@ -159,16 +162,20 @@ export const api = {
     return data.content;
   },
 
-  async addContentFromUrl(url, title, description, categoryId, isPublic) {
+  async addContentFromUrl(url, title, description, categoryId, isPublic, tags = null) {
+    const requestData = {
+      url,
+      title,
+      description,
+      category_id: categoryId,
+      is_public: isPublic
+    };
+    if (tags && tags.size > 0) {
+      requestData.tags = Array.from(tags);
+    }
     return this.request('/content/url', {
       method: 'POST',
-      body: JSON.stringify({
-        url,
-        title,
-        description,
-        category_id: categoryId,
-        is_public: isPublic
-      }),
+      body: JSON.stringify(requestData),
     }).then(response => response.content);
   },
 

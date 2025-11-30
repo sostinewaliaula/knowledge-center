@@ -81,11 +81,37 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
   const [originalPath, setOriginalPath] = useState<LearningPath | null>(null);
   const [localCourses, setLocalCourses] = useState<PathCourse[]>([]);
   const [draggedCourse, setDraggedCourse] = useState<string | null>(null);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+  const [newPathCategoryId, setNewPathCategoryId] = useState<string>('');
+  const [newPathTags, setNewPathTags] = useState<Set<string>>(new Set());
+  const [pathCategoryId, setPathCategoryId] = useState<string>('');
+  const [pathTags, setPathTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchLearningPaths();
     fetchAvailableCourses();
+    fetchCategories();
+    fetchTags();
   }, [statusFilter]);
+
+  const fetchCategories = async () => {
+    try {
+      const data = await api.getCategories();
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      console.error('Error fetching categories:', err);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const data = await api.getTags();
+      setTags(data.tags || []);
+    } catch (err: any) {
+      console.error('Error fetching tags:', err);
+    }
+  };
 
   // Sort learning paths when sortBy changes
   useEffect(() => {
@@ -134,6 +160,13 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
       setSelectedPath(path);
       setOriginalPath(JSON.parse(JSON.stringify(path))); // Deep copy
       setLocalCourses(path.courses || []);
+      setPathCategoryId(path.category_id || '');
+      // Load path tags
+      if (path.tags && Array.isArray(path.tags)) {
+        setPathTags(new Set(path.tags.map((tag: any) => tag.id)));
+      } else {
+        setPathTags(new Set());
+      }
       setHasUnsavedChanges(false);
     } catch (err: any) {
       showError(err.message || 'Failed to load learning path');
@@ -153,11 +186,15 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
       const path = await api.createLearningPath({
         title: newPathTitle.trim(),
         description: newPathDescription.trim() || null,
-        status: 'draft'
+        category_id: newPathCategoryId || null,
+        status: 'draft',
+        tags: Array.from(newPathTags)
       });
       showSuccess('Learning path created successfully!');
       setNewPathTitle('');
       setNewPathDescription('');
+      setNewPathCategoryId('');
+      setNewPathTags(new Set());
       setIsCreatingPath(false);
       await fetchLearningPaths();
       await fetchLearningPath(path.id);
@@ -177,12 +214,13 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
       // Update path metadata
       await api.updateLearningPath(selectedPath.id, {
         title: selectedPath.title,
+        category_id: pathCategoryId || null,
         description: selectedPath.description,
-        category_id: selectedPath.category_id,
         thumbnail_url: selectedPath.thumbnail_url,
         status: selectedPath.status,
         is_featured: selectedPath.is_featured,
-        estimated_duration_hours: selectedPath.estimated_duration_hours
+        estimated_duration_hours: selectedPath.estimated_duration_hours,
+        tags: Array.from(pathTags)
       });
 
       // Get current courses from backend
@@ -660,6 +698,55 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
                     rows={3}
                   />
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                    <select
+                      value={newPathCategoryId}
+                      onChange={(e) => setNewPathCategoryId(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    >
+                      <option value="">No Category</option>
+                      {categories.filter(cat => !cat.parent_id).map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Tags</label>
+                    <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-300 rounded-lg bg-white">
+                      {tags.length === 0 ? (
+                        <span className="text-xs text-gray-500">No tags available. Create tags in Categories & Tags page.</span>
+                      ) : (
+                        tags.map((tag) => {
+                          const isSelected = newPathTags.has(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                const newTags = new Set(newPathTags);
+                                if (isSelected) {
+                                  newTags.delete(tag.id);
+                                } else {
+                                  newTags.add(tag.id);
+                                }
+                                setNewPathTags(newTags);
+                              }}
+                              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                                isSelected
+                                  ? 'bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md hover:from-purple-700 hover:to-green-700'
+                                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300'
+                              }`}
+                            >
+                              {tag.name}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
                   <div className="flex gap-2">
                     <button
                       onClick={createLearningPath}
@@ -673,6 +760,8 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                         setIsCreatingPath(false);
                         setNewPathTitle('');
                         setNewPathDescription('');
+                        setNewPathCategoryId('');
+                        setNewPathTags(new Set());
                       }}
                       className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
                     >
@@ -746,6 +835,107 @@ export function LearningPathCreator({}: LearningPathCreatorProps) {
                     className="w-full text-gray-600 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 resize-none"
                     rows={3}
                   />
+                  
+                  {/* Category */}
+                  <div className="mt-4">
+                    <label className="block text-xs text-gray-600 mb-1">Category</label>
+                    {pathCategoryId ? (
+                      <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200">
+                        <span className="text-sm text-gray-700 flex-1">
+                          {categories.find(c => c.id === pathCategoryId)?.name || 'Unknown Category'}
+                        </span>
+                        <button
+                          onClick={() => {
+                            setPathCategoryId('');
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="p-1 hover:bg-gray-200 rounded transition-colors"
+                          title="Remove category"
+                        >
+                          <X size={14} className="text-gray-500" />
+                        </button>
+                      </div>
+                    ) : (
+                      <select
+                        value={pathCategoryId}
+                        onChange={(e) => {
+                          setPathCategoryId(e.target.value);
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">Select Category</option>
+                        {categories.filter(cat => !cat.parent_id).map((category) => (
+                          <option key={category.id} value={category.id}>
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+
+                  {/* Tags */}
+                  <div className="mt-4">
+                    <label className="block text-xs text-gray-600 mb-1">Tags</label>
+                    <div className="flex flex-wrap gap-2 p-3 border border-gray-300 rounded-lg bg-gray-50 min-h-[48px]">
+                      {pathTags.size > 0 ? (
+                        Array.from(pathTags).map((tagId) => {
+                          const tag = tags.find(t => t.id === tagId);
+                          if (!tag) return null;
+                          return (
+                            <div
+                              key={tag.id}
+                              className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gradient-to-r from-purple-600 to-green-600 text-white shadow-md flex items-center gap-2"
+                            >
+                              <span>{tag.name}</span>
+                              <button
+                                onClick={() => {
+                                  const newTags = new Set(pathTags);
+                                  newTags.delete(tag.id);
+                                  setPathTags(newTags);
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="hover:bg-white/20 rounded p-0.5 transition-colors"
+                                title="Remove tag"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <span className="text-xs text-gray-400 italic">No tags applied</span>
+                      )}
+                    </div>
+                    {/* Available tags for selection */}
+                    {tags.length > 0 && (
+                      <div className="mt-2">
+                        <div className="text-xs text-gray-500 mb-2">Click to add tags:</div>
+                        <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto p-2 border border-gray-200 rounded-lg bg-white">
+                          {tags.map((tag) => {
+                            const isSelected = pathTags.has(tag.id);
+                            if (isSelected) return null; // Don't show selected tags
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => {
+                                  const newTags = new Set(pathTags);
+                                  newTags.add(tag.id);
+                                  setPathTags(newTags);
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200 border border-gray-300 transition-all duration-200"
+                              >
+                                {tag.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
                   <div className="mt-4 flex items-center gap-4 text-sm text-gray-500">
                     <span>Status: <span className="font-medium capitalize">{selectedPath.status}</span></span>
                     {selectedPath.course_count !== undefined && (
