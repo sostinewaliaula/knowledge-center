@@ -93,6 +93,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
   const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
   const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest' | 'modified-newest' | 'modified-oldest' | 'status' | 'modules-asc' | 'modules-desc' | 'difficulty'>('title-asc');
+  const titleTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     fetchCourses();
@@ -111,6 +112,19 @@ export function CourseBuilder({}: CourseBuilderProps) {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy]);
+
+  // Resize title textarea when selectedCourse changes
+  useEffect(() => {
+    if (titleTextareaRef.current && selectedCourse?.title) {
+      // Use setTimeout to ensure DOM is updated
+      setTimeout(() => {
+        if (titleTextareaRef.current) {
+          titleTextareaRef.current.style.height = 'auto';
+          titleTextareaRef.current.style.height = titleTextareaRef.current.scrollHeight + 'px';
+        }
+      }, 0);
+    }
+  }, [selectedCourse?.title, selectedCourse?.id]);
 
   const fetchCourses = async (searchOverride?: string) => {
     try {
@@ -226,6 +240,13 @@ export function CourseBuilder({}: CourseBuilderProps) {
       setLocalModules(course.modules || []);
       setHasUnsavedChanges(false);
       setCourses(courses.map(c => c.id === courseId ? course : c));
+      // Resize title textarea after course is loaded
+      setTimeout(() => {
+        if (titleTextareaRef.current) {
+          titleTextareaRef.current.style.height = 'auto';
+          titleTextareaRef.current.style.height = titleTextareaRef.current.scrollHeight + 'px';
+        }
+      }, 100);
     } catch (err: any) {
       showError(err.message || 'Failed to fetch course');
     }
@@ -1069,9 +1090,9 @@ export function CourseBuilder({}: CourseBuilderProps) {
                     }`}
                     onClick={() => fetchCourse(course.id)}
                   >
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-2">
                       <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 mb-1 truncate">{course.title}</div>
+                        <div className="text-sm font-semibold text-gray-900 mb-1 break-words">{course.title}</div>
                         <div className="text-xs text-gray-500">
                           {course.modules?.length || 0} modules • {course.status}
                         </div>
@@ -1114,15 +1135,28 @@ export function CourseBuilder({}: CourseBuilderProps) {
               <div className="max-w-4xl mx-auto">
                 {/* Course Info */}
                 <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100 mb-6">
-                  <input
-                    type="text"
+                  <textarea
+                    ref={titleTextareaRef}
                     value={selectedCourse.title}
                     onChange={(e) => {
                       setSelectedCourse({ ...selectedCourse, title: e.target.value });
                       setHasUnsavedChanges(true);
+                      // Auto-resize
+                      const target = e.target as HTMLTextAreaElement;
+                      target.style.height = 'auto';
+                      target.style.height = Math.max(target.scrollHeight, 48) + 'px';
                     }}
-                    className="text-2xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+                    className="text-2xl font-bold text-gray-900 w-full mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1 resize-none"
                     placeholder="Course Title"
+                    style={{ 
+                      minHeight: '3rem',
+                      lineHeight: '1.5',
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      whiteSpace: 'normal',
+                      overflow: 'hidden',
+                      height: 'auto'
+                    }}
                   />
                   <textarea
                     value={selectedCourse.description || ''}
