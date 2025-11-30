@@ -364,11 +364,97 @@ export const api = {
     });
   },
 
-  async updateCourseRequirement(pathId, courseId, isRequired) {
-    return this.request(`/learning-paths/${pathId}/courses/${courseId}/requirement`, {
-      method: 'PUT',
-      body: JSON.stringify({ is_required: isRequired }),
-    });
-  }
+    async updateCourseRequirement(pathId, courseId, isRequired) {
+      return this.request(`/learning-paths/${pathId}/courses/${courseId}/requirement`, {
+        method: 'PUT',
+        body: JSON.stringify({ is_required: isRequired }),
+      });
+    },
+
+    // ============================================
+    // CATEGORY API METHODS
+    // ============================================
+
+    async getCategories(page = 1, limit = 100, search = '', parentId = null) {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      if (search) params.append('search', search);
+      if (parentId !== null) params.append('parent_id', parentId);
+      const queryString = params.toString();
+      return this.request(`/categories${queryString ? `?${queryString}` : ''}`);
+    },
+
+    async getCategory(id) {
+      const response = await this.request(`/categories/${id}`);
+      return response.category;
+    },
+
+    async getCategoryChildren(id) {
+      const response = await this.request(`/categories/${id}/children`);
+      return response.categories;
+    },
+
+    async createCategory(categoryData) {
+      const response = await this.request('/categories', {
+        method: 'POST',
+        body: JSON.stringify(categoryData),
+      });
+      return response.category;
+    },
+
+    async updateCategory(id, categoryData) {
+      const response = await this.request(`/categories/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(categoryData),
+      });
+      return response.category;
+    },
+
+    async deleteCategory(id) {
+      return this.request(`/categories/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    // ============================================
+    // TAG API METHODS
+    // ============================================
+
+    async getTags(page = 1, limit = 100, search = '') {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      if (search) params.append('search', search);
+      const queryString = params.toString();
+      return this.request(`/tags${queryString ? `?${queryString}` : ''}`);
+    },
+
+    async getTag(id) {
+      const response = await this.request(`/tags/${id}`);
+      return response.tag;
+    },
+
+    async createTag(tagData) {
+      const response = await this.request('/tags', {
+        method: 'POST',
+        body: JSON.stringify(tagData),
+      });
+      return response.tag;
+    },
+
+    async updateTag(id, tagData) {
+      const response = await this.request(`/tags/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(tagData),
+      });
+      return response.tag;
+    },
+
+    async deleteTag(id) {
+      return this.request(`/tags/${id}`, {
+        method: 'DELETE',
+      });
+    }
 };
 

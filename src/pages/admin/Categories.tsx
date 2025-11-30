@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   FolderOpen,
   Plus,
@@ -6,110 +6,489 @@ import {
   Edit,
   Trash2,
   Tag,
-  Folder,
-  MoreVertical,
   X,
-  Save
+  Save,
+  AlertCircle,
+  Loader2,
+  DollarSign,
+  Users,
+  Building2,
+  GraduationCap,
+  BookOpen,
+  Briefcase,
+  Shield,
+  Target,
+  TrendingUp,
+  Settings,
+  FileText,
+  Video,
+  Image as ImageIcon,
+  Music,
+  Code,
+  Globe,
+  Heart,
+  Star,
+  Zap,
+  Award,
+  Lightbulb,
+  Rocket,
+  Palette,
+  ShoppingBag,
+  Car,
+  Home,
+  Plane,
+  Gamepad2,
+  Camera,
+  Phone,
+  Mail,
+  MessageSquare,
+  Calendar,
+  Clock,
+  Bell,
+  Gift,
+  Coffee,
+  Utensils,
+  Smile,
+  ThumbsUp
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
+import { api } from '../../utils/api';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Category {
   id: string;
   name: string;
-  description: string;
-  parentId: string | null;
-  color: string;
-  icon: string;
-  itemCount: number;
-  createdAt: string;
+  slug: string;
+  description: string | null;
+  parent_id: string | null;
+  parent_name?: string | null;
+  icon: string | null;
+  color: string | null;
+  course_count?: number;
+  content_count?: number;
+  learning_path_count?: number;
+  created_at: string;
+  updated_at: string;
 }
 
 interface Tag {
   id: string;
   name: string;
-  color: string;
-  usageCount: number;
-  createdAt: string;
+  slug: string;
+  course_count?: number;
+  content_count?: number;
+  created_at: string;
 }
 
 interface CategoriesProps {}
 
+// Generate color from string (for tags that don't have color in DB)
+const generateColor = (str: string): string => {
+  const colors = [
+    '#3B82F6', // Blue
+    '#8B5CF6', // Purple
+    '#10B981', // Green
+    '#F59E0B', // Amber
+    '#EF4444', // Red
+    '#6B7280', // Gray
+    '#EC4899', // Pink
+    '#14B8A6', // Teal
+  ];
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+// Icon mapping function to convert icon names/emojis to Lucide React icons
+const getCategoryIcon = (iconName: string | null, color: string | null) => {
+  if (!iconName) {
+    return <FolderOpen size={24} style={{ color: color || '#3B82F6' }} />;
+  }
+
+  // Map common icon names to Lucide React icons
+  const iconMap: { [key: string]: any } = {
+    'DollarSign': DollarSign,
+    'Users': Users,
+    'Building2': Building2,
+    'GraduationCap': GraduationCap,
+    'BookOpen': BookOpen,
+    'Briefcase': Briefcase,
+    'Shield': Shield,
+    'Target': Target,
+    'TrendingUp': TrendingUp,
+    'Settings': Settings,
+    'FileText': FileText,
+    'Video': Video,
+    'Image': ImageIcon,
+    'Music': Music,
+    'Code': Code,
+    'Globe': Globe,
+    'Heart': Heart,
+    'Star': Star,
+    'Zap': Zap,
+    'Award': Award,
+    'Lightbulb': Lightbulb,
+    'Rocket': Rocket,
+    'Palette': Palette,
+    'ShoppingBag': ShoppingBag,
+    'Car': Car,
+    'Home': Home,
+    'Plane': Plane,
+    'Gamepad2': Gamepad2,
+    'Camera': Camera,
+    'Phone': Phone,
+    'Mail': Mail,
+    'MessageSquare': MessageSquare,
+    'Calendar': Calendar,
+    'Clock': Clock,
+    'Bell': Bell,
+    'Gift': Gift,
+    'Coffee': Coffee,
+    'Utensils': Utensils,
+    'Smile': Smile,
+    'ThumbsUp': ThumbsUp,
+    'FolderOpen': FolderOpen,
+    'Tag': Tag
+  };
+
+  // Check if it's a known icon name
+  const IconComponent = iconMap[iconName];
+  if (IconComponent) {
+    return <IconComponent size={24} style={{ color: color || '#3B82F6' }} />;
+  }
+
+  // If it's an emoji, display it as text
+  if (iconName.length <= 2 && /[\u{1F300}-\u{1F9FF}]/u.test(iconName)) {
+    return <span className="text-2xl leading-none">{iconName}</span>;
+  }
+
+  // Default fallback
+  return <FolderOpen size={24} style={{ color: color || '#3B82F6' }} />;
+};
+
 export function Categories({}: CategoriesProps) {
-  const [categories, setCategories] = useState<Category[]>([
-    {
-      id: '1',
-      name: 'Technical',
-      description: 'Technical courses and content',
-      parentId: null,
-      color: '#3B82F6',
-      icon: '💻',
-      itemCount: 45,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: '2',
-      name: 'Design',
-      description: 'Design-related content',
-      parentId: null,
-      color: '#8B5CF6',
-      icon: '🎨',
-      itemCount: 32,
-      createdAt: '2024-01-14'
-    },
-    {
-      id: '3',
-      name: 'Business',
-      description: 'Business and management content',
-      parentId: null,
-      color: '#10B981',
-      icon: '💼',
-      itemCount: 28,
-      createdAt: '2024-01-13'
-    },
-    {
-      id: '4',
-      name: 'React',
-      description: 'React framework content',
-      parentId: '1',
-      color: '#3B82F6',
-      icon: '⚛️',
-      itemCount: 15,
-      createdAt: '2024-01-12'
-    }
-  ]);
-
-  const [tags, setTags] = useState<Tag[]>([
-    { id: '1', name: 'Beginner', color: '#10B981', usageCount: 124, createdAt: '2024-01-15' },
-    { id: '2', name: 'Advanced', color: '#F59E0B', usageCount: 89, createdAt: '2024-01-14' },
-    { id: '3', name: 'Mandatory', color: '#EF4444', usageCount: 67, createdAt: '2024-01-13' },
-    { id: '4', name: 'Optional', color: '#6B7280', usageCount: 156, createdAt: '2024-01-12' },
-    { id: '5', name: 'Certification', color: '#8B5CF6', usageCount: 45, createdAt: '2024-01-11' }
-  ]);
-
+  const { showSuccess, showError } = useToast();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<'categories' | 'tags'>('categories');
-  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
-  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  
+  // Category modals
+  const [showCreateCategoryModal, setShowCreateCategoryModal] = useState(false);
+  const [showEditCategoryModal, setShowEditCategoryModal] = useState(false);
+  const [showDeleteCategoryModal, setShowDeleteCategoryModal] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
+  
+  // Tag modals
+  const [showCreateTagModal, setShowCreateTagModal] = useState(false);
+  const [showEditTagModal, setShowEditTagModal] = useState(false);
+  const [showDeleteTagModal, setShowDeleteTagModal] = useState(false);
+  const [selectedTag, setSelectedTag] = useState<Tag | null>(null);
+  
+  // Form states
+  const [categoryForm, setCategoryForm] = useState({
+    name: '',
+    description: '',
+    parent_id: '',
+    icon: '',
+    color: '#3B82F6'
+  });
+  
+  const [tagForm, setTagForm] = useState({
+    name: ''
+  });
+  
+  const [submitting, setSubmitting] = useState(false);
 
-  const filteredCategories = categories.filter(cat =>
-    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    cat.description.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  useEffect(() => {
+    fetchCategories();
+    fetchTags();
+  }, []);
 
-  const filteredTags = tags.filter(tag =>
-    tag.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const data = await api.getCategories(1, 100, '');
+      setCategories(data.categories || []);
+    } catch (err: any) {
+      showError(err.message || 'Failed to fetch categories');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchTags = async () => {
+    try {
+      const data = await api.getTags(1, 100, '');
+      setTags(data.tags || []);
+    } catch (err: any) {
+      showError(err.message || 'Failed to fetch tags');
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!categoryForm.name.trim()) {
+      showError('Category name is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await api.createCategory({
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim() || null,
+        parent_id: categoryForm.parent_id || null,
+        icon: categoryForm.icon.trim() || null,
+        color: categoryForm.color || null
+      });
+      showSuccess('Category created successfully!');
+      setShowCreateCategoryModal(false);
+      resetCategoryForm();
+      await fetchCategories();
+    } catch (err: any) {
+      showError(err.message || 'Failed to create category');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditCategory = async () => {
+    if (!selectedCategory || !categoryForm.name.trim()) {
+      showError('Category name is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await api.updateCategory(selectedCategory.id, {
+        name: categoryForm.name.trim(),
+        description: categoryForm.description.trim() || null,
+        parent_id: categoryForm.parent_id || null,
+        icon: categoryForm.icon.trim() || null,
+        color: categoryForm.color || null
+      });
+      showSuccess('Category updated successfully!');
+      setShowEditCategoryModal(false);
+      setSelectedCategory(null);
+      resetCategoryForm();
+      await fetchCategories();
+    } catch (err: any) {
+      showError(err.message || 'Failed to update category');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteCategory = async () => {
+    if (!selectedCategory) return;
+
+    try {
+      setSubmitting(true);
+      await api.deleteCategory(selectedCategory.id);
+      showSuccess('Category deleted successfully!');
+      setShowDeleteCategoryModal(false);
+      setSelectedCategory(null);
+      await fetchCategories();
+    } catch (err: any) {
+      showError(err.message || 'Failed to delete category');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreateTag = async () => {
+    if (!tagForm.name.trim()) {
+      showError('Tag name is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await api.createTag({
+        name: tagForm.name.trim()
+      });
+      showSuccess('Tag created successfully!');
+      setShowCreateTagModal(false);
+      resetTagForm();
+      await fetchTags();
+    } catch (err: any) {
+      showError(err.message || 'Failed to create tag');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditTag = async () => {
+    if (!selectedTag || !tagForm.name.trim()) {
+      showError('Tag name is required');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await api.updateTag(selectedTag.id, {
+        name: tagForm.name.trim()
+      });
+      showSuccess('Tag updated successfully!');
+      setShowEditTagModal(false);
+      setSelectedTag(null);
+      resetTagForm();
+      await fetchTags();
+    } catch (err: any) {
+      showError(err.message || 'Failed to update tag');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTag = async () => {
+    if (!selectedTag) return;
+
+    try {
+      setSubmitting(true);
+      await api.deleteTag(selectedTag.id);
+      showSuccess('Tag deleted successfully!');
+      setShowDeleteTagModal(false);
+      setSelectedTag(null);
+      await fetchTags();
+    } catch (err: any) {
+      showError(err.message || 'Failed to delete tag');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const resetCategoryForm = () => {
+    setCategoryForm({
+      name: '',
+      description: '',
+      parent_id: '',
+      icon: '',
+      color: '#3B82F6'
+    });
+  };
+
+  const resetTagForm = () => {
+    setTagForm({ name: '' });
+  };
+
+  const openEditCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setCategoryForm({
+      name: category.name,
+      description: category.description || '',
+      parent_id: category.parent_id || '',
+      icon: category.icon || '',
+      color: category.color || '#3B82F6'
+    });
+    setShowEditCategoryModal(true);
+  };
+
+  const openEditTag = (tag: Tag) => {
+    setSelectedTag(tag);
+    setTagForm({ name: tag.name });
+    setShowEditTagModal(true);
+  };
+
+  const openDeleteCategory = (category: Category) => {
+    setSelectedCategory(category);
+    setShowDeleteCategoryModal(true);
+  };
+
+  const openDeleteTag = (tag: Tag) => {
+    setSelectedTag(tag);
+    setShowDeleteTagModal(true);
+  };
 
   const getParentCategory = (parentId: string | null) => {
     if (!parentId) return null;
     return categories.find(cat => cat.id === parentId);
   };
 
+  const getTotalItemCount = (category: Category) => {
+    return (category.course_count || 0) + (category.content_count || 0) + (category.learning_path_count || 0);
+  };
+
+  // Organize categories hierarchically
+  const organizeCategories = (cats: Category[]) => {
+    const parentCategories = cats.filter(c => !c.parent_id);
+    const subcategories = cats.filter(c => c.parent_id);
+    
+    // Group subcategories by parent_id
+    const subcategoriesByParent: { [key: string]: Category[] } = {};
+    subcategories.forEach(sub => {
+      if (!subcategoriesByParent[sub.parent_id!]) {
+        subcategoriesByParent[sub.parent_id!] = [];
+      }
+      subcategoriesByParent[sub.parent_id!].push(sub);
+    });
+    
+    // Build hierarchical structure
+    const organized: Array<{ category: Category; subcategories: Category[] }> = [];
+    
+    parentCategories.forEach(parent => {
+      organized.push({
+        category: parent,
+        subcategories: subcategoriesByParent[parent.id] || []
+      });
+    });
+    
+    // Add orphaned subcategories (parent doesn't exist)
+    subcategories.forEach(sub => {
+      const parentExists = parentCategories.find(p => p.id === sub.parent_id);
+      if (!parentExists) {
+        organized.push({
+          category: sub,
+          subcategories: []
+        });
+      }
+    });
+    
+    return organized;
+  };
+
+  const getTotalUsageCount = (tag: Tag) => {
+    return (tag.course_count || 0) + (tag.content_count || 0);
+  };
+
+  const filteredCategories = categories.filter(cat =>
+    cat.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (cat.description && cat.description.toLowerCase().includes(searchQuery.toLowerCase()))
+  );
+
+  const filteredTags = tags.filter(tag =>
+    tag.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const parentCategories = categories.filter(cat => !cat.parent_id);
+
+  const isModalOpen = showCreateCategoryModal || showEditCategoryModal || showDeleteCategoryModal ||
+                     showCreateTagModal || showEditTagModal || showDeleteTagModal;
+
+  if (loading) {
+    return (
+      <div className="flex h-screen bg-gray-50">
+        <AdminSidebar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <Loader2 size={48} className="text-purple-600 animate-spin mx-auto mb-4" />
+            <p className="text-gray-600">Loading categories and tags...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <AdminSidebar />
+      <div className={`transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
+        <AdminSidebar />
+      </div>
       
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+      <div className={`flex-1 flex flex-col overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-6 py-4">
           <div className="flex items-center justify-between">
@@ -119,7 +498,7 @@ export function Categories({}: CategoriesProps) {
             </div>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => activeTab === 'categories' ? setIsCreatingCategory(true) : setIsCreatingTag(true)}
+                onClick={() => activeTab === 'categories' ? setShowCreateCategoryModal(true) : setShowCreateTagModal(true)}
                 className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 transition-all shadow-md hover:shadow-lg"
               >
                 <Plus size={16} />
@@ -173,79 +552,166 @@ export function Categories({}: CategoriesProps) {
         <main className="flex-1 overflow-y-auto p-6">
           {activeTab === 'categories' ? (
             <div className="space-y-4">
-              {filteredCategories.map((category) => {
-                const parent = getParentCategory(category.parentId);
+              {organizeCategories(filteredCategories).map(({ category, subcategories }) => {
+                const itemCount = getTotalItemCount(category);
+                const isParent = !category.parent_id;
+                
                 return (
-                  <div
-                    key={category.id}
-                    className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div
-                          className="w-12 h-12 rounded-lg flex items-center justify-center text-2xl"
-                          style={{ backgroundColor: category.color + '20' }}
-                        >
-                          {category.icon}
-                        </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-2">
-                            <h3 className="font-semibold text-gray-900">{category.name}</h3>
-                            {parent && (
-                              <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
-                                Subcategory of {parent.name}
-                              </span>
+                  <div key={category.id} className="space-y-2">
+                    {/* Parent Category */}
+                    <div
+                      className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-start gap-4 flex-1">
+                          <div
+                            className="w-12 h-12 rounded-lg flex items-center justify-center"
+                            style={{ backgroundColor: (category.color || '#3B82F6') + '20' }}
+                          >
+                            {getCategoryIcon(category.icon, category.color)}
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <h3 className="text-sm font-semibold text-gray-900 break-words">{category.name}</h3>
+                              {!isParent && (
+                                <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-xs">
+                                  Subcategory
+                                </span>
+                              )}
+                            </div>
+                            {category.description && (
+                              <p className="text-sm text-gray-600 mb-3 break-words">{category.description}</p>
                             )}
-                          </div>
-                          <p className="text-sm text-gray-600 mb-3">{category.description}</p>
-                          <div className="flex items-center gap-4 text-sm text-gray-500">
-                            <span>{category.itemCount} items</span>
-                            <span>•</span>
-                            <span>Created {new Date(category.createdAt).toLocaleDateString()}</span>
+                            <div className="flex items-center gap-4 text-xs text-gray-500">
+                              <span>{itemCount} items</span>
+                              {subcategories.length > 0 && (
+                                <>
+                                  <span>•</span>
+                                  <span>{subcategories.length} subcategor{subcategories.length === 1 ? 'y' : 'ies'}</span>
+                                </>
+                              )}
+                              <span>•</span>
+                              <span>Created {new Date(category.created_at).toLocaleDateString()}</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">
-                          <Edit size={16} />
-                        </button>
-                        <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
-                          <Trash2 size={16} />
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => openEditCategory(category)}
+                            className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                            title="Edit category"
+                          >
+                            <Edit size={16} />
+                          </button>
+                          <button
+                            onClick={() => openDeleteCategory(category)}
+                            className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                            title="Delete category"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </div>
                     </div>
+                    
+                    {/* Subcategories */}
+                    {subcategories.length > 0 && (
+                      <div className="ml-8 space-y-2 border-l-2 border-gray-200 pl-6">
+                        {subcategories.map((subcategory) => {
+                          const subItemCount = getTotalItemCount(subcategory);
+                          return (
+                            <div
+                              key={subcategory.id}
+                              className="bg-white rounded-lg border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-start gap-3 flex-1">
+                                  <div
+                                    className="w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0"
+                                    style={{ backgroundColor: (subcategory.color || category.color || '#3B82F6') + '20' }}
+                                  >
+                                    {getCategoryIcon(subcategory.icon, subcategory.color || category.color)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <h4 className="text-sm font-medium text-gray-900 break-words">{subcategory.name}</h4>
+                                    </div>
+                                    {subcategory.description && (
+                                      <p className="text-xs text-gray-600 mb-2 break-words line-clamp-2">{subcategory.description}</p>
+                                    )}
+                                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                                      <span>{subItemCount} items</span>
+                                      <span>•</span>
+                                      <span>Created {new Date(subcategory.created_at).toLocaleDateString()}</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => openEditCategory(subcategory)}
+                                    className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                    title="Edit subcategory"
+                                  >
+                                    <Edit size={16} />
+                                  </button>
+                                  <button
+                                    onClick={() => openDeleteCategory(subcategory)}
+                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                    title="Delete subcategory"
+                                  >
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 );
               })}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredTags.map((tag) => (
-                <div
-                  key={tag.id}
-                  className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div
-                      className="px-3 py-1.5 rounded-lg text-sm font-medium"
-                      style={{ backgroundColor: tag.color + '20', color: tag.color }}
-                    >
-                      {tag.name}
+              {filteredTags.map((tag) => {
+                const tagColor = generateColor(tag.name);
+                const usageCount = getTotalUsageCount(tag);
+                return (
+                  <div
+                    key={tag.id}
+                    className="bg-white rounded-xl border border-gray-200 p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div
+                        className="px-3 py-1.5 rounded-lg text-sm font-medium"
+                        style={{ backgroundColor: tagColor + '20', color: tagColor }}
+                      >
+                        {tag.name}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => openEditTag(tag)}
+                          className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                          title="Edit tag"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => openDeleteTag(tag)}
+                          className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete tag"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button className="p-1 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">
-                        <Edit size={14} />
-                      </button>
-                      <button className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors">
-                        <Trash2 size={14} />
-                      </button>
+                    <div className="text-xs text-gray-500">
+                      Used in {usageCount} items
                     </div>
                   </div>
-                  <div className="text-sm text-gray-500">
-                    Used in {tag.usageCount} items
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
 
@@ -256,13 +722,17 @@ export function Categories({}: CategoriesProps) {
                 <FolderOpen size={40} className="text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No categories found</h3>
-              <p className="text-gray-500 mb-6">Create your first category to organize content</p>
-              <button
-                onClick={() => setIsCreatingCategory(true)}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
-              >
-                Create Category
-              </button>
+              <p className="text-gray-500 mb-6">
+                {searchQuery ? 'No categories match your search. Try a different query.' : 'Create your first category to organize content'}
+              </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => setShowCreateCategoryModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  Create Category
+                </button>
+              )}
             </div>
           )}
 
@@ -272,18 +742,495 @@ export function Categories({}: CategoriesProps) {
                 <Tag size={40} className="text-gray-400" />
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-2">No tags found</h3>
-              <p className="text-gray-500 mb-6">Create your first tag to label content</p>
-              <button
-                onClick={() => setIsCreatingTag(true)}
-                className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
-              >
-                Create Tag
-              </button>
+              <p className="text-gray-500 mb-6">
+                {searchQuery ? 'No tags match your search. Try a different query.' : 'Create your first tag to label content'}
+              </p>
+              {!searchQuery && (
+                <button
+                  onClick={() => setShowCreateTagModal(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
+                >
+                  Create Tag
+                </button>
+              )}
             </div>
           )}
         </main>
       </div>
+
+      {/* Create Category Modal */}
+      {showCreateCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Create Category</h2>
+              <button
+                onClick={() => {
+                  setShowCreateCategoryModal(false);
+                  resetCategoryForm();
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={submitting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Category name"
+                  disabled={submitting}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows={3}
+                  placeholder="Category description"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
+                <select
+                  value={categoryForm.parent_id}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, parent_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={submitting}
+                >
+                  <option value="">None (Top-level category)</option>
+                  {parentCategories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
+                <input
+                  type="text"
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="📁"
+                  maxLength={2}
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    className="w-16 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                    disabled={submitting}
+                  />
+                  <input
+                    type="text"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="#3B82F6"
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowCreateCategoryModal(false);
+                    resetCategoryForm();
+                  }}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateCategory}
+                  disabled={submitting || !categoryForm.name.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Create
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Category Modal */}
+      {showEditCategoryModal && selectedCategory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Edit Category</h2>
+              <button
+                onClick={() => {
+                  setShowEditCategoryModal(false);
+                  setSelectedCategory(null);
+                  resetCategoryForm();
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={submitting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Category name"
+                  disabled={submitting}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <textarea
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows={3}
+                  placeholder="Category description"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Parent Category</label>
+                <select
+                  value={categoryForm.parent_id}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, parent_id: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  disabled={submitting}
+                >
+                  <option value="">None (Top-level category)</option>
+                  {parentCategories.filter(cat => cat.id !== selectedCategory.id).map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Icon (Emoji)</label>
+                <input
+                  type="text"
+                  value={categoryForm.icon}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, icon: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="📁"
+                  maxLength={2}
+                  disabled={submitting}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Color</label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    className="w-16 h-10 border border-gray-300 rounded-lg cursor-pointer"
+                    disabled={submitting}
+                  />
+                  <input
+                    type="text"
+                    value={categoryForm.color}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    placeholder="#3B82F6"
+                    disabled={submitting}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowEditCategoryModal(false);
+                    setSelectedCategory(null);
+                    resetCategoryForm();
+                  }}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditCategory}
+                  disabled={submitting || !categoryForm.name.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Category Modal */}
+      {showDeleteCategoryModal && selectedCategory && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Category</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete <span className="font-semibold">"{selectedCategory.name}"</span>? 
+                {getTotalItemCount(selectedCategory) > 0 && (
+                  <span className="block mt-2 text-sm text-red-600">
+                    This category is used by {getTotalItemCount(selectedCategory)} item(s). You cannot delete it until all items are reassigned.
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteCategoryModal(false);
+                  setSelectedCategory(null);
+                }}
+                disabled={submitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteCategory}
+                disabled={submitting || getTotalItemCount(selectedCategory) > 0}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Tag Modal */}
+      {showCreateTagModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Create Tag</h2>
+              <button
+                onClick={() => {
+                  setShowCreateTagModal(false);
+                  resetTagForm();
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={submitting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={tagForm.name}
+                  onChange={(e) => setTagForm({ name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Tag name"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowCreateTagModal(false);
+                    resetTagForm();
+                  }}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleCreateTag}
+                  disabled={submitting || !tagForm.name.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Create
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Tag Modal */}
+      {showEditTagModal && selectedTag && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-gray-900">Edit Tag</h2>
+              <button
+                onClick={() => {
+                  setShowEditTagModal(false);
+                  setSelectedTag(null);
+                  resetTagForm();
+                }}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                disabled={submitting}
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={tagForm.name}
+                  onChange={(e) => setTagForm({ name: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  placeholder="Tag name"
+                  disabled={submitting}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+                <button
+                  onClick={() => {
+                    setShowEditTagModal(false);
+                    setSelectedTag(null);
+                    resetTagForm();
+                  }}
+                  disabled={submitting}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleEditTag}
+                  disabled={submitting || !tagForm.name.trim()}
+                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 size={16} className="animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    <>
+                      <Save size={16} />
+                      Save Changes
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Tag Modal */}
+      {showDeleteTagModal && selectedTag && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div className="p-6 border-b border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900">Delete Tag</h3>
+            </div>
+            <div className="p-6">
+              <p className="text-gray-600 mb-4">
+                Are you sure you want to delete <span className="font-semibold">"{selectedTag.name}"</span>?
+                {getTotalUsageCount(selectedTag) > 0 && (
+                  <span className="block mt-2 text-sm text-red-600">
+                    This tag is used by {getTotalUsageCount(selectedTag)} item(s). You cannot delete it until it's removed from all items.
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteTagModal(false);
+                  setSelectedTag(null);
+                }}
+                disabled={submitting}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteTag}
+                disabled={submitting || getTotalUsageCount(selectedTag) > 0}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {submitting ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

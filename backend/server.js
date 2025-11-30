@@ -16,6 +16,8 @@ import roleRoutes from './routes/role.routes.js';
 import contentRoutes from './routes/content.routes.js';
 import courseRoutes from './routes/course.routes.js';
 import learningPathRoutes from './routes/learningPath.routes.js';
+import categoryRoutes from './routes/category.routes.js';
+import tagRoutes from './routes/tag.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -65,10 +67,12 @@ app.get('/api', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       roles: '/api/roles',
-      content: '/api/content',
-      courses: '/api/courses',
-      learningPaths: '/api/learning-paths'
-    }
+          content: '/api/content',
+          courses: '/api/courses',
+          learningPaths: '/api/learning-paths',
+          categories: '/api/categories',
+          tags: '/api/tags'
+        }
   });
 });
 
@@ -79,6 +83,8 @@ app.use('/api/roles', roleRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/learning-paths', learningPathRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/tags', tagRoutes);
 
 // 404 handler
 app.use(notFound);
