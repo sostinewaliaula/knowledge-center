@@ -462,6 +462,53 @@ export const api = {
       return this.request(`/tags/${id}`, {
         method: 'DELETE',
       });
+    },
+
+    // Template API methods
+    async getTemplates(page = 1, limit = 20, search = '', type = 'all', isPublic = null) {
+      const params = new URLSearchParams();
+      if (page) params.append('page', page);
+      if (limit) params.append('limit', limit);
+      if (search) params.append('search', search);
+      if (type && type !== 'all') params.append('type', type);
+      if (isPublic !== null) params.append('isPublic', isPublic);
+      const queryString = params.toString();
+      return this.request(`/templates${queryString ? `?${queryString}` : ''}`);
+    },
+
+    async getTemplate(id) {
+      const response = await this.request(`/templates/${id}`);
+      return response.template;
+    },
+
+    async createTemplate(templateData) {
+      const response = await this.request('/templates', {
+        method: 'POST',
+        body: JSON.stringify(templateData),
+      });
+      return response.template;
+    },
+
+    async updateTemplate(id, templateData) {
+      const response = await this.request(`/templates/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(templateData),
+      });
+      return response.template;
+    },
+
+    async deleteTemplate(id) {
+      return this.request(`/templates/${id}`, {
+        method: 'DELETE',
+      });
+    },
+
+    async useTemplate(id, title = null, description = null) {
+      const response = await this.request(`/templates/${id}/use`, {
+        method: 'POST',
+        body: JSON.stringify({ title, description }),
+      });
+      return response;
     }
 };
 
