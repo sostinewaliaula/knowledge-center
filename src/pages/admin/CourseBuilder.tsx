@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   Plus, 
   X, 
@@ -15,7 +15,11 @@ import {
   Clock,
   Users,
   AlertCircle,
-  Upload
+  Upload,
+  Search,
+  Filter,
+  XCircle,
+  ArrowUpDown
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentLibrarySelector } from '../../components/ContentLibrarySelector';
@@ -53,6 +57,8 @@ interface Course {
   difficulty_level: 'beginner' | 'intermediate' | 'advanced';
   duration_minutes: number;
   modules: Module[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 interface CourseBuilderProps {}
@@ -82,17 +88,43 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [originalCourse, setOriginalCourse] = useState<Course | null>(null);
   const [localModules, setLocalModules] = useState<Module[]>([]);
   const [uploadingFile, setUploadingFile] = useState<{ lessonId: string } | null>(null);
+  const [searchInput, setSearchInput] = useState(''); // What user types
+  const [searchQuery, setSearchQuery] = useState(''); // Active search query (only set when Search is clicked)
+  const [statusFilter, setStatusFilter] = useState<'all' | 'draft' | 'published' | 'archived'>('all');
+  const [difficultyFilter, setDifficultyFilter] = useState<'all' | 'beginner' | 'intermediate' | 'advanced'>('all');
+  const [sortBy, setSortBy] = useState<'title-asc' | 'title-desc' | 'date-newest' | 'date-oldest' | 'modified-newest' | 'modified-oldest' | 'status' | 'modules-asc' | 'modules-desc' | 'difficulty'>('title-asc');
 
   useEffect(() => {
     fetchCourses();
-  }, []);
+  }, [statusFilter, difficultyFilter]);
+
+  // Sort courses when sortBy changes (without re-fetching)
+  useEffect(() => {
+    if (courses.length > 0) {
+      const sorted = sortCourses([...courses], sortBy);
+      // Check if order actually changed to prevent unnecessary updates
+      const currentIds = courses.map(c => c.id).join(',');
+      const sortedIds = sorted.map(c => c.id).join(',');
+      if (currentIds !== sortedIds) {
+        setCourses(sorted);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sortBy]);
 
   const fetchCourses = async () => {
     try {
       setLoading(true);
-      const data = await api.getCourses(1, 100);
+      const data = await api.getCourses(1, 100, searchQuery, statusFilter !== 'all' ? statusFilter : 'all');
+      
+      // Filter by difficulty if needed (since API doesn't support difficulty filter yet, we'll filter client-side)
+      let filteredCourses = data.courses || [];
+      if (difficultyFilter !== 'all') {
+        filteredCourses = filteredCourses.filter((course: any) => course.difficulty_level === difficultyFilter);
+      }
+      
       const coursesWithModules = await Promise.all(
-        (data.courses || []).map(async (course: any) => {
+        filteredCourses.map(async (course: any) => {
           try {
             const fullCourse = await api.getCourse(course.id);
             return fullCourse;
@@ -101,15 +133,88 @@ export function CourseBuilder({}: CourseBuilderProps) {
           }
         })
       );
-      setCourses(coursesWithModules);
-      if (coursesWithModules.length > 0 && !selectedCourse) {
+      
+      // Sort courses
+      const sortedCourses = sortCourses(coursesWithModules, sortBy);
+      setCourses(sortedCourses);
+      
+      // If current selected course is not in filtered results, clear selection
+      if (selectedCourse && !sortedCourses.find((c: any) => c.id === selectedCourse.id)) {
+        setSelectedCourse(null);
+        setLocalModules([]);
+      }
+      
+      if (sortedCourses.length > 0 && !selectedCourse) {
         // Fetch full course details with modules for the first course
-        await fetchCourse(coursesWithModules[0].id);
+        await fetchCourse(sortedCourses[0].id);
       }
     } catch (err: any) {
       showError(err.message || 'Failed to fetch courses');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const sortCourses = (courses: Course[], sortOption: typeof sortBy): Course[] => {
+    const sorted = [...courses];
+    
+    switch (sortOption) {
+      case 'title-asc':
+        return sorted.sort((a, b) => a.title.localeCompare(b.title));
+      case 'title-desc':
+        return sorted.sort((a, b) => b.title.localeCompare(a.title));
+      case 'date-newest':
+        return sorted.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // Put items without dates at the end
+          if (dateB === 0) return -1;
+          return dateB - dateA;
+        });
+      case 'date-oldest':
+        return sorted.sort((a, b) => {
+          const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // Put items without dates at the end
+          if (dateB === 0) return -1;
+          return dateA - dateB;
+        });
+      case 'modified-newest':
+        return sorted.sort((a, b) => {
+          const dateA = a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const dateB = b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // Put items without dates at the end
+          if (dateB === 0) return -1;
+          return dateB - dateA;
+        });
+      case 'modified-oldest':
+        return sorted.sort((a, b) => {
+          const dateA = a.updated_at ? new Date(a.updated_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+          const dateB = b.updated_at ? new Date(b.updated_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+          if (dateA === 0 && dateB === 0) return 0;
+          if (dateA === 0) return 1; // Put items without dates at the end
+          if (dateB === 0) return -1;
+          return dateA - dateB;
+        });
+      case 'status':
+        return sorted.sort((a, b) => {
+          const statusOrder = { 'published': 1, 'draft': 2, 'archived': 3 };
+          return (statusOrder[a.status] || 99) - (statusOrder[b.status] || 99);
+        });
+      case 'modules-asc':
+        return sorted.sort((a, b) => (a.modules?.length || 0) - (b.modules?.length || 0));
+      case 'modules-desc':
+        return sorted.sort((a, b) => (b.modules?.length || 0) - (a.modules?.length || 0));
+      case 'difficulty':
+        return sorted.sort((a, b) => {
+          const difficultyOrder = { 'beginner': 1, 'intermediate': 2, 'advanced': 3 };
+          return (difficultyOrder[a.difficulty_level] || 99) - (difficultyOrder[b.difficulty_level] || 99);
+        });
+      default:
+        return sorted;
     }
   };
 
@@ -804,6 +909,116 @@ export function CourseBuilder({}: CourseBuilderProps) {
           <aside className="w-80 bg-white border-r border-gray-200 overflow-y-auto">
             <div className="p-4">
               <h2 className="text-sm font-semibold text-gray-700 mb-3">My Courses</h2>
+              
+              {/* Search Bar */}
+              <div className="mb-3">
+                <div className="flex gap-2">
+                  <div className="relative flex-1">
+                    <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      value={searchInput}
+                      onChange={(e) => setSearchInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setSearchQuery(searchInput);
+                          fetchCourses();
+                        }
+                      }}
+                      placeholder="Search courses..."
+                      className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSearchQuery(searchInput);
+                      fetchCourses();
+                    }}
+                    className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-2 whitespace-nowrap"
+                  >
+                    <Search size={16} />
+                    Search
+                  </button>
+                  {searchQuery && (
+                    <button
+                      onClick={() => {
+                        setSearchInput('');
+                        setSearchQuery('');
+                        fetchCourses();
+                      }}
+                      className="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition-colors"
+                      title="Clear search"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filters */}
+              <div className="space-y-2 mb-3">
+                <div className="flex items-center gap-2 text-xs text-gray-600 mb-1">
+                  <Filter size={14} />
+                  <span>Filters</span>
+                </div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
+                >
+                  <option value="all">All Status</option>
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+                <select
+                  value={difficultyFilter}
+                  onChange={(e) => setDifficultyFilter(e.target.value as typeof difficultyFilter)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
+                >
+                  <option value="all">All Difficulty</option>
+                  <option value="beginner">Beginner</option>
+                  <option value="intermediate">Intermediate</option>
+                  <option value="advanced">Advanced</option>
+                </select>
+                {(statusFilter !== 'all' || difficultyFilter !== 'all') && (
+                  <button
+                    onClick={() => {
+                      setStatusFilter('all');
+                      setDifficultyFilter('all');
+                      fetchCourses();
+                    }}
+                    className="w-full px-2 py-1.5 text-xs text-gray-600 hover:text-gray-800 hover:bg-gray-50 rounded transition-colors flex items-center justify-center gap-1"
+                  >
+                    <X size={12} />
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+
+              {/* Sort */}
+              <div className="mb-3">
+                <div className="flex items-center gap-2 text-xs text-gray-600 mb-1">
+                  <ArrowUpDown size={14} />
+                  <span>Sort By</span>
+                </div>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="w-full px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700"
+                >
+                  <option value="title-asc">Title (A-Z)</option>
+                  <option value="title-desc">Title (Z-A)</option>
+                  <option value="date-newest">Date Created (Newest)</option>
+                  <option value="date-oldest">Date Created (Oldest)</option>
+                  <option value="modified-newest">Last Modified (Newest)</option>
+                  <option value="modified-oldest">Last Modified (Oldest)</option>
+                  <option value="status">Status</option>
+                  <option value="modules-desc">Modules (Most)</option>
+                  <option value="modules-asc">Modules (Least)</option>
+                  <option value="difficulty">Difficulty</option>
+                </select>
+              </div>
               {isCreatingCourse ? (
                 <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
                   <input
@@ -875,7 +1090,18 @@ export function CourseBuilder({}: CourseBuilderProps) {
                 ))}
                 {courses.length === 0 && !isCreatingCourse && (
                   <div className="text-center py-8 text-gray-500 text-sm">
-                    No courses yet. Create your first course!
+                    {searchQuery || statusFilter !== 'all' || difficultyFilter !== 'all' 
+                      ? (() => {
+                          const parts = [];
+                          if (searchQuery) parts.push(`search "${searchQuery}"`);
+                          if (statusFilter !== 'all') parts.push(`status filter`);
+                          if (difficultyFilter !== 'all') parts.push(`difficulty filter`);
+                          const filterText = parts.length > 1 
+                            ? parts.slice(0, -1).join(', ') + ' and ' + parts[parts.length - 1]
+                            : parts[0];
+                          return `No courses match your ${filterText}. Try adjusting your search or filters, or clear them to see all courses.`;
+                        })()
+                      : 'No courses yet. Create your first course!'}
                   </div>
                 )}
               </div>
