@@ -198,5 +198,109 @@ export const api = {
     // For downloading, use the download endpoint
     return `${API_BASE_URL}/content/${id}/download?token=${token}`;
   },
+
+  // ============================================
+  // COURSE API METHODS
+  // ============================================
+
+  async getCourses(page = 1, limit = 20, search = '', status = 'all', categoryId = null) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (status && status !== 'all') params.append('status', status);
+    if (categoryId) params.append('category_id', categoryId);
+    const queryString = params.toString();
+    return this.request(`/courses${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async getCourse(id) {
+    const response = await this.request(`/courses/${id}`);
+    return response.course;
+  },
+
+  async createCourse(courseData) {
+    const response = await this.request('/courses', {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+    return response.course;
+  },
+
+  async updateCourse(id, courseData) {
+    const response = await this.request(`/courses/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(courseData),
+    });
+    return response.course;
+  },
+
+  async deleteCourse(id) {
+    return this.request(`/courses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Module methods
+  async createModule(courseId, moduleData) {
+    const response = await this.request(`/courses/${courseId}/modules`, {
+      method: 'POST',
+      body: JSON.stringify(moduleData),
+    });
+    return response.module;
+  },
+
+  async updateModule(moduleId, moduleData) {
+    const response = await this.request(`/courses/modules/${moduleId}`, {
+      method: 'PUT',
+      body: JSON.stringify(moduleData),
+    });
+    return response.module;
+  },
+
+  async deleteModule(moduleId) {
+    return this.request(`/courses/modules/${moduleId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async reorderModules(courseId, moduleOrders) {
+    const response = await this.request(`/courses/${courseId}/modules/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ moduleOrders }),
+    });
+    return response.modules;
+  },
+
+  // Lesson methods
+  async createLesson(moduleId, lessonData) {
+    const response = await this.request(`/courses/modules/${moduleId}/lessons`, {
+      method: 'POST',
+      body: JSON.stringify(lessonData),
+    });
+    return response.lesson;
+  },
+
+  async updateLesson(lessonId, lessonData) {
+    const response = await this.request(`/courses/lessons/${lessonId}`, {
+      method: 'PUT',
+      body: JSON.stringify(lessonData),
+    });
+    return response.lesson;
+  },
+
+  async deleteLesson(lessonId) {
+    return this.request(`/courses/lessons/${lessonId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async reorderLessons(moduleId, lessonOrders) {
+    const response = await this.request(`/courses/modules/${moduleId}/lessons/reorder`, {
+      method: 'POST',
+      body: JSON.stringify({ lessonOrders }),
+    });
+    return response.lessons;
+  }
 };
 
