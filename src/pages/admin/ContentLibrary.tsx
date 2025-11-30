@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentUploadModal } from '../../components/ContentUploadModal';
+import { EditContentModal } from '../../components/EditContentModal';
 import { VideoPlayerModal } from '../../components/VideoPlayerModal';
 import { DocumentViewerModal } from '../../components/DocumentViewerModal';
 import { api } from '../../utils/api';
@@ -62,6 +63,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
   const [totalPages, setTotalPages] = useState(1);
   const [totalContent, setTotalContent] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showVideoPlayer, setShowVideoPlayer] = useState(false);
   const [showDocumentViewer, setShowDocumentViewer] = useState(false);
@@ -138,6 +140,58 @@ export function ContentLibrary({}: ContentLibraryProps) {
       fetchContents();
     } catch (err: any) {
       showError(err.message || 'Failed to delete content');
+    }
+  };
+
+  const handleEdit = async (id: string, title: string, description: string, newFile?: File, newUrl?: string) => {
+    setUploading(true);
+    try {
+      // Update metadata (title, description)
+      await api.updateContent(id, {
+        title: title,
+        description: description || null
+      });
+
+      // For external content, if URL changed, we need to re-add it (delete old and create new)
+      if (newUrl && selectedContent && selectedContent.source_type && selectedContent.source_type !== 'local') {
+        const oldUrl = selectedContent.source_url;
+        if (newUrl !== oldUrl) {
+          // Delete the old content and re-add with new URL
+          await api.deleteContent(id);
+          await api.addContentFromUrl(newUrl, title, description, selectedContent.category_id || null, selectedContent.is_public);
+          showSuccess('Content URL updated successfully!');
+          fetchContents();
+          setShowEditModal(false);
+          setSelectedContent(null);
+          setUploading(false);
+          return;
+        }
+      }
+
+      // For local files, if a new file is provided, delete old and upload new
+      if (newFile && selectedContent && (!selectedContent.source_type || selectedContent.source_type === 'local')) {
+        // Delete the old content first
+        await api.deleteContent(id);
+        // Upload the new file with updated metadata
+        await api.uploadContent(newFile, title, description || null, selectedContent.category_id || null, selectedContent.is_public);
+        showSuccess('Content file replaced and metadata updated successfully!');
+        fetchContents();
+        setShowEditModal(false);
+        setSelectedContent(null);
+        setUploading(false);
+        return;
+      }
+
+      showSuccess('Content updated successfully!');
+
+      fetchContents();
+      setShowEditModal(false);
+      setSelectedContent(null);
+    } catch (err: any) {
+      showError(err.message || 'Failed to update content');
+      throw err;
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -221,7 +275,7 @@ export function ContentLibrary({}: ContentLibraryProps) {
 
   const filteredContent = contentItems;
 
-  const isModalOpen = showDeleteModal || showUploadModal || showVideoPlayer || showDocumentViewer;
+  const isModalOpen = showDeleteModal || showEditModal || showUploadModal || showVideoPlayer || showDocumentViewer;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -343,13 +397,24 @@ export function ContentLibrary({}: ContentLibraryProps) {
                           </div>
                         )}
                       </div>
-                      <div className="relative">
+                      <div className="relative flex items-center gap-1">
+                        <button 
+                          onClick={() => {
+                            setSelectedContent(item);
+                            setShowEditModal(true);
+                          }}
+                          className="p-1 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Edit content"
+                        >
+                          <Edit size={16} />
+                        </button>
                         <button 
                           onClick={() => {
                             setSelectedContent(item);
                             setShowDeleteModal(true);
                           }}
                           className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete content"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -434,6 +499,20 @@ export function ContentLibrary({}: ContentLibraryProps) {
           )}
         </main>
       </div>
+
+      {/* Edit Modal */}
+      {showEditModal && selectedContent && (
+        <EditContentModal
+          isOpen={showEditModal}
+          onClose={() => {
+            setShowEditModal(false);
+            setSelectedContent(null);
+          }}
+          content={selectedContent}
+          onSave={handleEdit}
+          updating={uploading}
+        />
+      )}
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && selectedContent && (
