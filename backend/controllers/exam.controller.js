@@ -119,6 +119,32 @@ export const deleteExam = async (req, res, next) => {
 };
 
 /**
+ * Get exams by course ID
+ */
+export const getExamsByCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const exams = await Exam.findByCourseId(courseId);
+    res.json({ success: true, exams });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get exams by lesson ID
+ */
+export const getExamsByLesson = async (req, res, next) => {
+  try {
+    const { lessonId } = req.params;
+    const exams = await Exam.findByLessonId(lessonId);
+    res.json({ success: true, exams });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Question Controllers
  */
 

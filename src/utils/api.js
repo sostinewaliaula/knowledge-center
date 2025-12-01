@@ -693,6 +693,16 @@ export const api = {
     return response.exam;
   },
 
+  async getExamsByCourse(courseId) {
+    const response = await this.request(`/exams/course/${courseId}`);
+    return response.exams || [];
+  },
+
+  async getExamsByLesson(lessonId) {
+    const response = await this.request(`/exams/lesson/${lessonId}`);
+    return response.exams || [];
+  },
+
   async createExam(examData) {
     const response = await this.request('/exams', {
       method: 'POST',

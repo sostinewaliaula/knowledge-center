@@ -63,6 +63,7 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentLibrarySelector } from '../../components/ContentLibrarySelector';
 import { AssignmentSelector } from '../../components/AssignmentSelector';
 import { AssessmentSelector } from '../../components/AssessmentSelector';
+import { ExamSelector } from '../../components/ExamSelector';
 import { api } from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -70,7 +71,7 @@ interface Lesson {
   id: string;
   title: string;
   description: string | null;
-  content_type: 'video' | 'text' | 'document' | 'quiz' | 'assignment' | 'assessment' | 'live_session';
+  content_type: 'video' | 'text' | 'document' | 'quiz' | 'assignment' | 'assessment' | 'exam' | 'live_session';
   content_url: string | null;
   content_text: string | null;
   duration_minutes: number;
@@ -120,6 +121,8 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [selectedLessonForAssignment, setSelectedLessonForAssignment] = useState<string | null>(null);
   const [showAssessmentSelector, setShowAssessmentSelector] = useState(false);
   const [selectedLessonForAssessment, setSelectedLessonForAssessment] = useState<string | null>(null);
+  const [showExamSelector, setShowExamSelector] = useState(false);
+  const [selectedLessonForExam, setSelectedLessonForExam] = useState<string | null>(null);
   const [draggedModule, setDraggedModule] = useState<string | null>(null);
   const [draggedLesson, setDraggedLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
   const [showDeleteCourseModal, setShowDeleteCourseModal] = useState(false);
@@ -823,6 +826,8 @@ export function CourseBuilder({}: CourseBuilderProps) {
         return <FileText size={16} className="text-orange-600" />;
       case 'assessment':
         return <FileQuestion size={16} className="text-indigo-600" />;
+      case 'exam':
+        return <FileQuestion size={16} className="text-red-600" />;
       default:
         return <FileText size={16} className="text-gray-600" />;
     }
@@ -869,6 +874,20 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const openAssessmentSelector = (lessonId: string) => {
     setSelectedLessonForAssessment(lessonId);
     setShowAssessmentSelector(true);
+  };
+
+  const handleExamSelect = (exam: any) => {
+    if (!selectedLessonForExam || !selectedCourse) return;
+
+    const examUrl = `exam:${exam.id}`;
+    updateLesson(selectedLessonForExam, { content_url: examUrl });
+    setShowExamSelector(false);
+    setSelectedLessonForExam(null);
+  };
+
+  const openExamSelector = (lessonId: string) => {
+    setSelectedLessonForExam(lessonId);
+    setShowExamSelector(true);
   };
 
   const handleFileUpload = async (lessonId: string, file: File) => {
@@ -1832,6 +1851,7 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                               <option value="quiz">Quiz</option>
                                               <option value="assignment">Assignment</option>
                                               <option value="assessment">Assessment</option>
+                                              <option value="exam">Exam</option>
                                               <option value="live_session">Live Session</option>
                                             </select>
                                             {(lesson.content_type === 'text') && (
@@ -1910,6 +1930,41 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                                 </div>
                                                 <p className="text-xs text-gray-500">
                                                   Link an existing assessment (quiz/exam) to this lesson
+                                                </p>
+                                              </div>
+                                            )}
+                                            {lesson.content_type === 'exam' && (
+                                              <div className="space-y-2">
+                                                <div className="flex gap-2">
+                                                  <input
+                                                    type="text"
+                                                    value={lesson.content_url?.startsWith('exam:')
+                                                      ? `Exam: ${lesson.content_url.replace('exam:', '')}`
+                                                      : ''}
+                                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
+                                                    placeholder="No exam selected"
+                                                    readOnly
+                                                  />
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => openExamSelector(lesson.id)}
+                                                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200 transition-colors whitespace-nowrap"
+                                                  >
+                                                    Select Exam
+                                                  </button>
+                                                  {lesson.content_url?.startsWith('exam:') && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => updateLesson(lesson.id, { content_url: null })}
+                                                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
+                                                      title="Clear exam selection"
+                                                    >
+                                                      <X size={14} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <p className="text-xs text-gray-500">
+                                                  Link an existing exam to this lesson
                                                 </p>
                                               </div>
                                             )}
@@ -2077,6 +2132,21 @@ export function CourseBuilder({}: CourseBuilderProps) {
           courseId={selectedCourse.id}
           lessonId={selectedLessonForAssessment}
           title="Select Assessment"
+        />
+      )}
+
+      {/* Exam Selector Modal */}
+      {showExamSelector && selectedLessonForExam && selectedCourse && (
+        <ExamSelector
+          isOpen={showExamSelector}
+          onClose={() => {
+            setShowExamSelector(false);
+            setSelectedLessonForExam(null);
+          }}
+          onSelect={handleExamSelect}
+          courseId={selectedCourse.id}
+          lessonId={selectedLessonForExam}
+          title="Select Exam"
         />
       )}
 

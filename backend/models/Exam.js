@@ -67,6 +67,44 @@ export class Exam {
   }
 
   /**
+   * Find exams by course ID
+   */
+  static async findByCourseId(courseId) {
+    const sql = `
+      SELECT e.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             (SELECT COUNT(*) FROM exam_questions WHERE exam_id = e.id) as question_count,
+             (SELECT COUNT(*) FROM exam_attempts WHERE exam_id = e.id) as attempt_count
+      FROM exams e
+      LEFT JOIN courses c ON e.course_id = c.id
+      LEFT JOIN lessons l ON e.lesson_id = l.id
+      WHERE e.course_id = ?
+      ORDER BY e.created_at DESC
+    `;
+    return await query(sql, [courseId]);
+  }
+
+  /**
+   * Find exams by lesson ID
+   */
+  static async findByLessonId(lessonId) {
+    const sql = `
+      SELECT e.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             (SELECT COUNT(*) FROM exam_questions WHERE exam_id = e.id) as question_count,
+             (SELECT COUNT(*) FROM exam_attempts WHERE exam_id = e.id) as attempt_count
+      FROM exams e
+      LEFT JOIN courses c ON e.course_id = c.id
+      LEFT JOIN lessons l ON e.lesson_id = l.id
+      WHERE e.lesson_id = ?
+      ORDER BY e.created_at DESC
+    `;
+    return await query(sql, [lessonId]);
+  }
+
+  /**
    * Create a new exam
    */
   static async create(examData) {

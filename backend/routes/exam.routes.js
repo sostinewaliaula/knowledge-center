@@ -10,6 +10,8 @@ router.use(requireAdmin);
 
 // Exam CRUD
 router.get('/', examController.getExams);
+router.get('/course/:courseId', examController.getExamsByCourse);
+router.get('/lesson/:lessonId', examController.getExamsByLesson);
 router.get('/:id', examController.getExamById);
 router.post('/', examController.createExam);
 router.put('/:id', examController.updateExam);
