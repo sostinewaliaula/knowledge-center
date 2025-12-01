@@ -170,8 +170,7 @@ export function Assessments({}: AssessmentsProps) {
     options: ['', '', '', ''] as string[],
     correct_answer: '',
     points: 1,
-    explanation: '',
-    status: 'draft' as 'draft' | 'published'
+    explanation: ''
   });
   
   // Drag and drop
@@ -559,31 +558,8 @@ export function Assessments({}: AssessmentsProps) {
       options: question.options && Array.isArray(question.options) ? question.options : ['', '', '', ''],
       correct_answer: question.correct_answer || '',
       points: question.points,
-      explanation: question.explanation || '',
-      status: question.status || 'draft'
+      explanation: question.explanation || ''
     });
-  };
-
-  const handlePublishQuestion = async (questionId: string) => {
-    try {
-      const updatedQuestion = await api.publishQuestion(questionId);
-      setLocalQuestions(localQuestions.map(q => q.id === questionId ? updatedQuestion : q));
-      showSuccess('Question published successfully!');
-      await fetchAssessment(selectedAssessment!.id);
-    } catch (err: any) {
-      showError(err.message || 'Failed to publish question');
-    }
-  };
-
-  const handleUnpublishQuestion = async (questionId: string) => {
-    try {
-      const updatedQuestion = await api.unpublishQuestion(questionId);
-      setLocalQuestions(localQuestions.map(q => q.id === questionId ? updatedQuestion : q));
-      showSuccess('Question unpublished successfully!');
-      await fetchAssessment(selectedAssessment!.id);
-    } catch (err: any) {
-      showError(err.message || 'Failed to unpublish question');
-    }
   };
 
   const handleViewHistory = async (questionId: string) => {
@@ -621,7 +597,7 @@ export function Assessments({}: AssessmentsProps) {
       }
 
       if (editingQuestionId) {
-        // Update existing question
+        // Update existing question (implicitly published when saved)
         const updatedQuestion = await api.updateQuestion(editingQuestionId, {
           question_text: questionForm.question_text.trim(),
           question_type: questionForm.question_type,
@@ -629,13 +605,12 @@ export function Assessments({}: AssessmentsProps) {
           correct_answer: questionForm.correct_answer.trim() || null,
           points: questionForm.points,
           explanation: questionForm.explanation.trim() || null,
-          status: questionForm.status
         });
         
         // Update local state
         setLocalQuestions(localQuestions.map(q => q.id === editingQuestionId ? updatedQuestion : q));
       } else {
-        // Create new question
+        // Create new question (implicitly published when saved)
         const newQuestion = await api.createQuestion(selectedAssessment.id, {
           question_text: questionForm.question_text.trim(),
           question_type: questionForm.question_type,
@@ -643,7 +618,6 @@ export function Assessments({}: AssessmentsProps) {
           correct_answer: questionForm.correct_answer.trim() || null,
           points: questionForm.points,
           explanation: questionForm.explanation.trim() || null,
-          status: questionForm.status
         });
         
         // Add to local state
@@ -1589,7 +1563,7 @@ export function Assessments({}: AssessmentsProps) {
                           />
                         </div>
 
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">Question Type</label>
                             <select
@@ -1623,18 +1597,6 @@ export function Assessments({}: AssessmentsProps) {
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
                               disabled={saving}
                             />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                            <select
-                              value={questionForm.status}
-                              onChange={(e) => setQuestionForm({ ...questionForm, status: e.target.value as 'draft' | 'published' })}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
-                              disabled={saving}
-                            >
-                              <option value="draft">Draft</option>
-                              <option value="published">Published</option>
-                            </select>
                           </div>
                         </div>
 
@@ -1873,23 +1835,6 @@ export function Assessments({}: AssessmentsProps) {
                                   >
                                     <History size={16} />
                                   </button>
-                                  {question.status === 'published' ? (
-                                    <button
-                                      onClick={() => handleUnpublishQuestion(question.id)}
-                                      className="p-1.5 text-gray-400 hover:text-orange-600 hover:bg-orange-50 rounded transition-colors"
-                                      title="Unpublish question"
-                                    >
-                                      <XCircle size={16} />
-                                    </button>
-                                  ) : (
-                                    <button
-                                      onClick={() => handlePublishQuestion(question.id)}
-                                      className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
-                                      title="Publish question"
-                                    >
-                                      <CheckCircle size={16} />
-                                    </button>
-                                  )}
                                   <button
                                     onClick={() => handleEditQuestion(question)}
                                     className="p-1.5 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
