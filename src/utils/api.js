@@ -628,6 +628,16 @@ export const api = {
     return response.assignment;
   },
 
+  async getAssignmentsByCourse(courseId) {
+    const response = await this.request(`/assignments/course/${courseId}`);
+    return response.assignments || [];
+  },
+
+  async getAssignmentsByLesson(lessonId) {
+    const response = await this.request(`/assignments/lesson/${lessonId}`);
+    return response.assignments || [];
+  },
+
   async createAssignment(assignmentData) {
     const response = await this.request('/assignments', {
       method: 'POST',

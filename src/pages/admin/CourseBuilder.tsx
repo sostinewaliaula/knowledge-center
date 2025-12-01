@@ -60,6 +60,7 @@ import {
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { ContentLibrarySelector } from '../../components/ContentLibrarySelector';
+import { AssignmentSelector } from '../../components/AssignmentSelector';
 import { api } from '../../utils/api';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -113,6 +114,8 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const [newCourseDescription, setNewCourseDescription] = useState('');
   const [showContentSelector, setShowContentSelector] = useState(false);
   const [selectedLessonForContent, setSelectedLessonForContent] = useState<{ lessonId: string; contentType: 'video' | 'document' | 'all' } | null>(null);
+  const [showAssignmentSelector, setShowAssignmentSelector] = useState(false);
+  const [selectedLessonForAssignment, setSelectedLessonForAssignment] = useState<string | null>(null);
   const [draggedModule, setDraggedModule] = useState<string | null>(null);
   const [draggedLesson, setDraggedLesson] = useState<{ moduleId: string; lessonId: string } | null>(null);
   const [showDeleteCourseModal, setShowDeleteCourseModal] = useState(false);
@@ -831,6 +834,27 @@ export function CourseBuilder({}: CourseBuilderProps) {
   const openContentSelector = (lessonId: string, contentType: 'video' | 'document' | 'all') => {
     setSelectedLessonForContent({ lessonId, contentType });
     setShowContentSelector(true);
+  };
+
+  const handleAssignmentSelect = (assignment: any) => {
+    if (!selectedLessonForAssignment || !selectedCourse) return;
+
+    const assignmentUrl = `assignment:${assignment.id}`;
+    updateLesson(selectedLessonForAssignment, { content_url: assignmentUrl });
+    setShowAssignmentSelector(false);
+    setSelectedLessonForAssignment(null);
+  };
+
+  const openAssignmentSelector = (lessonId: string) => {
+    setSelectedLessonForAssignment(lessonId);
+    setShowAssignmentSelector(true);
+  };
+
+  const getAssignmentDisplayName = (contentUrl: string | null): string | null => {
+    if (!contentUrl || !contentUrl.startsWith('assignment:')) return null;
+    const assignmentId = contentUrl.replace('assignment:', '');
+    // We'll fetch the assignment name when needed, for now just return the ID
+    return assignmentId;
   };
 
   const handleFileUpload = async (lessonId: string, file: File) => {
@@ -1804,6 +1828,41 @@ export function CourseBuilder({}: CourseBuilderProps) {
                                                 placeholder="Lesson content (text)"
                                               />
                                             )}
+                                            {lesson.content_type === 'assignment' && (
+                                              <div className="space-y-2">
+                                                <div className="flex gap-2">
+                                                  <input
+                                                    type="text"
+                                                    value={lesson.content_url?.startsWith('assignment:') 
+                                                      ? `Assignment: ${lesson.content_url.replace('assignment:', '')}`
+                                                      : ''}
+                                                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-sm bg-gray-50"
+                                                    placeholder="No assignment selected"
+                                                    readOnly
+                                                  />
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => openAssignmentSelector(lesson.id)}
+                                                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded text-sm hover:bg-purple-200 transition-colors whitespace-nowrap"
+                                                  >
+                                                    Select Assignment
+                                                  </button>
+                                                  {lesson.content_url?.startsWith('assignment:') && (
+                                                    <button
+                                                      type="button"
+                                                      onClick={() => updateLesson(lesson.id, { content_url: null })}
+                                                      className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200 transition-colors"
+                                                      title="Clear assignment selection"
+                                                    >
+                                                      <X size={14} />
+                                                    </button>
+                                                  )}
+                                                </div>
+                                                <p className="text-xs text-gray-500">
+                                                  Select an assignment from your assignments library to link to this lesson
+                                                </p>
+                                              </div>
+                                            )}
                                             {(lesson.content_type === 'video' || lesson.content_type === 'document') && (
                                               <div className="space-y-2">
                                                 <div className="flex gap-2">
@@ -1938,6 +1997,21 @@ export function CourseBuilder({}: CourseBuilderProps) {
           onSelect={handleContentSelect}
           contentType={selectedLessonForContent.contentType}
           title={`Select ${selectedLessonForContent.contentType === 'video' ? 'Video' : 'Document'} Content`}
+        />
+      )}
+
+      {/* Assignment Selector Modal */}
+      {showAssignmentSelector && selectedLessonForAssignment && selectedCourse && (
+        <AssignmentSelector
+          isOpen={showAssignmentSelector}
+          onClose={() => {
+            setShowAssignmentSelector(false);
+            setSelectedLessonForAssignment(null);
+          }}
+          onSelect={handleAssignmentSelect}
+          courseId={selectedCourse.id}
+          lessonId={selectedLessonForAssignment}
+          title="Select Assignment"
         />
       )}
 

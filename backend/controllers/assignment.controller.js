@@ -115,3 +115,29 @@ export const deleteAssignment = async (req, res, next) => {
   }
 };
 
+/**
+ * Get assignments by course ID
+ */
+export const getAssignmentsByCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const assignments = await Assignment.findByCourseId(courseId);
+    res.json({ success: true, assignments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get assignments by lesson ID
+ */
+export const getAssignmentsByLesson = async (req, res, next) => {
+  try {
+    const { lessonId } = req.params;
+    const assignments = await Assignment.findByLessonId(lessonId);
+    res.json({ success: true, assignments });
+  } catch (error) {
+    next(error);
+  }
+};
+

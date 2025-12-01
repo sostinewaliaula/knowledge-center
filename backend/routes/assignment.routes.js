@@ -10,6 +10,8 @@ router.use(requireAdmin);
 
 // Assignment CRUD
 router.get('/', assignmentController.getAssignments);
+router.get('/course/:courseId', assignmentController.getAssignmentsByCourse);
+router.get('/lesson/:lessonId', assignmentController.getAssignmentsByLesson);
 router.get('/:id', assignmentController.getAssignmentById);
 router.post('/', assignmentController.createAssignment);
 router.put('/:id', assignmentController.updateAssignment);

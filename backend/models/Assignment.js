@@ -181,5 +181,43 @@ export class Assignment {
     await query(sql, [id]);
     return { message: 'Assignment deleted successfully' };
   }
+
+  /**
+   * Find assignments by course ID
+   */
+  static async findByCourseId(courseId) {
+    const sql = `
+      SELECT a.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             u.name as created_by_name
+      FROM assignments a
+      LEFT JOIN courses c ON a.course_id = c.id
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      LEFT JOIN users u ON a.created_by = u.id
+      WHERE a.course_id = ?
+      ORDER BY a.created_at DESC
+    `;
+    return await query(sql, [courseId]);
+  }
+
+  /**
+   * Find assignments by lesson ID
+   */
+  static async findByLessonId(lessonId) {
+    const sql = `
+      SELECT a.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             u.name as created_by_name
+      FROM assignments a
+      LEFT JOIN courses c ON a.course_id = c.id
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      LEFT JOIN users u ON a.created_by = u.id
+      WHERE a.lesson_id = ?
+      ORDER BY a.created_at DESC
+    `;
+    return await query(sql, [lessonId]);
+  }
 }
 
