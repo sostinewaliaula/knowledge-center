@@ -119,8 +119,8 @@ export function Assessments({}: AssessmentsProps) {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [originalAssessment, setOriginalAssessment] = useState<any>(null);
   
-  // Modals
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  // Modals / inline flows
+  const [creatingAssessment, setCreatingAssessment] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeleteQuestionModal, setShowDeleteQuestionModal] = useState(false);
   const [assessmentToDelete, setAssessmentToDelete] = useState<Assessment | null>(null);
@@ -419,7 +419,7 @@ export function Assessments({}: AssessmentsProps) {
       });
       
       showSuccess('Assessment created successfully!');
-      setShowCreateModal(false);
+      setCreatingAssessment(false);
       resetAssessmentForm();
       await fetchAssessments();
       await fetchAssessment(assessment.id);
@@ -780,12 +780,13 @@ export function Assessments({}: AssessmentsProps) {
         <div className={`flex-1 flex overflow-hidden min-w-0 transition-all duration-300 ${isModalOpen ? 'blur-[2px] pointer-events-none select-none' : ''}`}>
         {/* Sidebar */}
         <aside className="w-80 bg-white border-r border-gray-200 flex flex-col overflow-hidden">
-          <div className="p-4 border-b border-gray-200">
+            <div className="p-4 border-b border-gray-200">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-semibold text-gray-700">Assessments</h2>
               <button
                 onClick={() => {
-                  setShowCreateModal(true);
+                  setCreatingAssessment(true);
+                  resetAssessmentForm();
                   fetchAvailableCourses();
                 }}
                 className="p-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -857,6 +858,174 @@ export function Assessments({}: AssessmentsProps) {
 
           {/* Assessments List */}
           <div className="flex-1 overflow-y-auto p-4">
+            {/* Create Assessment Form (inline) */}
+            {creatingAssessment && (
+              <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
+                <input
+                  type="text"
+                  placeholder="Assessment Title *"
+                  value={assessmentForm.title}
+                  onChange={(e) => setAssessmentForm({ ...assessmentForm, title: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  autoFocus
+                  disabled={saving}
+                />
+                <textarea
+                  placeholder="Description (optional)"
+                  value={assessmentForm.description}
+                  onChange={(e) => setAssessmentForm({ ...assessmentForm, description: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                  rows={3}
+                  disabled={saving}
+                />
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                    <select
+                      value={assessmentForm.type}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, type: e.target.value as Assessment['type'] })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={saving}
+                    >
+                      <option value="quiz">Quiz</option>
+                      <option value="exam">Exam</option>
+                      <option value="assignment">Assignment</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Passing Score (%)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={assessmentForm.passing_score}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, passing_score: parseFloat(e.target.value) || 70 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={assessmentForm.time_limit_minutes || ''}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, time_limit_minutes: e.target.value ? parseInt(e.target.value) : null })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      placeholder="No limit"
+                      disabled={saving}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Max Attempts</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={assessmentForm.max_attempts}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, max_attempts: parseInt(e.target.value) || 1 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={saving}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 mb-2">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Course (Optional)</label>
+                    <select
+                      value={assessmentForm.course_id}
+                      onChange={async (e) => {
+                        const courseId = e.target.value;
+                        setAssessmentForm({ ...assessmentForm, course_id: courseId, lesson_id: '' });
+                        if (courseId) {
+                          await fetchAvailableLessons(courseId);
+                        } else {
+                          setAvailableLessons([]);
+                        }
+                      }}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={saving}
+                    >
+                      <option value="">No Course</option>
+                      {availableCourses.map((course) => (
+                        <option key={course.id} value={course.id}>
+                          {course.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Lesson (Optional)</label>
+                    <select
+                      value={assessmentForm.lesson_id}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, lesson_id: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      disabled={!assessmentForm.course_id || saving}
+                    >
+                      <option value="">No Lesson</option>
+                      {availableLessons.map((lesson) => (
+                        <option key={lesson.id} value={lesson.id}>
+                          {lesson.module_title}: {lesson.title}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div className="flex items-center gap-4 mb-2">
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={assessmentForm.is_required}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, is_required: e.target.checked })}
+                      className="rounded"
+                      disabled={saving}
+                    />
+                    Required
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={assessmentForm.randomize_questions}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, randomize_questions: e.target.checked })}
+                      className="rounded"
+                      disabled={saving}
+                    />
+                    Randomize Questions
+                  </label>
+                  <label className="flex items-center gap-2 text-xs text-gray-700">
+                    <input
+                      type="checkbox"
+                      checked={assessmentForm.show_results}
+                      onChange={(e) => setAssessmentForm({ ...assessmentForm, show_results: e.target.checked })}
+                      className="rounded"
+                      disabled={saving}
+                    />
+                    Show Results
+                  </label>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleCreateAssessment}
+                    disabled={saving || !assessmentForm.title.trim()}
+                    className="flex-1 px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {saving ? 'Creating...' : 'Create'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCreatingAssessment(false);
+                      resetAssessmentForm();
+                    }}
+                    disabled={saving}
+                    className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Edit Assessment Form */}
             {editingAssessmentId && (() => {
               const assessmentToEdit = assessments.find(a => a.id === editingAssessmentId);
@@ -1758,7 +1927,8 @@ export function Assessments({}: AssessmentsProps) {
               <p className="text-gray-500 mb-6">Select an assessment from the sidebar or create a new one</p>
               <button
                 onClick={() => {
-                  setShowCreateModal(true);
+                  setCreatingAssessment(true);
+                  resetAssessmentForm();
                   fetchAvailableCourses();
                 }}
                 className="px-6 py-3 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
@@ -1771,228 +1941,6 @@ export function Assessments({}: AssessmentsProps) {
         </div>
         </div>
       </div>
-
-      {/* Create Assessment Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">Create Assessment</h2>
-              <button
-                onClick={() => {
-                  setShowCreateModal(false);
-                  resetAssessmentForm();
-                }}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                disabled={saving}
-              >
-                <X size={20} />
-              </button>
-            </div>
-            
-            <div className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Title <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={assessmentForm.title}
-                  onChange={(e) => setAssessmentForm({ ...assessmentForm, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                  placeholder="Assessment title"
-                  disabled={saving}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <textarea
-                  value={assessmentForm.description}
-                  onChange={(e) => setAssessmentForm({ ...assessmentForm, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                  rows={3}
-                  placeholder="Assessment description"
-                  disabled={saving}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
-                  <select
-                    value={assessmentForm.type}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, type: e.target.value as Assessment['type'] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving}
-                  >
-                    <option value="quiz">Quiz</option>
-                    <option value="exam">Exam</option>
-                    <option value="assignment">Assignment</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={assessmentForm.status}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, status: e.target.value as Assessment['status'] })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving}
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Passing Score (%)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    value={assessmentForm.passing_score}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, passing_score: parseFloat(e.target.value) || 70 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Time Limit (minutes)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={assessmentForm.time_limit_minutes || ''}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, time_limit_minutes: e.target.value ? parseInt(e.target.value) : null })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    placeholder="No limit"
-                    disabled={saving}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Max Attempts</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={assessmentForm.max_attempts}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, max_attempts: parseInt(e.target.value) || 1 })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving}
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Course (Optional)</label>
-                  <select
-                    value={assessmentForm.course_id}
-                    onChange={async (e) => {
-                      const courseId = e.target.value;
-                      setAssessmentForm({ ...assessmentForm, course_id: courseId, lesson_id: '' });
-                      if (courseId) {
-                        await fetchAvailableLessons(courseId);
-                      } else {
-                        setAvailableLessons([]);
-                      }
-                    }}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving}
-                  >
-                    <option value="">No Course</option>
-                    {availableCourses.map((course) => (
-                      <option key={course.id} value={course.id}>
-                        {course.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Lesson (Optional)</label>
-                  <select
-                    value={assessmentForm.lesson_id}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, lesson_id: e.target.value })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                    disabled={saving || !assessmentForm.course_id}
-                  >
-                    <option value="">No Lesson</option>
-                    {availableLessons.map((lesson) => (
-                      <option key={lesson.id} value={lesson.id}>
-                        {lesson.module_title}: {lesson.title}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6">
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={assessmentForm.is_required}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, is_required: e.target.checked })}
-                    className="rounded"
-                    disabled={saving}
-                  />
-                  Required
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={assessmentForm.randomize_questions}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, randomize_questions: e.target.checked })}
-                    className="rounded"
-                    disabled={saving}
-                  />
-                  Randomize Questions
-                </label>
-                <label className="flex items-center gap-2 text-sm text-gray-700">
-                  <input
-                    type="checkbox"
-                    checked={assessmentForm.show_results}
-                    onChange={(e) => setAssessmentForm({ ...assessmentForm, show_results: e.target.checked })}
-                    className="rounded"
-                    disabled={saving}
-                  />
-                  Show Results
-                </label>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
-                <button
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    resetAssessmentForm();
-                  }}
-                  disabled={saving}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleCreateAssessment}
-                  disabled={saving || !assessmentForm.title.trim()}
-                  className="px-4 py-2 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-sm font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {saving ? (
-                    <>
-                      <Loader2 size={16} className="animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Save size={16} />
-                      Create Assessment
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Delete Assessment Modal */}
       {showDeleteModal && assessmentToDelete && (
