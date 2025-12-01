@@ -68,9 +68,9 @@ export function Assignments({}: AssignmentsProps) {
   const [filterType, setFilterType] = useState<string>('all');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [originalAssignment, setOriginalAssignment] = useState<any>(null);
+  const [creatingAssignment, setCreatingAssignment] = useState(false);
   
   // Modals
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [assignmentToDelete, setAssignmentToDelete] = useState<Assignment | null>(null);
   
@@ -287,7 +287,7 @@ export function Assignments({}: AssignmentsProps) {
       });
 
       showSuccess('Assignment created successfully!');
-      setShowCreateModal(false);
+      setCreatingAssignment(false);
       resetForm();
       await fetchAssignments();
       // Select the newly created assignment
@@ -360,7 +360,7 @@ export function Assignments({}: AssignmentsProps) {
     return new Date(dueDate) < new Date();
   };
 
-  const isModalOpen = showCreateModal || showDeleteModal;
+  const isModalOpen = showDeleteModal;
 
   if (loading && !selectedAssignment && assignments.length === 0) {
     return (
@@ -391,7 +391,8 @@ export function Assignments({}: AssignmentsProps) {
                 <h2 className="text-sm font-semibold text-gray-700">Assignments</h2>
                 <button
                   onClick={() => {
-                    setShowCreateModal(true);
+                    setCreatingAssignment(true);
+                    resetForm();
                     fetchAvailableCourses();
                   }}
                   className="p-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
@@ -448,6 +449,178 @@ export function Assignments({}: AssignmentsProps) {
 
             {/* Assignments List */}
             <div className="flex-1 overflow-y-auto p-4">
+              {/* Create Assignment Form (inline) */}
+              {creatingAssignment && (
+                <div className="mb-4 p-4 border-2 border-dashed border-purple-300 rounded-lg bg-purple-50">
+                  <input
+                    type="text"
+                    placeholder="Assignment Title *"
+                    value={assignmentForm.title}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    autoFocus
+                    disabled={saving}
+                  />
+                  <textarea
+                    placeholder="Description (optional)"
+                    value={assignmentForm.description}
+                    onChange={(e) => setAssignmentForm({ ...assignmentForm, description: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
+                    rows={3}
+                    disabled={saving}
+                  />
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Type</label>
+                      <select
+                        value={assignmentForm.type}
+                        onChange={(e) => setAssignmentForm({ ...assignmentForm, type: e.target.value as Assignment['type'] })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving}
+                      >
+                        <option value="file-upload">File Upload</option>
+                        <option value="text">Text</option>
+                        <option value="quiz">Quiz</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={assignmentForm.status}
+                        onChange={(e) => setAssignmentForm({ ...assignmentForm, status: e.target.value as Assignment['status'] })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving}
+                      >
+                        <option value="draft">Draft</option>
+                        <option value="active">Active</option>
+                        <option value="closed">Closed</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Due Date</label>
+                      <input
+                        type="datetime-local"
+                        value={assignmentForm.due_date}
+                        onChange={(e) => setAssignmentForm({ ...assignmentForm, due_date: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Max Score</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={assignmentForm.max_score}
+                        onChange={(e) => setAssignmentForm({ ...assignmentForm, max_score: parseFloat(e.target.value) || 100 })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-2">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Course (Optional)</label>
+                      <select
+                        value={assignmentForm.course_id}
+                        onChange={async (e) => {
+                          const courseId = e.target.value;
+                          setAssignmentForm({ ...assignmentForm, course_id: courseId, lesson_id: '' });
+                          if (courseId) {
+                            await fetchAvailableLessons(courseId);
+                          } else {
+                            setAvailableLessons([]);
+                          }
+                        }}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving}
+                      >
+                        <option value="">No Course</option>
+                        {availableCourses.map((course) => (
+                          <option key={course.id} value={course.id}>
+                            {course.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Lesson (Optional)</label>
+                      <select
+                        value={assignmentForm.lesson_id}
+                        onChange={(e) => setAssignmentForm({ ...assignmentForm, lesson_id: e.target.value })}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        disabled={saving || !assignmentForm.course_id}
+                      >
+                        <option value="">No Lesson</option>
+                        {availableLessons.map((lesson) => (
+                          <option key={lesson.id} value={lesson.id}>
+                            {lesson.module_title}: {lesson.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  {assignmentForm.type === 'file-upload' && (
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Max File Size (MB)</label>
+                        <input
+                          type="number"
+                          min="1"
+                          value={assignmentForm.max_file_size_mb}
+                          onChange={(e) => setAssignmentForm({ ...assignmentForm, max_file_size_mb: parseInt(e.target.value) || 10 })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          disabled={saving}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">Allowed File Types</label>
+                        <input
+                          type="text"
+                          value={assignmentForm.allowed_file_types}
+                          onChange={(e) => setAssignmentForm({ ...assignmentForm, allowed_file_types: e.target.value })}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          placeholder="pdf,doc,docx"
+                          disabled={saving}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-200 mt-2">
+                    <button
+                      onClick={() => {
+                        setCreatingAssignment(false);
+                        resetForm();
+                      }}
+                      disabled={saving}
+                      className="px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleCreateAssignment}
+                      disabled={saving || !assignmentForm.title.trim()}
+                      className="px-3 py-1.5 bg-gradient-to-r from-purple-600 to-green-600 text-white rounded-lg text-xs font-medium hover:from-purple-700 hover:to-green-700 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {saving ? (
+                        <>
+                          <Loader2 size={14} className="animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Save size={14} />
+                          Create Assignment
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
               {/* Edit Assignment Form */}
               {editingAssignmentId && (() => {
                 const assignmentToEdit = assignments.find(a => a.id === editingAssignmentId);
@@ -1026,7 +1199,7 @@ export function Assignments({}: AssignmentsProps) {
       </div>
 
       {/* Create Assignment Modal */}
-      {showCreateModal && (
+      {false && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
