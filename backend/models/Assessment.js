@@ -71,6 +71,44 @@ export class Assessment {
   }
 
   /**
+   * Find assessments by course ID
+   */
+  static async findByCourseId(courseId) {
+    const sql = `
+      SELECT a.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             (SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = a.id) as question_count,
+             (SELECT COUNT(*) FROM assessment_attempts WHERE assessment_id = a.id) as attempt_count
+      FROM assessments a
+      LEFT JOIN courses c ON a.course_id = c.id
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      WHERE a.course_id = ?
+      ORDER BY a.created_at DESC
+    `;
+    return await query(sql, [courseId]);
+  }
+
+  /**
+   * Find assessments by lesson ID
+   */
+  static async findByLessonId(lessonId) {
+    const sql = `
+      SELECT a.*,
+             c.title as course_title,
+             l.title as lesson_title,
+             (SELECT COUNT(*) FROM assessment_questions WHERE assessment_id = a.id) as question_count,
+             (SELECT COUNT(*) FROM assessment_attempts WHERE assessment_id = a.id) as attempt_count
+      FROM assessments a
+      LEFT JOIN courses c ON a.course_id = c.id
+      LEFT JOIN lessons l ON a.lesson_id = l.id
+      WHERE a.lesson_id = ?
+      ORDER BY a.created_at DESC
+    `;
+    return await query(sql, [lessonId]);
+  }
+
+  /**
    * Create a new assessment
    */
   static async create(assessmentData) {

@@ -528,6 +528,16 @@ export const api = {
       return response.assessment;
     },
 
+  async getAssessmentsByCourse(courseId) {
+    const response = await this.request(`/assessments/course/${courseId}`);
+    return response.assessments || [];
+  },
+
+  async getAssessmentsByLesson(lessonId) {
+    const response = await this.request(`/assessments/lesson/${lessonId}`);
+    return response.assessments || [];
+  },
+
     async createAssessment(assessmentData) {
       const response = await this.request('/assessments', {
         method: 'POST',

@@ -10,6 +10,8 @@ router.use(requireAdmin);
 
 // Assessment CRUD
 router.get('/', assessmentController.getAssessments);
+router.get('/course/:courseId', assessmentController.getAssessmentsByCourse);
+router.get('/lesson/:lessonId', assessmentController.getAssessmentsByLesson);
 router.get('/:id', assessmentController.getAssessmentById);
 router.post('/', assessmentController.createAssessment);
 router.put('/:id', assessmentController.updateAssessment);

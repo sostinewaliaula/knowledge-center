@@ -122,6 +122,32 @@ export const deleteAssessment = async (req, res, next) => {
 };
 
 /**
+ * Get assessments by course ID
+ */
+export const getAssessmentsByCourse = async (req, res, next) => {
+  try {
+    const { courseId } = req.params;
+    const assessments = await Assessment.findByCourseId(courseId);
+    res.json({ success: true, assessments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Get assessments by lesson ID
+ */
+export const getAssessmentsByLesson = async (req, res, next) => {
+  try {
+    const { lessonId } = req.params;
+    const assessments = await Assessment.findByLessonId(lessonId);
+    res.json({ success: true, assessments });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Question Controllers
  */
 
