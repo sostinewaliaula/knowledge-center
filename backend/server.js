@@ -24,6 +24,7 @@ import assessmentRoutes from './routes/assessment.routes.js';
 import assignmentRoutes from './routes/assignment.routes.js';
 import examRoutes from './routes/exam.routes.js';
 import liveSessionRoutes from './routes/liveSession.routes.js';
+import settingsRoutes from './routes/settings.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -102,6 +103,7 @@ app.use('/api/assessments', assessmentRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/live-sessions', liveSessionRoutes);
+app.use('/api/settings', settingsRoutes);
 
 // 404 handler
 app.use(notFound);

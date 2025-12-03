@@ -1,17 +1,17 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AdminSidebar } from '../../components/AdminSidebar';
-import { 
-  Save, 
-  Moon, 
-  Sun, 
-  Bell, 
-  Shield, 
-  Mail, 
-  Globe, 
-  Database, 
-  Users, 
-  BookOpen, 
-  Settings, 
+import {
+  Save,
+  Moon,
+  Sun,
+  Bell,
+  Shield,
+  Mail,
+  Globe,
+  Database,
+  Users,
+  BookOpen,
+  Settings,
   Info,
   Palette,
   Zap,
@@ -40,10 +40,11 @@ import {
   Link as LinkIcon,
   Building2
 } from 'lucide-react';
+import { api } from '../../utils/api';
 
-interface SettingsPageProps {}
+interface SettingsPageProps { }
 
-export function SettingsPage({}: SettingsPageProps) {
+export function SettingsPage({ }: SettingsPageProps) {
   const [activeSection, setActiveSection] = useState('general');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -186,13 +187,56 @@ export function SettingsPage({}: SettingsPageProps) {
     enableTimeTracking: true
   });
 
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const data = await api.getSettings();
+        if (data) {
+          if (data.general) setGeneralSettings(data.general);
+          if (data.users) setUserSettings(data.users);
+          if (data.content) setContentSettings(data.content);
+          if (data.notifications) setNotificationSettings(data.notifications);
+          if (data.security) setSecuritySettings(data.security);
+          if (data.email) setEmailSettings(data.email);
+          if (data.integrations) setIntegrationSettings(data.integrations);
+          if (data.gamification) setGamificationSettings(data.gamification);
+          if (data['learning-paths']) setLearningPathSettings(data['learning-paths']);
+        }
+      } catch (err) {
+        console.error('Failed to load settings:', err);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const handleSave = async () => {
     setIsSaving(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSaving(false);
-    setHasUnsavedChanges(false);
-    alert('Settings saved successfully!');
+    try {
+      // Save all sections or just the active one?
+      // For simplicity and correctness, let's save all modified sections.
+      // But tracking "modified" per section is hard with current state.
+      // Let's save the current active section or all. 
+      // Given the UI has a global save button, let's save all.
+
+      await Promise.all([
+        api.updateSettings('general', generalSettings),
+        api.updateSettings('users', userSettings),
+        api.updateSettings('content', contentSettings),
+        api.updateSettings('notifications', notificationSettings),
+        api.updateSettings('security', securitySettings),
+        api.updateSettings('email', emailSettings),
+        api.updateSettings('integrations', integrationSettings),
+        api.updateSettings('gamification', gamificationSettings),
+        api.updateSettings('learning-paths', learningPathSettings),
+      ]);
+
+      setIsSaving(false);
+      setHasUnsavedChanges(false);
+      alert('Settings saved successfully!');
+    } catch (err: any) {
+      setIsSaving(false);
+      alert('Failed to save settings: ' + err.message);
+    }
   };
 
   const handleTestEmail = () => {
@@ -203,30 +247,27 @@ export function SettingsPage({}: SettingsPageProps) {
     alert(`Test email sent to ${emailSettings.testEmail}`);
   };
 
-  const ToggleSwitch = ({ enabled, onChange, label, description, warning }: { 
-    enabled: boolean; 
-    onChange: () => void; 
-    label: string; 
+  const ToggleSwitch = ({ enabled, onChange, label, description, warning }: {
+    enabled: boolean;
+    onChange: () => void;
+    label: string;
     description?: string;
     warning?: boolean;
   }) => (
-    <div className={`flex items-center justify-between p-4 bg-white border rounded-lg transition-colors ${
-      warning ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 hover:border-purple-300'
-    }`}>
+    <div className={`flex items-center justify-between p-4 bg-white border rounded-lg transition-colors ${warning ? 'border-yellow-300 bg-yellow-50' : 'border-gray-200 hover:border-purple-300'
+      }`}>
       <div className="flex-1">
         <div className="font-medium text-gray-900 mb-1">{label}</div>
         {description && <div className="text-sm text-gray-500">{description}</div>}
       </div>
       <button
         onClick={onChange}
-        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-          enabled ? 'bg-gradient-to-r from-purple-600 to-green-600' : 'bg-gray-300'
-        }`}
+        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${enabled ? 'bg-gradient-to-r from-purple-600 to-green-600' : 'bg-gray-300'
+          }`}
       >
         <span
-          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-            enabled ? 'translate-x-6' : 'translate-x-1'
-          }`}
+          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${enabled ? 'translate-x-6' : 'translate-x-1'
+            }`}
         />
       </button>
     </div>
@@ -295,11 +336,10 @@ export function SettingsPage({}: SettingsPageProps) {
                     <button
                       key={section.id}
                       onClick={() => setActiveSection(section.id)}
-                      className={`w-full px-3 py-2.5 flex items-center gap-3 rounded-lg transition-colors ${
-                        activeSection === section.id
-                          ? 'bg-purple-50 text-purple-700 font-medium'
-                          : 'text-gray-700 hover:bg-gray-50'
-                      }`}
+                      className={`w-full px-3 py-2.5 flex items-center gap-3 rounded-lg transition-colors ${activeSection === section.id
+                        ? 'bg-purple-50 text-purple-700 font-medium'
+                        : 'text-gray-700 hover:bg-gray-50'
+                        }`}
                     >
                       <Icon size={18} className={section.color} />
                       <span>{section.label}</span>
@@ -328,7 +368,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="text"
                             value={generalSettings.siteName}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, siteName: e.target.value});
+                              setGeneralSettings({ ...generalSettings, siteName: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -340,7 +380,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="text"
                             value={generalSettings.siteSubtitle}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, siteSubtitle: e.target.value});
+                              setGeneralSettings({ ...generalSettings, siteSubtitle: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -353,7 +393,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={generalSettings.companyName}
                           onChange={(e) => {
-                            setGeneralSettings({...generalSettings, companyName: e.target.value});
+                            setGeneralSettings({ ...generalSettings, companyName: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -365,7 +405,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           <select
                             value={generalSettings.timezone}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, timezone: e.target.value});
+                              setGeneralSettings({ ...generalSettings, timezone: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -384,7 +424,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           <select
                             value={generalSettings.language}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, language: e.target.value});
+                              setGeneralSettings({ ...generalSettings, language: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -404,7 +444,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           <select
                             value={generalSettings.dateFormat}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, dateFormat: e.target.value});
+                              setGeneralSettings({ ...generalSettings, dateFormat: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -419,7 +459,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           <select
                             value={generalSettings.timeFormat}
                             onChange={(e) => {
-                              setGeneralSettings({...generalSettings, timeFormat: e.target.value});
+                              setGeneralSettings({ ...generalSettings, timeFormat: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -488,27 +528,24 @@ export function SettingsPage({}: SettingsPageProps) {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Theme</label>
                         <div className="flex items-center gap-4">
-                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
-                            generalSettings.theme === 'light' 
-                              ? 'border-purple-500 bg-purple-50' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}>
+                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${generalSettings.theme === 'light'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}>
                             <Sun size={18} />
                             <span>Light</span>
                           </button>
-                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
-                            generalSettings.theme === 'dark' 
-                              ? 'border-purple-500 bg-purple-50' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}>
+                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${generalSettings.theme === 'dark'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}>
                             <Moon size={18} />
                             <span>Dark</span>
                           </button>
-                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${
-                            generalSettings.theme === 'auto' 
-                              ? 'border-purple-500 bg-purple-50' 
-                              : 'border-gray-200 hover:border-gray-300'
-                          }`}>
+                          <button className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 ${generalSettings.theme === 'auto'
+                            ? 'border-purple-500 bg-purple-50'
+                            : 'border-gray-200 hover:border-gray-300'
+                            }`}>
                             <Zap size={18} />
                             <span>Auto</span>
                           </button>
@@ -522,7 +559,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="color"
                               value={generalSettings.primaryColor}
                               onChange={(e) => {
-                                setGeneralSettings({...generalSettings, primaryColor: e.target.value});
+                                setGeneralSettings({ ...generalSettings, primaryColor: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
@@ -531,7 +568,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="text"
                               value={generalSettings.primaryColor}
                               onChange={(e) => {
-                                setGeneralSettings({...generalSettings, primaryColor: e.target.value});
+                                setGeneralSettings({ ...generalSettings, primaryColor: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -545,7 +582,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="color"
                               value={generalSettings.secondaryColor}
                               onChange={(e) => {
-                                setGeneralSettings({...generalSettings, secondaryColor: e.target.value});
+                                setGeneralSettings({ ...generalSettings, secondaryColor: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="w-12 h-10 border border-gray-300 rounded cursor-pointer"
@@ -554,7 +591,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="text"
                               value={generalSettings.secondaryColor}
                               onChange={(e) => {
-                                setGeneralSettings({...generalSettings, secondaryColor: e.target.value});
+                                setGeneralSettings({ ...generalSettings, secondaryColor: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -579,7 +616,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={userSettings.allowSelfRegistration}
                         onChange={() => {
-                          setUserSettings({...userSettings, allowSelfRegistration: !userSettings.allowSelfRegistration});
+                          setUserSettings({ ...userSettings, allowSelfRegistration: !userSettings.allowSelfRegistration });
                           setHasUnsavedChanges(true);
                         }}
                         label="Allow Self Registration"
@@ -588,7 +625,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={userSettings.requireEmailVerification}
                         onChange={() => {
-                          setUserSettings({...userSettings, requireEmailVerification: !userSettings.requireEmailVerification});
+                          setUserSettings({ ...userSettings, requireEmailVerification: !userSettings.requireEmailVerification });
                           setHasUnsavedChanges(true);
                         }}
                         label="Require Email Verification"
@@ -597,7 +634,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={userSettings.requirePhoneVerification}
                         onChange={() => {
-                          setUserSettings({...userSettings, requirePhoneVerification: !userSettings.requirePhoneVerification});
+                          setUserSettings({ ...userSettings, requirePhoneVerification: !userSettings.requirePhoneVerification });
                           setHasUnsavedChanges(true);
                         }}
                         label="Require Phone Verification"
@@ -608,7 +645,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <select
                           value={userSettings.defaultRole}
                           onChange={(e) => {
-                            setUserSettings({...userSettings, defaultRole: e.target.value});
+                            setUserSettings({ ...userSettings, defaultRole: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -635,7 +672,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="20"
                           value={userSettings.passwordMinLength}
                           onChange={(e) => {
-                            setUserSettings({...userSettings, passwordMinLength: parseInt(e.target.value)});
+                            setUserSettings({ ...userSettings, passwordMinLength: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -645,7 +682,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <ToggleSwitch
                           enabled={userSettings.passwordRequireUppercase}
                           onChange={() => {
-                            setUserSettings({...userSettings, passwordRequireUppercase: !userSettings.passwordRequireUppercase});
+                            setUserSettings({ ...userSettings, passwordRequireUppercase: !userSettings.passwordRequireUppercase });
                             setHasUnsavedChanges(true);
                           }}
                           label="Require Uppercase Letters"
@@ -653,7 +690,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <ToggleSwitch
                           enabled={userSettings.passwordRequireLowercase}
                           onChange={() => {
-                            setUserSettings({...userSettings, passwordRequireLowercase: !userSettings.passwordRequireLowercase});
+                            setUserSettings({ ...userSettings, passwordRequireLowercase: !userSettings.passwordRequireLowercase });
                             setHasUnsavedChanges(true);
                           }}
                           label="Require Lowercase Letters"
@@ -661,7 +698,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <ToggleSwitch
                           enabled={userSettings.passwordRequireNumbers}
                           onChange={() => {
-                            setUserSettings({...userSettings, passwordRequireNumbers: !userSettings.passwordRequireNumbers});
+                            setUserSettings({ ...userSettings, passwordRequireNumbers: !userSettings.passwordRequireNumbers });
                             setHasUnsavedChanges(true);
                           }}
                           label="Require Numbers"
@@ -669,7 +706,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <ToggleSwitch
                           enabled={userSettings.passwordRequireSpecialChars}
                           onChange={() => {
-                            setUserSettings({...userSettings, passwordRequireSpecialChars: !userSettings.passwordRequireSpecialChars});
+                            setUserSettings({ ...userSettings, passwordRequireSpecialChars: !userSettings.passwordRequireSpecialChars });
                             setHasUnsavedChanges(true);
                           }}
                           label="Require Special Characters"
@@ -692,7 +729,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="480"
                           value={userSettings.sessionTimeout}
                           onChange={(e) => {
-                            setUserSettings({...userSettings, sessionTimeout: parseInt(e.target.value)});
+                            setUserSettings({ ...userSettings, sessionTimeout: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -706,7 +743,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="10"
                           value={userSettings.maxSessionsPerUser}
                           onChange={(e) => {
-                            setUserSettings({...userSettings, maxSessionsPerUser: parseInt(e.target.value)});
+                            setUserSettings({ ...userSettings, maxSessionsPerUser: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -724,7 +761,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={userSettings.enableProfilePictures}
                         onChange={() => {
-                          setUserSettings({...userSettings, enableProfilePictures: !userSettings.enableProfilePictures});
+                          setUserSettings({ ...userSettings, enableProfilePictures: !userSettings.enableProfilePictures });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Profile Pictures"
@@ -733,7 +770,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={userSettings.enableUserStatus}
                         onChange={() => {
-                          setUserSettings({...userSettings, enableUserStatus: !userSettings.enableUserStatus});
+                          setUserSettings({ ...userSettings, enableUserStatus: !userSettings.enableUserStatus });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable User Status"
@@ -760,7 +797,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="1000"
                           value={contentSettings.maxFileSize}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, maxFileSize: parseInt(e.target.value)});
+                            setContentSettings({ ...contentSettings, maxFileSize: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -774,7 +811,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="5000"
                           value={contentSettings.maxVideoSize}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, maxVideoSize: parseInt(e.target.value)});
+                            setContentSettings({ ...contentSettings, maxVideoSize: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -788,7 +825,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="50"
                           value={contentSettings.maxImageSize}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, maxImageSize: parseInt(e.target.value)});
+                            setContentSettings({ ...contentSettings, maxImageSize: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -812,7 +849,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={contentSettings.allowedFileTypes.join(', ')}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, allowedFileTypes: e.target.value.split(',').map(t => t.trim())});
+                            setContentSettings({ ...contentSettings, allowedFileTypes: e.target.value.split(',').map(t => t.trim()) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -828,7 +865,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={contentSettings.allowedVideoTypes.join(', ')}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, allowedVideoTypes: e.target.value.split(',').map(t => t.trim())});
+                            setContentSettings({ ...contentSettings, allowedVideoTypes: e.target.value.split(',').map(t => t.trim()) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -844,7 +881,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={contentSettings.allowedImageTypes.join(', ')}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, allowedImageTypes: e.target.value.split(',').map(t => t.trim())});
+                            setContentSettings({ ...contentSettings, allowedImageTypes: e.target.value.split(',').map(t => t.trim()) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -860,7 +897,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={contentSettings.allowedAudioTypes.join(', ')}
                           onChange={(e) => {
-                            setContentSettings({...contentSettings, allowedAudioTypes: e.target.value.split(',').map(t => t.trim())});
+                            setContentSettings({ ...contentSettings, allowedAudioTypes: e.target.value.split(',').map(t => t.trim()) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -879,7 +916,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.autoApproveContent}
                         onChange={() => {
-                          setContentSettings({...contentSettings, autoApproveContent: !contentSettings.autoApproveContent});
+                          setContentSettings({ ...contentSettings, autoApproveContent: !contentSettings.autoApproveContent });
                           setHasUnsavedChanges(true);
                         }}
                         label="Auto Approve Content"
@@ -888,7 +925,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.enableComments}
                         onChange={() => {
-                          setContentSettings({...contentSettings, enableComments: !contentSettings.enableComments});
+                          setContentSettings({ ...contentSettings, enableComments: !contentSettings.enableComments });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Comments"
@@ -897,7 +934,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.enableRatings}
                         onChange={() => {
-                          setContentSettings({...contentSettings, enableRatings: !contentSettings.enableRatings});
+                          setContentSettings({ ...contentSettings, enableRatings: !contentSettings.enableRatings });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Ratings"
@@ -906,7 +943,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.enableDownloads}
                         onChange={() => {
-                          setContentSettings({...contentSettings, enableDownloads: !contentSettings.enableDownloads});
+                          setContentSettings({ ...contentSettings, enableDownloads: !contentSettings.enableDownloads });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Downloads"
@@ -915,7 +952,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.enableSharing}
                         onChange={() => {
-                          setContentSettings({...contentSettings, enableSharing: !contentSettings.enableSharing});
+                          setContentSettings({ ...contentSettings, enableSharing: !contentSettings.enableSharing });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Sharing"
@@ -924,7 +961,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={contentSettings.enableVersioning}
                         onChange={() => {
-                          setContentSettings({...contentSettings, enableVersioning: !contentSettings.enableVersioning});
+                          setContentSettings({ ...contentSettings, enableVersioning: !contentSettings.enableVersioning });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Versioning"
@@ -938,7 +975,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         min="0"
                         value={contentSettings.contentExpiryDays}
                         onChange={(e) => {
-                          setContentSettings({...contentSettings, contentExpiryDays: parseInt(e.target.value)});
+                          setContentSettings({ ...contentSettings, contentExpiryDays: parseInt(e.target.value) });
                           setHasUnsavedChanges(true);
                         }}
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -958,7 +995,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.emailNotifications}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, emailNotifications: !notificationSettings.emailNotifications});
+                        setNotificationSettings({ ...notificationSettings, emailNotifications: !notificationSettings.emailNotifications });
                         setHasUnsavedChanges(true);
                       }}
                       label="Email Notifications"
@@ -967,7 +1004,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.pushNotifications}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, pushNotifications: !notificationSettings.pushNotifications});
+                        setNotificationSettings({ ...notificationSettings, pushNotifications: !notificationSettings.pushNotifications });
                         setHasUnsavedChanges(true);
                       }}
                       label="Push Notifications"
@@ -976,7 +1013,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.smsNotifications}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, smsNotifications: !notificationSettings.smsNotifications});
+                        setNotificationSettings({ ...notificationSettings, smsNotifications: !notificationSettings.smsNotifications });
                         setHasUnsavedChanges(true);
                       }}
                       label="SMS Notifications"
@@ -988,7 +1025,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.courseUpdates}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, courseUpdates: !notificationSettings.courseUpdates});
+                        setNotificationSettings({ ...notificationSettings, courseUpdates: !notificationSettings.courseUpdates });
                         setHasUnsavedChanges(true);
                       }}
                       label="Course Updates"
@@ -996,7 +1033,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.assignmentReminders}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, assignmentReminders: !notificationSettings.assignmentReminders});
+                        setNotificationSettings({ ...notificationSettings, assignmentReminders: !notificationSettings.assignmentReminders });
                         setHasUnsavedChanges(true);
                       }}
                       label="Assignment Reminders"
@@ -1004,7 +1041,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.deadlineAlerts}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, deadlineAlerts: !notificationSettings.deadlineAlerts});
+                        setNotificationSettings({ ...notificationSettings, deadlineAlerts: !notificationSettings.deadlineAlerts });
                         setHasUnsavedChanges(true);
                       }}
                       label="Deadline Alerts"
@@ -1012,7 +1049,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.systemAnnouncements}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, systemAnnouncements: !notificationSettings.systemAnnouncements});
+                        setNotificationSettings({ ...notificationSettings, systemAnnouncements: !notificationSettings.systemAnnouncements });
                         setHasUnsavedChanges(true);
                       }}
                       label="System Announcements"
@@ -1020,7 +1057,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.newContentAlerts}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, newContentAlerts: !notificationSettings.newContentAlerts});
+                        setNotificationSettings({ ...notificationSettings, newContentAlerts: !notificationSettings.newContentAlerts });
                         setHasUnsavedChanges(true);
                       }}
                       label="New Content Alerts"
@@ -1028,7 +1065,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.completionCertificates}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, completionCertificates: !notificationSettings.completionCertificates});
+                        setNotificationSettings({ ...notificationSettings, completionCertificates: !notificationSettings.completionCertificates });
                         setHasUnsavedChanges(true);
                       }}
                       label="Completion Certificates"
@@ -1036,7 +1073,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.achievementBadges}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, achievementBadges: !notificationSettings.achievementBadges});
+                        setNotificationSettings({ ...notificationSettings, achievementBadges: !notificationSettings.achievementBadges });
                         setHasUnsavedChanges(true);
                       }}
                       label="Achievement Badges"
@@ -1044,7 +1081,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.discussionReplies}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, discussionReplies: !notificationSettings.discussionReplies});
+                        setNotificationSettings({ ...notificationSettings, discussionReplies: !notificationSettings.discussionReplies });
                         setHasUnsavedChanges(true);
                       }}
                       label="Discussion Replies"
@@ -1052,7 +1089,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={notificationSettings.mentionNotifications}
                       onChange={() => {
-                        setNotificationSettings({...notificationSettings, mentionNotifications: !notificationSettings.mentionNotifications});
+                        setNotificationSettings({ ...notificationSettings, mentionNotifications: !notificationSettings.mentionNotifications });
                         setHasUnsavedChanges(true);
                       }}
                       label="Mention Notifications"
@@ -1072,7 +1109,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={securitySettings.twoFactorAuth}
                         onChange={() => {
-                          setSecuritySettings({...securitySettings, twoFactorAuth: !securitySettings.twoFactorAuth});
+                          setSecuritySettings({ ...securitySettings, twoFactorAuth: !securitySettings.twoFactorAuth });
                           setHasUnsavedChanges(true);
                         }}
                         label="Two-Factor Authentication"
@@ -1082,7 +1119,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={securitySettings.require2FAForAdmins}
                         onChange={() => {
-                          setSecuritySettings({...securitySettings, require2FAForAdmins: !securitySettings.require2FAForAdmins});
+                          setSecuritySettings({ ...securitySettings, require2FAForAdmins: !securitySettings.require2FAForAdmins });
                           setHasUnsavedChanges(true);
                         }}
                         label="Require 2FA for Administrators"
@@ -1098,7 +1135,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="365"
                           value={securitySettings.passwordExpiry}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, passwordExpiry: parseInt(e.target.value)});
+                            setSecuritySettings({ ...securitySettings, passwordExpiry: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1112,7 +1149,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="10"
                           value={securitySettings.passwordHistory}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, passwordHistory: parseInt(e.target.value)});
+                            setSecuritySettings({ ...securitySettings, passwordHistory: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1136,7 +1173,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="10"
                           value={securitySettings.maxLoginAttempts}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, maxLoginAttempts: parseInt(e.target.value)});
+                            setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1150,7 +1187,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="60"
                           value={securitySettings.lockoutDuration}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, lockoutDuration: parseInt(e.target.value)});
+                            setSecuritySettings({ ...securitySettings, lockoutDuration: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1159,7 +1196,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={securitySettings.autoLogout}
                         onChange={() => {
-                          setSecuritySettings({...securitySettings, autoLogout: !securitySettings.autoLogout});
+                          setSecuritySettings({ ...securitySettings, autoLogout: !securitySettings.autoLogout });
                           setHasUnsavedChanges(true);
                         }}
                         label="Auto Logout on Inactivity"
@@ -1176,7 +1213,7 @@ export function SettingsPage({}: SettingsPageProps) {
                     <ToggleSwitch
                       enabled={securitySettings.enableIPWhitelist}
                       onChange={() => {
-                        setSecuritySettings({...securitySettings, enableIPWhitelist: !securitySettings.enableIPWhitelist});
+                        setSecuritySettings({ ...securitySettings, enableIPWhitelist: !securitySettings.enableIPWhitelist });
                         setHasUnsavedChanges(true);
                       }}
                       label="Enable IP Whitelist"
@@ -1188,7 +1225,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <textarea
                           value={securitySettings.allowedIPs.join('\n')}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, allowedIPs: e.target.value.split('\n').filter(ip => ip.trim())});
+                            setSecuritySettings({ ...securitySettings, allowedIPs: e.target.value.split('\n').filter(ip => ip.trim()) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1209,7 +1246,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={securitySettings.enableAuditLog}
                         onChange={() => {
-                          setSecuritySettings({...securitySettings, enableAuditLog: !securitySettings.enableAuditLog});
+                          setSecuritySettings({ ...securitySettings, enableAuditLog: !securitySettings.enableAuditLog });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Audit Log"
@@ -1218,7 +1255,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={securitySettings.enableGDPR}
                         onChange={() => {
-                          setSecuritySettings({...securitySettings, enableGDPR: !securitySettings.enableGDPR});
+                          setSecuritySettings({ ...securitySettings, enableGDPR: !securitySettings.enableGDPR });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable GDPR Compliance"
@@ -1232,7 +1269,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="3650"
                           value={securitySettings.dataRetentionDays}
                           onChange={(e) => {
-                            setSecuritySettings({...securitySettings, dataRetentionDays: parseInt(e.target.value)});
+                            setSecuritySettings({ ...securitySettings, dataRetentionDays: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1258,7 +1295,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="text"
                             value={emailSettings.smtpHost}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, smtpHost: e.target.value});
+                              setEmailSettings({ ...emailSettings, smtpHost: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1271,7 +1308,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="number"
                             value={emailSettings.smtpPort}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, smtpPort: parseInt(e.target.value)});
+                              setEmailSettings({ ...emailSettings, smtpPort: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1281,7 +1318,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={emailSettings.smtpSecure}
                         onChange={() => {
-                          setEmailSettings({...emailSettings, smtpSecure: !emailSettings.smtpSecure});
+                          setEmailSettings({ ...emailSettings, smtpSecure: !emailSettings.smtpSecure });
                           setHasUnsavedChanges(true);
                         }}
                         label="Use SSL/TLS"
@@ -1293,7 +1330,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={emailSettings.smtpUser}
                           onChange={(e) => {
-                            setEmailSettings({...emailSettings, smtpUser: e.target.value});
+                            setEmailSettings({ ...emailSettings, smtpUser: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1306,7 +1343,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type={showPassword ? "text" : "password"}
                             value={emailSettings.smtpPassword}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, smtpPassword: e.target.value});
+                              setEmailSettings({ ...emailSettings, smtpPassword: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1326,7 +1363,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="email"
                             value={emailSettings.fromEmail}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, fromEmail: e.target.value});
+                              setEmailSettings({ ...emailSettings, fromEmail: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1338,7 +1375,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="text"
                             value={emailSettings.fromName}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, fromName: e.target.value});
+                              setEmailSettings({ ...emailSettings, fromName: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1351,7 +1388,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="email"
                           value={emailSettings.replyToEmail}
                           onChange={(e) => {
-                            setEmailSettings({...emailSettings, replyToEmail: e.target.value});
+                            setEmailSettings({ ...emailSettings, replyToEmail: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1382,7 +1419,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="email"
                             value={emailSettings.testEmail}
                             onChange={(e) => {
-                              setEmailSettings({...emailSettings, testEmail: e.target.value});
+                              setEmailSettings({ ...emailSettings, testEmail: e.target.value });
                             }}
                             placeholder="test@example.com"
                             className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1415,7 +1452,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={integrationSettings.googleAnalytics}
                           onChange={(e) => {
-                            setIntegrationSettings({...integrationSettings, googleAnalytics: e.target.value});
+                            setIntegrationSettings({ ...integrationSettings, googleAnalytics: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           placeholder="G-XXXXXXXXXX"
@@ -1428,7 +1465,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           type="text"
                           value={integrationSettings.facebookPixel}
                           onChange={(e) => {
-                            setIntegrationSettings({...integrationSettings, facebookPixel: e.target.value});
+                            setIntegrationSettings({ ...integrationSettings, facebookPixel: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           placeholder="1234567890"
@@ -1447,7 +1484,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={integrationSettings.enableZoom}
                         onChange={() => {
-                          setIntegrationSettings({...integrationSettings, enableZoom: !integrationSettings.enableZoom});
+                          setIntegrationSettings({ ...integrationSettings, enableZoom: !integrationSettings.enableZoom });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Zoom Integration"
@@ -1461,7 +1498,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="text"
                               value={integrationSettings.zoomApiKey}
                               onChange={(e) => {
-                                setIntegrationSettings({...integrationSettings, zoomApiKey: e.target.value});
+                                setIntegrationSettings({ ...integrationSettings, zoomApiKey: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1474,7 +1511,7 @@ export function SettingsPage({}: SettingsPageProps) {
                                 type={showPassword ? "text" : "password"}
                                 value={integrationSettings.zoomApiSecret}
                                 onChange={(e) => {
-                                  setIntegrationSettings({...integrationSettings, zoomApiSecret: e.target.value});
+                                  setIntegrationSettings({ ...integrationSettings, zoomApiSecret: e.target.value });
                                   setHasUnsavedChanges(true);
                                 }}
                                 className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1501,7 +1538,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={integrationSettings.enableSlack}
                         onChange={() => {
-                          setIntegrationSettings({...integrationSettings, enableSlack: !integrationSettings.enableSlack});
+                          setIntegrationSettings({ ...integrationSettings, enableSlack: !integrationSettings.enableSlack });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Slack Integration"
@@ -1513,7 +1550,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="url"
                             value={integrationSettings.slackWebhook}
                             onChange={(e) => {
-                              setIntegrationSettings({...integrationSettings, slackWebhook: e.target.value});
+                              setIntegrationSettings({ ...integrationSettings, slackWebhook: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             placeholder="https://hooks.slack.com/services/..."
@@ -1524,7 +1561,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={integrationSettings.enableMicrosoftTeams}
                         onChange={() => {
-                          setIntegrationSettings({...integrationSettings, enableMicrosoftTeams: !integrationSettings.enableMicrosoftTeams});
+                          setIntegrationSettings({ ...integrationSettings, enableMicrosoftTeams: !integrationSettings.enableMicrosoftTeams });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Microsoft Teams Integration"
@@ -1536,7 +1573,7 @@ export function SettingsPage({}: SettingsPageProps) {
                             type="url"
                             value={integrationSettings.teamsWebhook}
                             onChange={(e) => {
-                              setIntegrationSettings({...integrationSettings, teamsWebhook: e.target.value});
+                              setIntegrationSettings({ ...integrationSettings, teamsWebhook: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
                             placeholder="https://outlook.office.com/webhook/..."
@@ -1556,7 +1593,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={integrationSettings.enableLTI}
                         onChange={() => {
-                          setIntegrationSettings({...integrationSettings, enableLTI: !integrationSettings.enableLTI});
+                          setIntegrationSettings({ ...integrationSettings, enableLTI: !integrationSettings.enableLTI });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable LTI (Learning Tools Interoperability)"
@@ -1570,7 +1607,7 @@ export function SettingsPage({}: SettingsPageProps) {
                               type="text"
                               value={integrationSettings.ltiConsumerKey}
                               onChange={(e) => {
-                                setIntegrationSettings({...integrationSettings, ltiConsumerKey: e.target.value});
+                                setIntegrationSettings({ ...integrationSettings, ltiConsumerKey: e.target.value });
                                 setHasUnsavedChanges(true);
                               }}
                               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1583,7 +1620,7 @@ export function SettingsPage({}: SettingsPageProps) {
                                 type={showPassword ? "text" : "password"}
                                 value={integrationSettings.ltiConsumerSecret}
                                 onChange={(e) => {
-                                  setIntegrationSettings({...integrationSettings, ltiConsumerSecret: e.target.value});
+                                  setIntegrationSettings({ ...integrationSettings, ltiConsumerSecret: e.target.value });
                                   setHasUnsavedChanges(true);
                                 }}
                                 className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1614,7 +1651,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={gamificationSettings.enableGamification}
                         onChange={() => {
-                          setGamificationSettings({...gamificationSettings, enableGamification: !gamificationSettings.enableGamification});
+                          setGamificationSettings({ ...gamificationSettings, enableGamification: !gamificationSettings.enableGamification });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Gamification"
@@ -1623,7 +1660,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={gamificationSettings.enableBadges}
                         onChange={() => {
-                          setGamificationSettings({...gamificationSettings, enableBadges: !gamificationSettings.enableBadges});
+                          setGamificationSettings({ ...gamificationSettings, enableBadges: !gamificationSettings.enableBadges });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Badges"
@@ -1632,7 +1669,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={gamificationSettings.enableLeaderboards}
                         onChange={() => {
-                          setGamificationSettings({...gamificationSettings, enableLeaderboards: !gamificationSettings.enableLeaderboards});
+                          setGamificationSettings({ ...gamificationSettings, enableLeaderboards: !gamificationSettings.enableLeaderboards });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Leaderboards"
@@ -1641,7 +1678,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={gamificationSettings.enableCertificates}
                         onChange={() => {
-                          setGamificationSettings({...gamificationSettings, enableCertificates: !gamificationSettings.enableCertificates});
+                          setGamificationSettings({ ...gamificationSettings, enableCertificates: !gamificationSettings.enableCertificates });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Certificates"
@@ -1663,7 +1700,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           min="0"
                           value={gamificationSettings.pointsPerCourse}
                           onChange={(e) => {
-                            setGamificationSettings({...gamificationSettings, pointsPerCourse: parseInt(e.target.value)});
+                            setGamificationSettings({ ...gamificationSettings, pointsPerCourse: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1676,7 +1713,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           min="0"
                           value={gamificationSettings.pointsPerAssessment}
                           onChange={(e) => {
-                            setGamificationSettings({...gamificationSettings, pointsPerAssessment: parseInt(e.target.value)});
+                            setGamificationSettings({ ...gamificationSettings, pointsPerAssessment: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1689,7 +1726,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           min="0"
                           value={gamificationSettings.pointsPerPerfectScore}
                           onChange={(e) => {
-                            setGamificationSettings({...gamificationSettings, pointsPerPerfectScore: parseInt(e.target.value)});
+                            setGamificationSettings({ ...gamificationSettings, pointsPerPerfectScore: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1709,7 +1746,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <select
                           value={gamificationSettings.leaderboardPeriod}
                           onChange={(e) => {
-                            setGamificationSettings({...gamificationSettings, leaderboardPeriod: e.target.value});
+                            setGamificationSettings({ ...gamificationSettings, leaderboardPeriod: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1734,7 +1771,7 @@ export function SettingsPage({}: SettingsPageProps) {
                         <select
                           value={gamificationSettings.certificateTemplate}
                           onChange={(e) => {
-                            setGamificationSettings({...gamificationSettings, certificateTemplate: e.target.value});
+                            setGamificationSettings({ ...gamificationSettings, certificateTemplate: e.target.value });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1761,7 +1798,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={learningPathSettings.enablePrerequisites}
                         onChange={() => {
-                          setLearningPathSettings({...learningPathSettings, enablePrerequisites: !learningPathSettings.enablePrerequisites});
+                          setLearningPathSettings({ ...learningPathSettings, enablePrerequisites: !learningPathSettings.enablePrerequisites });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Prerequisites"
@@ -1770,7 +1807,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={learningPathSettings.enableSequentialLearning}
                         onChange={() => {
-                          setLearningPathSettings({...learningPathSettings, enableSequentialLearning: !learningPathSettings.enableSequentialLearning});
+                          setLearningPathSettings({ ...learningPathSettings, enableSequentialLearning: !learningPathSettings.enableSequentialLearning });
                           setHasUnsavedChanges(true);
                         }}
                         label="Sequential Learning"
@@ -1779,7 +1816,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={learningPathSettings.allowSkipping}
                         onChange={() => {
-                          setLearningPathSettings({...learningPathSettings, allowSkipping: !learningPathSettings.allowSkipping});
+                          setLearningPathSettings({ ...learningPathSettings, allowSkipping: !learningPathSettings.allowSkipping });
                           setHasUnsavedChanges(true);
                         }}
                         label="Allow Skipping"
@@ -1788,7 +1825,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={learningPathSettings.enableBranching}
                         onChange={() => {
-                          setLearningPathSettings({...learningPathSettings, enableBranching: !learningPathSettings.enableBranching});
+                          setLearningPathSettings({ ...learningPathSettings, enableBranching: !learningPathSettings.enableBranching });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Branching Paths"
@@ -1811,7 +1848,7 @@ export function SettingsPage({}: SettingsPageProps) {
                           max="100"
                           value={learningPathSettings.completionThreshold}
                           onChange={(e) => {
-                            setLearningPathSettings({...learningPathSettings, completionThreshold: parseInt(e.target.value)});
+                            setLearningPathSettings({ ...learningPathSettings, completionThreshold: parseInt(e.target.value) });
                             setHasUnsavedChanges(true);
                           }}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
@@ -1821,7 +1858,7 @@ export function SettingsPage({}: SettingsPageProps) {
                       <ToggleSwitch
                         enabled={learningPathSettings.enableTimeTracking}
                         onChange={() => {
-                          setLearningPathSettings({...learningPathSettings, enableTimeTracking: !learningPathSettings.enableTimeTracking});
+                          setLearningPathSettings({ ...learningPathSettings, enableTimeTracking: !learningPathSettings.enableTimeTracking });
                           setHasUnsavedChanges(true);
                         }}
                         label="Enable Time Tracking"

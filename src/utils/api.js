@@ -868,6 +868,18 @@ export const api = {
     return this.request(`/live-sessions/${id}`, {
       method: 'DELETE',
     });
+  },
+
+  // Settings
+  async getSettings() {
+    return this.request('/settings');
+  },
+
+  async updateSettings(category, settings) {
+    return this.request(`/settings/${category}`, {
+      method: 'PUT',
+      body: JSON.stringify(settings),
+    });
   }
 };
 
