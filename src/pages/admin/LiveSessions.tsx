@@ -13,7 +13,8 @@ import {
   Eye,
   Search,
   Filter,
-  X
+  X,
+  AlertCircle
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
@@ -41,9 +42,14 @@ export function LiveSessions() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState<LiveSession | null>(null);
+  const [selectedSession, setSelectedSession] = useState<LiveSession | null>(null);
 
   // Form state
   const [newSession, setNewSession] = useState<Partial<LiveSession>>({
+    id: '',
     title: '',
     description: '',
     instructor_id: '', // This should ideally be the current user or selected from a list
@@ -94,14 +100,69 @@ export function LiveSessions() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this session?')) return;
+  const handleDelete = (session: LiveSession) => {
+    setSessionToDelete(session);
+    setShowDeleteModal(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!sessionToDelete) return;
+
     try {
-      await api.deleteLiveSession(id);
-      setSessions(sessions.filter(s => s.id !== id));
+      await api.deleteLiveSession(sessionToDelete.id);
+      setSessions(sessions.filter(s => s.id !== sessionToDelete.id));
+      setShowDeleteModal(false);
+      setSessionToDelete(null);
     } catch (err: any) {
       alert('Failed to delete session: ' + err.message);
     }
+  };
+
+  const handleView = (session: LiveSession) => {
+    setSelectedSession(session);
+    setShowViewModal(true);
+  };
+
+  const handleEdit = (session: LiveSession) => {
+    // Format date for datetime-local input (YYYY-MM-DDThh:mm)
+    let formattedDate = '';
+    if (session.scheduled_at) {
+      const date = new Date(session.scheduled_at);
+      // Adjust to local time string format
+      const offset = date.getTimezoneOffset() * 60000;
+      formattedDate = new Date(date.getTime() - offset).toISOString().slice(0, 16);
+    }
+
+    setNewSession({
+      id: session.id,
+      title: session.title,
+      description: session.description || '',
+      instructor_id: session.instructor_id || newSession.instructor_id,
+      scheduled_at: formattedDate,
+      duration_minutes: session.duration_minutes,
+      max_attendees: session.max_attendees,
+      platform: session.platform,
+      meeting_url: session.meeting_url || '',
+      status: session.status,
+      category: session.category || 'General'
+    });
+    setShowCreateModal(true);
+  };
+
+  const handleCopy = (session: LiveSession) => {
+    setNewSession({
+      title: `${session.title} (Copy)`,
+      description: session.description || '',
+      instructor_id: session.instructor_id,
+      scheduled_at: '', // Clear date for copy
+      duration_minutes: session.duration_minutes,
+      max_attendees: session.max_attendees,
+      platform: session.platform,
+      meeting_url: session.meeting_url || '',
+      status: 'scheduled',
+      category: session.category || 'General'
+    });
+    setShowCreateModal(true);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -124,11 +185,17 @@ export function LiveSessions() {
         return;
       }
 
-      await api.createLiveSession(sessionData);
+      if (newSession.id) {
+        await api.updateLiveSession(newSession.id, sessionData);
+      } else {
+        await api.createLiveSession(sessionData);
+      }
+
       setShowCreateModal(false);
       fetchSessions();
       // Reset form
       setNewSession({
+        id: '',
         title: '',
         description: '',
         scheduled_at: '',
@@ -140,7 +207,7 @@ export function LiveSessions() {
         category: 'General'
       });
     } catch (err: any) {
-      alert('Failed to create session: ' + err.message);
+      alert('Failed to save session: ' + err.message);
     }
   };
 
@@ -378,17 +445,26 @@ export function LiveSessions() {
                           <LinkIcon size={14} />
                           Join
                         </a>
-                        <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors">
+                        <button
+                          onClick={() => handleView(session)}
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                        >
                           <Eye size={16} />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors">
+                        <button
+                          onClick={() => handleEdit(session)}
+                          className="p-2 text-gray-400 hover:text-purple-600 hover:bg-purple-50 rounded transition-colors"
+                        >
                           <Edit size={16} />
                         </button>
-                        <button className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors">
+                        <button
+                          onClick={() => handleCopy(session)}
+                          className="p-2 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                        >
                           <Copy size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(session.id)}
+                          onClick={() => handleDelete(session)}
                           className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
                         >
                           <Trash2 size={16} />
@@ -407,7 +483,7 @@ export function LiveSessions() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-xl font-bold">Schedule New Session</h2>
+                <h2 className="text-xl font-bold">{newSession.id ? 'Edit Session' : 'Schedule New Session'}</h2>
                 <button onClick={() => setShowCreateModal(false)} className="text-gray-500 hover:text-gray-700">
                   <X size={24} />
                 </button>
@@ -506,14 +582,144 @@ export function LiveSessions() {
                     type="submit"
                     className="px-4 py-2 bg-purple-600 text-white rounded-md text-sm font-medium hover:bg-purple-700"
                   >
-                    Create Session
+                    {newSession.id ? 'Update Session' : 'Create Session'}
                   </button>
                 </div>
               </form>
             </div>
           </div>
         )}
+
+        {/* Delete Session Modal */}
+        {showDeleteModal && sessionToDelete && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
+              <div className="p-6 border-b border-gray-200 flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0">
+                  <AlertCircle size={20} className="text-red-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Session</h3>
+              </div>
+              <div className="p-6">
+                <p className="text-gray-700 mb-4">
+                  Are you sure you want to delete <span className="font-semibold text-gray-900">"{sessionToDelete.title}"</span>?
+                </p>
+                <p className="text-sm text-gray-600">
+                  This action cannot be undone. The session and all its data will be permanently deleted.
+                </p>
+              </div>
+              <div className="p-6 border-t border-gray-200 flex items-center justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowDeleteModal(false);
+                    setSessionToDelete(null);
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmDelete}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 flex items-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  Delete Session
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* View Session Modal */}
+        {showViewModal && selectedSession && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+              <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900">{selectedSession.title}</h3>
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setSelectedSession(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+                  <span className={`px-2 py-1 rounded font-medium ${getStatusColor(selectedSession.status)}`}>
+                    {selectedSession.status}
+                  </span>
+                  <span className={`px-2 py-1 rounded font-medium ${getPlatformColor(selectedSession.platform)}`}>
+                    {selectedSession.platform.replace('_', ' ')}
+                  </span>
+                  <span>•</span>
+                  <span>{selectedSession.category}</span>
+                </div>
+
+                {selectedSession.description && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Description</h4>
+                    <p className="text-gray-600">{selectedSession.description}</p>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Date & Time</h4>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Calendar size={16} />
+                      <span>{new Date(selectedSession.scheduled_at).toLocaleDateString()}</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 mt-1">
+                      <Clock size={16} />
+                      <span>{new Date(selectedSession.scheduled_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Details</h4>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <Clock size={16} />
+                      <span>{selectedSession.duration_minutes} minutes</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-gray-600 mt-1">
+                      <Users size={16} />
+                      <span>Max {selectedSession.max_attendees} attendees</span>
+                    </div>
+                  </div>
+                </div>
+
+                {selectedSession.meeting_url && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-1">Meeting Link</h4>
+                    <a
+                      href={selectedSession.meeting_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-purple-600 hover:text-purple-700 hover:underline flex items-center gap-1"
+                    >
+                      <LinkIcon size={16} />
+                      {selectedSession.meeting_url}
+                    </a>
+                  </div>
+                )}
+              </div>
+              <div className="p-6 border-t border-gray-200 flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setSelectedSession(null);
+                  }}
+                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-    </div>
+    </div >
   );
 }
