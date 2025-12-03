@@ -1,4 +1,5 @@
 import { Role } from '../models/Role.js';
+import { Permission } from '../models/Permission.js';
 
 /**
  * Get all roles
@@ -31,9 +32,14 @@ export const getRoleById = async (req, res, next) => {
       });
     }
 
+    const permissions = await Permission.findKeysByRole(id);
+
     res.json({
       success: true,
-      role
+      role: {
+        ...role,
+        permissions
+      }
     });
   } catch (error) {
     next(error);
@@ -67,7 +73,10 @@ export const createRole = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      role
+      role: {
+        ...role,
+        permissions: []
+      }
     });
   } catch (error) {
     next(error);
@@ -122,6 +131,45 @@ export const deleteRole = async (req, res, next) => {
     res.json({
       success: true,
       message: 'Role deleted successfully'
+    });
+  } catch (error) {
+    if (error?.message && (
+      error.message.includes('Cannot delete system role') ||
+      error.message.includes('Cannot delete role')
+    )) {
+      return res.status(400).json({
+        success: false,
+        error: error.message
+      });
+    }
+    next(error);
+  }
+};
+
+/**
+ * Update role permissions
+ */
+export const updateRolePermissions = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { permission_keys } = req.body;
+
+    const role = await Role.findById(id);
+    if (!role) {
+      return res.status(404).json({
+        success: false,
+        error: 'Role not found'
+      });
+    }
+
+    const updatedKeys = await Permission.setRolePermissions(
+      id,
+      Array.isArray(permission_keys) ? permission_keys : []
+    );
+
+    res.json({
+      success: true,
+      permissions: updatedKeys
     });
   } catch (error) {
     next(error);

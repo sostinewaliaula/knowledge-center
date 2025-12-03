@@ -5,7 +5,12 @@ export class Role {
    * Find role by ID
    */
   static async findById(id) {
-    const sql = 'SELECT * FROM roles WHERE id = ?';
+    const sql = `
+      SELECT r.*,
+             (SELECT COUNT(*) FROM users u WHERE u.role_id = r.id) as user_count
+      FROM roles r
+      WHERE r.id = ?
+    `;
     return await queryOne(sql, [id]);
   }
 
@@ -21,7 +26,12 @@ export class Role {
    * Get all roles
    */
   static async findAll() {
-    const sql = 'SELECT * FROM roles ORDER BY name ASC';
+    const sql = `
+      SELECT r.*,
+             (SELECT COUNT(*) FROM users u WHERE u.role_id = r.id) as user_count
+      FROM roles r
+      ORDER BY r.name ASC
+    `;
     return await query(sql);
   }
 

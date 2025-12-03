@@ -115,6 +115,62 @@ export const api = {
     return response.role;
   },
 
+  async createRole(roleData) {
+    const response = await this.request('/roles', {
+      method: 'POST',
+      body: JSON.stringify(roleData),
+    });
+    return response.role;
+  },
+
+  async updateRole(id, roleData) {
+    const response = await this.request(`/roles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(roleData),
+    });
+    return response.role;
+  },
+
+  async deleteRole(id) {
+    return this.request(`/roles/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getPermissions() {
+    const response = await this.request('/permissions');
+    return response.permissions || [];
+  },
+
+  async updateRolePermissions(id, permissionKeys) {
+    return this.request(`/roles/${id}/permissions`, {
+      method: 'PUT',
+      body: JSON.stringify({ permission_keys: permissionKeys }),
+    });
+  },
+
+  async createRole(roleData) {
+    const response = await this.request('/roles', {
+      method: 'POST',
+      body: JSON.stringify(roleData),
+    });
+    return response.role;
+  },
+
+  async updateRole(id, roleData) {
+    const response = await this.request(`/roles/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(roleData),
+    });
+    return response.role;
+  },
+
+  async deleteRole(id) {
+    return this.request(`/roles/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // Content endpoints
   async getContents(page = 1, limit = 20, search = '', filterType = 'all') {
     const params = new URLSearchParams();

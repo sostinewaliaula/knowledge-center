@@ -19,6 +19,9 @@ router.post('/', roleController.createRole);
 // Update role
 router.put('/:id', roleController.updateRole);
 
+// Update role permissions
+router.put('/:id/permissions', roleController.updateRolePermissions);
+
 // Delete role
 router.delete('/:id', roleController.deleteRole);
 

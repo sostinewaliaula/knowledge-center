@@ -13,6 +13,7 @@ const __dirname = path.dirname(__filename);
 import authRoutes from './routes/auth.routes.js';
 import userRoutes from './routes/user.routes.js';
 import roleRoutes from './routes/role.routes.js';
+import permissionRoutes from './routes/permission.routes.js';
 import contentRoutes from './routes/content.routes.js';
 import courseRoutes from './routes/course.routes.js';
 import learningPathRoutes from './routes/learningPath.routes.js';
@@ -76,6 +77,7 @@ app.get('/api', (req, res) => {
           learningPaths: '/api/learning-paths',
           categories: '/api/categories',
           tags: '/api/tags',
+          permissions: '/api/permissions',
           templates: '/api/templates',
           assessments: '/api/assessments',
           assignments: '/api/assignments',
@@ -88,6 +90,7 @@ app.get('/api', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/roles', roleRoutes);
+app.use('/api/permissions', permissionRoutes);
 app.use('/api/content', contentRoutes);
 app.use('/api/courses', courseRoutes);
 app.use('/api/learning-paths', learningPathRoutes);
