@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
+import {
   LayoutDashboard,
   FolderOpen,
   BookOpen,
@@ -155,21 +155,30 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col h-screen transition-all duration-300`}>
       {/* Logo */}
+      {/* Logo */}
       <div className={`${collapsed ? 'px-2' : 'px-6'} py-4 border-b border-gray-200 flex items-center justify-between`}>
         {!collapsed && (
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-green-600 rounded-lg flex items-center justify-center">
-              <GraduationCap size={20} className="text-white" />
-            </div>
+            <img
+              src="/assets/CcT2K1dC8NCSuB6a.png"
+              alt="Knowledge Center Logo"
+              className="w-10 h-10 object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }}
+            />
             <div>
-              <h1 className="text-lg font-bold text-gray-900">Knowledge Center</h1>
-              <p className="text-xs text-gray-500">Admin Portal</p>
+              <div className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent leading-tight">Knowledge Center</div>
+              <div className="text-[10px] text-gray-500 leading-tight">TQ Academy</div>
             </div>
           </div>
         )}
         {collapsed && (
-          <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-green-600 rounded-lg flex items-center justify-center mx-auto">
-            <GraduationCap size={20} className="text-white" />
+          <div className="flex justify-center w-full">
+            <img
+              src="/assets/CcT2K1dC8NCSuB6a.png"
+              alt="KC"
+              className="w-10 h-10 object-contain"
+              onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }}
+            />
           </div>
         )}
       </div>
@@ -189,9 +198,8 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
                 <div key={item.id}>
                   <button
                     onClick={() => toggleSection(item.id)}
-                    className={`w-full ${collapsed ? 'px-2 justify-center' : 'px-4'} py-2.5 flex items-center gap-3 rounded-lg transition-colors ${
-                      (active || hasActiveChild) ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
-                    }`}
+                    className={`w-full ${collapsed ? 'px-2 justify-center' : 'px-4'} py-2.5 flex items-center gap-3 rounded-lg transition-colors ${(active || hasActiveChild) ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
+                      }`}
                   >
                     <item.icon size={20} />
                     {!collapsed && (
@@ -216,11 +224,10 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
                           <button
                             key={child.path}
                             onClick={() => navigate(child.path)}
-                            className={`w-full px-3 py-2 flex items-center gap-3 rounded-lg text-sm transition-colors ${
-                              childActive
+                            className={`w-full px-3 py-2 flex items-center gap-3 rounded-lg text-sm transition-colors ${childActive
                                 ? 'bg-purple-50 text-purple-700 font-medium'
                                 : 'text-gray-600 hover:bg-gray-50'
-                            }`}
+                              }`}
                           >
                             <child.icon size={16} />
                             <span>{child.label}</span>
@@ -237,9 +244,8 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
               <button
                 key={item.id}
                 onClick={() => navigate(item.path || '/admin')}
-                className={`w-full ${collapsed ? 'px-2 justify-center' : 'px-4'} py-2.5 flex items-center gap-3 rounded-lg transition-colors ${
-                  active ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`w-full ${collapsed ? 'px-2 justify-center' : 'px-4'} py-2.5 flex items-center gap-3 rounded-lg transition-colors ${active ? `${item.bgColor} ${item.color}` : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 title={collapsed ? item.label : undefined}
               >
                 <item.icon size={20} />
