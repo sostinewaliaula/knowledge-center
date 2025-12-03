@@ -23,6 +23,7 @@ import templateRoutes from './routes/template.routes.js';
 import assessmentRoutes from './routes/assessment.routes.js';
 import assignmentRoutes from './routes/assignment.routes.js';
 import examRoutes from './routes/exam.routes.js';
+import liveSessionRoutes from './routes/liveSession.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -72,17 +73,17 @@ app.get('/api', (req, res) => {
       auth: '/api/auth',
       users: '/api/users',
       roles: '/api/roles',
-          content: '/api/content',
-          courses: '/api/courses',
-          learningPaths: '/api/learning-paths',
-          categories: '/api/categories',
-          tags: '/api/tags',
-          permissions: '/api/permissions',
-          templates: '/api/templates',
-          assessments: '/api/assessments',
-          assignments: '/api/assignments',
-          exams: '/api/exams'
-        }
+      content: '/api/content',
+      courses: '/api/courses',
+      learningPaths: '/api/learning-paths',
+      categories: '/api/categories',
+      tags: '/api/tags',
+      permissions: '/api/permissions',
+      templates: '/api/templates',
+      assessments: '/api/assessments',
+      assignments: '/api/assignments',
+      exams: '/api/exams'
+    }
   });
 });
 
@@ -100,6 +101,7 @@ app.use('/api/templates', templateRoutes);
 app.use('/api/assessments', assessmentRoutes);
 app.use('/api/assignments', assignmentRoutes);
 app.use('/api/exams', examRoutes);
+app.use('/api/live-sessions', liveSessionRoutes);
 
 // 404 handler
 app.use(notFound);

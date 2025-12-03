@@ -190,7 +190,7 @@ export const api = {
   async uploadContent(file, title, description, categoryId, isPublic, tags = null) {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const token = localStorage.getItem('authToken');
-    
+
     const formData = new FormData();
     formData.append('file', file);
     if (title) formData.append('title', title);
@@ -252,12 +252,12 @@ export const api = {
   getContentDownloadUrl(id, view = false) {
     const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
     const token = localStorage.getItem('authToken');
-    
+
     // For viewing, use the public view endpoint
     if (view) {
       return `${API_BASE_URL}/content/${id}/view?token=${token}`;
     }
-    
+
     // For downloading, use the download endpoint
     return `${API_BASE_URL}/content/${id}/download?token=${token}`;
   },
@@ -427,162 +427,162 @@ export const api = {
     });
   },
 
-    async updateCourseRequirement(pathId, courseId, isRequired) {
-      return this.request(`/learning-paths/${pathId}/courses/${courseId}/requirement`, {
-        method: 'PUT',
-        body: JSON.stringify({ is_required: isRequired }),
-      });
-    },
+  async updateCourseRequirement(pathId, courseId, isRequired) {
+    return this.request(`/learning-paths/${pathId}/courses/${courseId}/requirement`, {
+      method: 'PUT',
+      body: JSON.stringify({ is_required: isRequired }),
+    });
+  },
 
-    // ============================================
-    // CATEGORY API METHODS
-    // ============================================
+  // ============================================
+  // CATEGORY API METHODS
+  // ============================================
 
-    async getCategories(page = 1, limit = 100, search = '', parentId = null) {
-      const params = new URLSearchParams();
-      if (page) params.append('page', page);
-      if (limit) params.append('limit', limit);
-      if (search) params.append('search', search);
-      if (parentId !== null) params.append('parent_id', parentId);
-      const queryString = params.toString();
-      return this.request(`/categories${queryString ? `?${queryString}` : ''}`);
-    },
+  async getCategories(page = 1, limit = 100, search = '', parentId = null) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (parentId !== null) params.append('parent_id', parentId);
+    const queryString = params.toString();
+    return this.request(`/categories${queryString ? `?${queryString}` : ''}`);
+  },
 
-    async getCategory(id) {
-      const response = await this.request(`/categories/${id}`);
-      return response.category;
-    },
+  async getCategory(id) {
+    const response = await this.request(`/categories/${id}`);
+    return response.category;
+  },
 
-    async getCategoryChildren(id) {
-      const response = await this.request(`/categories/${id}/children`);
-      return response.categories;
-    },
+  async getCategoryChildren(id) {
+    const response = await this.request(`/categories/${id}/children`);
+    return response.categories;
+  },
 
-    async createCategory(categoryData) {
-      const response = await this.request('/categories', {
-        method: 'POST',
-        body: JSON.stringify(categoryData),
-      });
-      return response.category;
-    },
+  async createCategory(categoryData) {
+    const response = await this.request('/categories', {
+      method: 'POST',
+      body: JSON.stringify(categoryData),
+    });
+    return response.category;
+  },
 
-    async updateCategory(id, categoryData) {
-      const response = await this.request(`/categories/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(categoryData),
-      });
-      return response.category;
-    },
+  async updateCategory(id, categoryData) {
+    const response = await this.request(`/categories/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(categoryData),
+    });
+    return response.category;
+  },
 
-    async deleteCategory(id) {
-      return this.request(`/categories/${id}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteCategory(id) {
+    return this.request(`/categories/${id}`, {
+      method: 'DELETE',
+    });
+  },
 
-    // ============================================
-    // TAG API METHODS
-    // ============================================
+  // ============================================
+  // TAG API METHODS
+  // ============================================
 
-    async getTags(page = 1, limit = 100, search = '') {
-      const params = new URLSearchParams();
-      if (page) params.append('page', page);
-      if (limit) params.append('limit', limit);
-      if (search) params.append('search', search);
-      const queryString = params.toString();
-      return this.request(`/tags${queryString ? `?${queryString}` : ''}`);
-    },
+  async getTags(page = 1, limit = 100, search = '') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    const queryString = params.toString();
+    return this.request(`/tags${queryString ? `?${queryString}` : ''}`);
+  },
 
-    async getTag(id) {
-      const response = await this.request(`/tags/${id}`);
-      return response.tag;
-    },
+  async getTag(id) {
+    const response = await this.request(`/tags/${id}`);
+    return response.tag;
+  },
 
-    async createTag(tagData) {
-      const response = await this.request('/tags', {
-        method: 'POST',
-        body: JSON.stringify(tagData),
-      });
-      return response.tag;
-    },
+  async createTag(tagData) {
+    const response = await this.request('/tags', {
+      method: 'POST',
+      body: JSON.stringify(tagData),
+    });
+    return response.tag;
+  },
 
-    async updateTag(id, tagData) {
-      const response = await this.request(`/tags/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(tagData),
-      });
-      return response.tag;
-    },
+  async updateTag(id, tagData) {
+    const response = await this.request(`/tags/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(tagData),
+    });
+    return response.tag;
+  },
 
-    async deleteTag(id) {
-      return this.request(`/tags/${id}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteTag(id) {
+    return this.request(`/tags/${id}`, {
+      method: 'DELETE',
+    });
+  },
 
-    // Template API methods
-    async getTemplates(page = 1, limit = 20, search = '', type = 'all', isPublic = null) {
-      const params = new URLSearchParams();
-      if (page) params.append('page', page);
-      if (limit) params.append('limit', limit);
-      if (search) params.append('search', search);
-      if (type && type !== 'all') params.append('type', type);
-      if (isPublic !== null) params.append('isPublic', isPublic);
-      const queryString = params.toString();
-      return this.request(`/templates${queryString ? `?${queryString}` : ''}`);
-    },
+  // Template API methods
+  async getTemplates(page = 1, limit = 20, search = '', type = 'all', isPublic = null) {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (type && type !== 'all') params.append('type', type);
+    if (isPublic !== null) params.append('isPublic', isPublic);
+    const queryString = params.toString();
+    return this.request(`/templates${queryString ? `?${queryString}` : ''}`);
+  },
 
-    async getTemplate(id) {
-      const response = await this.request(`/templates/${id}`);
-      return response.template;
-    },
+  async getTemplate(id) {
+    const response = await this.request(`/templates/${id}`);
+    return response.template;
+  },
 
-    async createTemplate(templateData) {
-      const response = await this.request('/templates', {
-        method: 'POST',
-        body: JSON.stringify(templateData),
-      });
-      return response.template;
-    },
+  async createTemplate(templateData) {
+    const response = await this.request('/templates', {
+      method: 'POST',
+      body: JSON.stringify(templateData),
+    });
+    return response.template;
+  },
 
-    async updateTemplate(id, templateData) {
-      const response = await this.request(`/templates/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(templateData),
-      });
-      return response.template;
-    },
+  async updateTemplate(id, templateData) {
+    const response = await this.request(`/templates/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(templateData),
+    });
+    return response.template;
+  },
 
-    async deleteTemplate(id) {
-      return this.request(`/templates/${id}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteTemplate(id) {
+    return this.request(`/templates/${id}`, {
+      method: 'DELETE',
+    });
+  },
 
-    async useTemplate(id, title = null, description = null) {
-      const response = await this.request(`/templates/${id}/use`, {
-        method: 'POST',
-        body: JSON.stringify({ title, description }),
-      });
-      return response;
-    },
+  async useTemplate(id, title = null, description = null) {
+    const response = await this.request(`/templates/${id}/use`, {
+      method: 'POST',
+      body: JSON.stringify({ title, description }),
+    });
+    return response;
+  },
 
-    // Assessment API methods
-    async getAssessments(page = 1, limit = 20, search = '', status = 'all', type = 'all') {
-      const params = new URLSearchParams();
-      if (page) params.append('page', page);
-      if (limit) params.append('limit', limit);
-      if (search) params.append('search', search);
-      if (status && status !== 'all') params.append('status', status);
-      if (type && type !== 'all') params.append('type', type);
-      const queryString = params.toString();
-      return this.request(`/assessments${queryString ? `?${queryString}` : ''}`);
-    },
+  // Assessment API methods
+  async getAssessments(page = 1, limit = 20, search = '', status = 'all', type = 'all') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    if (status && status !== 'all') params.append('status', status);
+    if (type && type !== 'all') params.append('type', type);
+    const queryString = params.toString();
+    return this.request(`/assessments${queryString ? `?${queryString}` : ''}`);
+  },
 
-    async getAssessment(id) {
-      const response = await this.request(`/assessments/${id}`);
-      return response.assessment;
-    },
+  async getAssessment(id) {
+    const response = await this.request(`/assessments/${id}`);
+    return response.assessment;
+  },
 
   async getAssessmentsByCourse(courseId) {
     const response = await this.request(`/assessments/course/${courseId}`);
@@ -594,81 +594,81 @@ export const api = {
     return response.assessments || [];
   },
 
-    async createAssessment(assessmentData) {
-      const response = await this.request('/assessments', {
-        method: 'POST',
-        body: JSON.stringify(assessmentData),
-      });
-      return response.assessment;
-    },
+  async createAssessment(assessmentData) {
+    const response = await this.request('/assessments', {
+      method: 'POST',
+      body: JSON.stringify(assessmentData),
+    });
+    return response.assessment;
+  },
 
-    async updateAssessment(id, assessmentData) {
-      const response = await this.request(`/assessments/${id}`, {
-        method: 'PUT',
-        body: JSON.stringify(assessmentData),
-      });
-      return response.assessment;
-    },
+  async updateAssessment(id, assessmentData) {
+    const response = await this.request(`/assessments/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(assessmentData),
+    });
+    return response.assessment;
+  },
 
-    async deleteAssessment(id) {
-      return this.request(`/assessments/${id}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteAssessment(id) {
+    return this.request(`/assessments/${id}`, {
+      method: 'DELETE',
+    });
+  },
 
-    // Question methods
-    async getQuestions(assessmentId) {
-      const response = await this.request(`/assessments/${assessmentId}/questions`);
-      return response.questions;
-    },
+  // Question methods
+  async getQuestions(assessmentId) {
+    const response = await this.request(`/assessments/${assessmentId}/questions`);
+    return response.questions;
+  },
 
-    async createQuestion(assessmentId, questionData) {
-      const response = await this.request(`/assessments/${assessmentId}/questions`, {
-        method: 'POST',
-        body: JSON.stringify(questionData),
-      });
-      return response.question;
-    },
+  async createQuestion(assessmentId, questionData) {
+    const response = await this.request(`/assessments/${assessmentId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
 
-    async updateQuestion(questionId, questionData) {
-      const response = await this.request(`/assessments/questions/${questionId}`, {
-        method: 'PUT',
-        body: JSON.stringify(questionData),
-      });
-      return response.question;
-    },
+  async updateQuestion(questionId, questionData) {
+    const response = await this.request(`/assessments/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
 
-    async deleteQuestion(questionId) {
-      return this.request(`/assessments/questions/${questionId}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteQuestion(questionId) {
+    return this.request(`/assessments/questions/${questionId}`, {
+      method: 'DELETE',
+    });
+  },
 
-    async reorderQuestions(assessmentId, questionOrders) {
-      return this.request(`/assessments/${assessmentId}/questions/reorder`, {
-        method: 'PUT',
-        body: JSON.stringify({ questionOrders }),
-      });
-    },
+  async reorderQuestions(assessmentId, questionOrders) {
+    return this.request(`/assessments/${assessmentId}/questions/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ questionOrders }),
+    });
+  },
 
-    async publishQuestion(questionId) {
-      const response = await this.request(`/assessments/questions/${questionId}/publish`, {
-        method: 'PUT',
-      });
-      return response.question;
-    },
+  async publishQuestion(questionId) {
+    const response = await this.request(`/assessments/questions/${questionId}/publish`, {
+      method: 'PUT',
+    });
+    return response.question;
+  },
 
-    async unpublishQuestion(questionId) {
-      const response = await this.request(`/assessments/questions/${questionId}/unpublish`, {
-        method: 'PUT',
-      });
-      return response.question;
-    },
+  async unpublishQuestion(questionId) {
+    const response = await this.request(`/assessments/questions/${questionId}/unpublish`, {
+      method: 'PUT',
+    });
+    return response.question;
+  },
 
-    async getQuestionHistory(questionId) {
-      const response = await this.request(`/assessments/questions/${questionId}/history`);
-      return response.history;
-    },
+  async getQuestionHistory(questionId) {
+    const response = await this.request(`/assessments/questions/${questionId}/history`);
+    return response.history;
+  },
 
   // Assignments endpoints
   async getAssignments(page = 1, limit = 20, search = '', status = 'all', type = 'all') {
@@ -704,40 +704,40 @@ export const api = {
     return response.assignments || [];
   },
 
-    // Assignment questions (quiz-style)
-    async getAssignmentQuestions(assignmentId) {
-      const response = await this.request(`/assignments/${assignmentId}/questions`);
-      return response.questions;
-    },
+  // Assignment questions (quiz-style)
+  async getAssignmentQuestions(assignmentId) {
+    const response = await this.request(`/assignments/${assignmentId}/questions`);
+    return response.questions;
+  },
 
-    async createAssignmentQuestion(assignmentId, questionData) {
-      const response = await this.request(`/assignments/${assignmentId}/questions`, {
-        method: 'POST',
-        body: JSON.stringify(questionData),
-      });
-      return response.question;
-    },
+  async createAssignmentQuestion(assignmentId, questionData) {
+    const response = await this.request(`/assignments/${assignmentId}/questions`, {
+      method: 'POST',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
 
-    async updateAssignmentQuestion(questionId, questionData) {
-      const response = await this.request(`/assignments/questions/${questionId}`, {
-        method: 'PUT',
-        body: JSON.stringify(questionData),
-      });
-      return response.question;
-    },
+  async updateAssignmentQuestion(questionId, questionData) {
+    const response = await this.request(`/assignments/questions/${questionId}`, {
+      method: 'PUT',
+      body: JSON.stringify(questionData),
+    });
+    return response.question;
+  },
 
-    async deleteAssignmentQuestion(questionId) {
-      return this.request(`/assignments/questions/${questionId}`, {
-        method: 'DELETE',
-      });
-    },
+  async deleteAssignmentQuestion(questionId) {
+    return this.request(`/assignments/questions/${questionId}`, {
+      method: 'DELETE',
+    });
+  },
 
-    async reorderAssignmentQuestions(assignmentId, questionOrders) {
-      return this.request(`/assignments/${assignmentId}/questions/reorder`, {
-        method: 'PUT',
-        body: JSON.stringify({ questionOrders }),
-      });
-    },
+  async reorderAssignmentQuestions(assignmentId, questionOrders) {
+    return this.request(`/assignments/${assignmentId}/questions/reorder`, {
+      method: 'PUT',
+      body: JSON.stringify({ questionOrders }),
+    });
+  },
 
   async createAssignment(assignmentData) {
     const response = await this.request('/assignments', {
@@ -789,39 +789,6 @@ export const api = {
     return response.exams || [];
   },
 
-  async getExamsByLesson(lessonId) {
-    const response = await this.request(`/exams/lesson/${lessonId}`);
-    return response.exams || [];
-  },
-
-  async createExam(examData) {
-    const response = await this.request('/exams', {
-      method: 'POST',
-      body: JSON.stringify(examData),
-    });
-    return response.exam;
-  },
-
-  async updateExam(id, examData) {
-    const response = await this.request(`/exams/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(examData),
-    });
-    return response.exam;
-  },
-
-  async deleteExam(id) {
-    return this.request(`/exams/${id}`, {
-      method: 'DELETE',
-    });
-  },
-
-  // Exam Questions endpoints
-  async getExamQuestions(examId) {
-    const response = await this.request(`/exams/${examId}/questions`);
-    return response.questions;
-  },
-
   async createExamQuestion(examId, questionData) {
     const response = await this.request(`/exams/${examId}/questions`, {
       method: 'POST',
@@ -868,6 +835,39 @@ export const api = {
   async getExamQuestionHistory(questionId) {
     const response = await this.request(`/exams/questions/${questionId}/history`);
     return response.history;
+  },
+
+  // Live Sessions endpoints
+  async getLiveSessions(status = '', search = '') {
+    const params = new URLSearchParams();
+    if (status && status !== 'all') params.append('status', status);
+    if (search) params.append('search', search);
+    const queryString = params.toString();
+    return this.request(`/live-sessions${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async getLiveSession(id) {
+    return this.request(`/live-sessions/${id}`);
+  },
+
+  async createLiveSession(sessionData) {
+    return this.request('/live-sessions', {
+      method: 'POST',
+      body: JSON.stringify(sessionData),
+    });
+  },
+
+  async updateLiveSession(id, sessionData) {
+    return this.request(`/live-sessions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(sessionData),
+    });
+  },
+
+  async deleteLiveSession(id) {
+    return this.request(`/live-sessions/${id}`, {
+      method: 'DELETE',
+    });
   }
 };
 
