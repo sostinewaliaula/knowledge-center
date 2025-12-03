@@ -1,4 +1,5 @@
 import { Settings } from '../models/Settings.js';
+import { sendTestEmail } from '../utils/email.js';
 
 export const getSettings = async (req, res, next) => {
     try {
@@ -38,6 +39,31 @@ export const updateSettings = async (req, res, next) => {
         }
 
         res.json(result);
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const testEmail = async (req, res, next) => {
+    try {
+        const { email } = req.body;
+
+        // Use provided email or fallback to user's email
+        const targetEmail = email || req.user.email;
+
+        if (!targetEmail) {
+            return res.status(400).json({
+                success: false,
+                error: 'Target email is required'
+            });
+        }
+
+        await sendTestEmail(targetEmail);
+
+        res.json({
+            success: true,
+            message: `Test email sent to ${targetEmail}`
+        });
     } catch (error) {
         next(error);
     }

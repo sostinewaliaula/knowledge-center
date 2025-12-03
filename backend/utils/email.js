@@ -4,9 +4,29 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Create email transporter
-const createTransporter = () => {
-  // In development, use a mock transporter
-  if (process.env.NODE_ENV === 'development' && !process.env.EMAIL_HOST) {
+const createTransporter = async () => {
+  let emailSettings = {};
+
+  try {
+    // Try to get settings from database
+    const settingsRow = await Settings.findByCategory('email');
+    if (settingsRow && settingsRow.settings) {
+      emailSettings = typeof settingsRow.settings === 'string'
+        ? JSON.parse(settingsRow.settings)
+        : settingsRow.settings;
+    }
+  } catch (error) {
+    console.error('Failed to fetch email settings:', error);
+  }
+
+  // Use settings if available, otherwise fallback to env vars
+  const host = emailSettings.smtpHost || process.env.EMAIL_HOST;
+  const port = parseInt(emailSettings.smtpPort || process.env.EMAIL_PORT || '587', 10);
+  const user = emailSettings.smtpUser || process.env.EMAIL_USER;
+  const pass = emailSettings.smtpPass || process.env.EMAIL_PASS;
+
+  // In development, use a mock transporter if no host configured
+  if (process.env.NODE_ENV === 'development' && !host) {
     return {
       sendMail: async (options) => {
         console.log('\n📧 Email (Development Mode - Not Sent):');
@@ -20,12 +40,12 @@ const createTransporter = () => {
   }
 
   return nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
-    port: parseInt(process.env.EMAIL_PORT || '587', 10),
-    secure: process.env.EMAIL_PORT === '465',
+    host,
+    port,
+    secure: port === 465,
     auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS
+      user,
+      pass
     }
   });
 };
@@ -34,6 +54,27 @@ const transporter = createTransporter();
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'noreply@knowledgecenter.com';
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 
+import { Settings } from '../models/Settings.js';
+
+/**
+ * Check if email notifications are enabled
+ */
+const areEmailNotificationsEnabled = async () => {
+  try {
+    const settingsRow = await Settings.findByCategory('notifications');
+    if (!settingsRow || !settingsRow.settings) return true; // Default to true if no settings
+
+    const settings = typeof settingsRow.settings === 'string'
+      ? JSON.parse(settingsRow.settings)
+      : settingsRow.settings;
+
+    return settings.emailNotifications !== false;
+  } catch (error) {
+    console.error('Error checking email settings:', error);
+    return true; // Default to true on error
+  }
+};
+
 /**
  * Send password reset OTP email
  * @param {string} email - Recipient email
@@ -41,6 +82,12 @@ const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
  * @returns {Promise<Object>} Email send result
  */
 export const sendOTPEmail = async (email, otp) => {
+  // Check settings first
+  if (!(await areEmailNotificationsEnabled())) {
+    console.log(`\n🚫 Email notifications disabled. OTP for ${email}: ${otp}\n`);
+    return { messageId: 'skipped-by-settings' };
+  }
+
   const mailOptions = {
     from: FROM_EMAIL,
     to: email,
@@ -94,12 +141,12 @@ export const sendOTPEmail = async (email, otp) => {
 
   try {
     const result = await transporter.sendMail(mailOptions);
-    
+
     // In development, also log the OTP for easy testing
     if (process.env.NODE_ENV === 'development') {
       console.log(`\n🔑 OTP for ${email}: ${otp}\n`);
     }
-    
+
     return result;
   } catch (error) {
     console.error('Email send error:', error);
@@ -153,6 +200,56 @@ export const sendWelcomeEmail = async (email, name) => {
     console.error('Email send error:', error);
     // Don't throw error for welcome emails as they're not critical
     return null;
+  }
+};
+
+/**
+ * Send test email
+ * @param {string} email - Recipient email
+ * @returns {Promise<Object>} Email send result
+ */
+export const sendTestEmail = async (email) => {
+  const mailOptions = {
+    from: FROM_EMAIL,
+    to: email,
+    subject: 'Test Email - Knowledge Center',
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #9333EA 0%, #10B981 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+          .footer { text-align: center; margin-top: 20px; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>Knowledge Center</h1>
+          </div>
+          <div class="content">
+            <h2>Test Email</h2>
+            <p>This is a test email to verify your SMTP configuration.</p>
+            <p>If you are receiving this, your email settings are configured correctly!</p>
+          </div>
+          <div class="footer">
+            <p>Knowledge Center LMS &copy; ${new Date().getFullYear()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `
+  };
+
+  try {
+    const transport = await createTransporter();
+    return await transport.sendMail(mailOptions);
+  } catch (error) {
+    console.error('Test email send error:', error);
+    throw error;
   }
 };
 
