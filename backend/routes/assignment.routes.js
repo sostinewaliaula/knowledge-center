@@ -17,5 +17,12 @@ router.post('/', assignmentController.createAssignment);
 router.put('/:id', assignmentController.updateAssignment);
 router.delete('/:id', assignmentController.deleteAssignment);
 
+// Quiz questions for assignments
+router.get('/:assignmentId/questions', assignmentController.getQuestions);
+router.post('/:assignmentId/questions', assignmentController.createQuestion);
+router.put('/questions/:questionId', assignmentController.updateQuestion);
+router.delete('/questions/:questionId', assignmentController.deleteQuestion);
+router.put('/:assignmentId/questions/reorder', assignmentController.reorderQuestions);
+
 export default router;
 

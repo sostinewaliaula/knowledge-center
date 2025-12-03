@@ -109,6 +109,12 @@ export class Assignment {
       allowed_file_types,
       due_date,
       max_score,
+      passing_score,
+      time_limit_minutes,
+      max_attempts,
+      is_required,
+      randomize_questions,
+      show_results,
       status,
       created_by
     } = assignmentData;
@@ -116,9 +122,11 @@ export class Assignment {
     const sql = `
       INSERT INTO assignments (
         course_id, lesson_id, title, description, type, instructions,
-        max_file_size_mb, allowed_file_types, due_date, max_score, status, created_by
+        max_file_size_mb, allowed_file_types, due_date, max_score,
+        passing_score, time_limit_minutes, max_attempts, is_required,
+        randomize_questions, show_results, status, created_by
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `;
 
     await query(sql, [
@@ -132,6 +140,12 @@ export class Assignment {
       allowed_file_types || 'pdf,doc,docx,txt',
       due_date || null,
       max_score || 100.00,
+      passing_score || null,
+      time_limit_minutes || null,
+      max_attempts || null,
+      typeof is_required === 'boolean' ? (is_required ? 1 : 0) : null,
+      typeof randomize_questions === 'boolean' ? (randomize_questions ? 1 : 0) : null,
+      typeof show_results === 'boolean' ? (show_results ? 1 : 0) : null,
       status || 'draft',
       created_by || null
     ]);
@@ -151,8 +165,23 @@ export class Assignment {
     const values = [];
 
     const allowedFields = [
-      'course_id', 'lesson_id', 'title', 'description', 'type', 'instructions',
-      'max_file_size_mb', 'allowed_file_types', 'due_date', 'max_score', 'status'
+      'course_id',
+      'lesson_id',
+      'title',
+      'description',
+      'type',
+      'instructions',
+      'max_file_size_mb',
+      'allowed_file_types',
+      'due_date',
+      'max_score',
+      'passing_score',
+      'time_limit_minutes',
+      'max_attempts',
+      'is_required',
+      'randomize_questions',
+      'show_results',
+      'status'
     ];
 
     for (const field of allowedFields) {

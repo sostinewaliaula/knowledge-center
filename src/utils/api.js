@@ -648,6 +648,41 @@ export const api = {
     return response.assignments || [];
   },
 
+    // Assignment questions (quiz-style)
+    async getAssignmentQuestions(assignmentId) {
+      const response = await this.request(`/assignments/${assignmentId}/questions`);
+      return response.questions;
+    },
+
+    async createAssignmentQuestion(assignmentId, questionData) {
+      const response = await this.request(`/assignments/${assignmentId}/questions`, {
+        method: 'POST',
+        body: JSON.stringify(questionData),
+      });
+      return response.question;
+    },
+
+    async updateAssignmentQuestion(questionId, questionData) {
+      const response = await this.request(`/assignments/questions/${questionId}`, {
+        method: 'PUT',
+        body: JSON.stringify(questionData),
+      });
+      return response.question;
+    },
+
+    async deleteAssignmentQuestion(questionId) {
+      return this.request(`/assignments/questions/${questionId}`, {
+        method: 'DELETE',
+      });
+    },
+
+    async reorderAssignmentQuestions(assignmentId, questionOrders) {
+      return this.request(`/assignments/${assignmentId}/questions/reorder`, {
+        method: 'PUT',
+        body: JSON.stringify({ questionOrders }),
+      });
+    },
+
   async createAssignment(assignmentData) {
     const response = await this.request('/assignments', {
       method: 'POST',
