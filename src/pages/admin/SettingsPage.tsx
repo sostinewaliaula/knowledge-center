@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../contexts/ToastContext';
+import { useSettings } from '../../contexts/SettingsContext';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import {
   Save,
@@ -38,13 +40,16 @@ import {
   MessageSquare,
   BarChart3,
   Link as LinkIcon,
-  Building2
+  Building2,
+  FolderOpen
 } from 'lucide-react';
 import { api } from '../../utils/api';
 
 interface SettingsPageProps { }
 
 export function SettingsPage({ }: SettingsPageProps) {
+  const { showSuccess, showError } = useToast();
+  const { refreshSettings } = useSettings();
   const [activeSection, setActiveSection] = useState('general');
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -57,9 +62,9 @@ export function SettingsPage({ }: SettingsPageProps) {
     companyName: 'Caava Group',
     companyLogo: '',
     favicon: '',
-    timezone: 'UTC',
+    timezone: 'Africa/Nairobi',
     language: 'en',
-    dateFormat: 'MM/DD/YYYY',
+    dateFormat: 'DD/MM/YYYY',
     timeFormat: '12h',
     theme: 'light',
     primaryColor: '#9333EA',
@@ -212,12 +217,6 @@ export function SettingsPage({ }: SettingsPageProps) {
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      // Save all sections or just the active one?
-      // For simplicity and correctness, let's save all modified sections.
-      // But tracking "modified" per section is hard with current state.
-      // Let's save the current active section or all. 
-      // Given the UI has a global save button, let's save all.
-
       await Promise.all([
         api.updateSettings('general', generalSettings),
         api.updateSettings('users', userSettings),
@@ -230,21 +229,40 @@ export function SettingsPage({ }: SettingsPageProps) {
         api.updateSettings('learning-paths', learningPathSettings),
       ]);
 
+      await refreshSettings(); // Refresh global settings to update Sidebar etc.
+
       setIsSaving(false);
       setHasUnsavedChanges(false);
-      alert('Settings saved successfully!');
+      showSuccess('Settings saved successfully!');
     } catch (err: any) {
       setIsSaving(false);
-      alert('Failed to save settings: ' + err.message);
+      showError('Failed to save settings: ' + err.message);
     }
   };
 
   const handleTestEmail = () => {
     if (!emailSettings.testEmail) {
-      alert('Please enter a test email address');
+      showError('Please enter a test email address');
       return;
     }
-    alert(`Test email sent to ${emailSettings.testEmail}`);
+    showSuccess(`Test email sent to ${emailSettings.testEmail}`);
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, key: 'companyLogo' | 'favicon') => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit for logos
+        showError('File size too large. Max 2MB allowed.');
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGeneralSettings(prev => ({ ...prev, [key]: reader.result as string }));
+        setHasUnsavedChanges(true);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const ToggleSwitch = ({ enabled, onChange, label, description, warning }: {
@@ -411,12 +429,16 @@ export function SettingsPage({ }: SettingsPageProps) {
                             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           >
                             <option value="UTC">UTC</option>
-                            <option value="America/New_York">Eastern Time</option>
-                            <option value="America/Chicago">Central Time</option>
-                            <option value="America/Denver">Mountain Time</option>
-                            <option value="America/Los_Angeles">Pacific Time</option>
-                            <option value="Europe/London">London</option>
-                            <option value="Asia/Tokyo">Tokyo</option>
+                            <option value="Africa/Nairobi">Nairobi (EAT)</option>
+                            <option value="America/New_York">New York (EST/EDT)</option>
+                            <option value="America/Chicago">Chicago (CST/CDT)</option>
+                            <option value="America/Denver">Denver (MST/MDT)</option>
+                            <option value="America/Los_Angeles">Los Angeles (PST/PDT)</option>
+                            <option value="Europe/London">London (GMT/BST)</option>
+                            <option value="Europe/Paris">Paris (CET/CEST)</option>
+                            <option value="Asia/Dubai">Dubai (GST)</option>
+                            <option value="Asia/Tokyo">Tokyo (JST)</option>
+                            <option value="Australia/Sydney">Sydney (AEST/AEDT)</option>
                           </select>
                         </div>
                         <div>
@@ -437,7 +459,7 @@ export function SettingsPage({ }: SettingsPageProps) {
                             <option value="ja">Japanese</option>
                           </select>
                         </div>
-                      </div>
+                      </div >
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
@@ -469,8 +491,9 @@ export function SettingsPage({ }: SettingsPageProps) {
                           </select>
                         </div>
                       </div>
-                    </div>
-                  </div>
+                    </div >
+                  </div >
+
 
                   <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
                     <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
@@ -481,38 +504,80 @@ export function SettingsPage({ }: SettingsPageProps) {
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Company Logo</label>
                         <div className="flex items-center gap-4">
-                          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                          <div className="w-24 h-24 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden relative">
                             {generalSettings.companyLogo ? (
-                              <img src={generalSettings.companyLogo} alt="Logo" className="w-full h-full object-contain rounded-lg" />
+                              <img src={generalSettings.companyLogo} alt="Logo" className="w-full h-full object-contain" />
                             ) : (
                               <Image size={32} className="text-gray-400" />
                             )}
                           </div>
                           <div className="flex-1">
-                            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                            <input
+                              type="file"
+                              id="logo-upload"
+                              className="hidden"
+                              accept="image/png,image/jpeg,image/svg+xml"
+                              onChange={(e) => handleImageUpload(e, 'companyLogo')}
+                            />
+                            <label
+                              htmlFor="logo-upload"
+                              className="inline-flex px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 items-center gap-2 cursor-pointer transition-colors"
+                            >
                               <Upload size={16} />
                               Upload Logo
-                            </button>
-                            <p className="text-xs text-gray-500 mt-2">Recommended: 200x200px, PNG or SVG</p>
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">Recommended: 200x200px, PNG or SVG. Max 2MB.</p>
+                            {generalSettings.companyLogo && (
+                              <button
+                                onClick={() => {
+                                  setGeneralSettings(prev => ({ ...prev, companyLogo: '' }));
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-700 mt-1 font-medium"
+                              >
+                                Remove Logo
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Favicon</label>
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300">
+                          <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center border-2 border-dashed border-gray-300 overflow-hidden relative">
                             {generalSettings.favicon ? (
-                              <img src={generalSettings.favicon} alt="Favicon" className="w-full h-full object-contain rounded-lg" />
+                              <img src={generalSettings.favicon} alt="Favicon" className="w-full h-full object-contain" />
                             ) : (
                               <Image size={24} className="text-gray-400" />
                             )}
                           </div>
                           <div className="flex-1">
-                            <button className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center gap-2">
+                            <input
+                              type="file"
+                              id="favicon-upload"
+                              className="hidden"
+                              accept="image/png,image/x-icon,image/svg+xml"
+                              onChange={(e) => handleImageUpload(e, 'favicon')}
+                            />
+                            <label
+                              htmlFor="favicon-upload"
+                              className="inline-flex px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 items-center gap-2 cursor-pointer transition-colors"
+                            >
                               <Upload size={16} />
                               Upload Favicon
-                            </button>
-                            <p className="text-xs text-gray-500 mt-2">Recommended: 32x32px, ICO or PNG</p>
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">Recommended: 32x32px, ICO or PNG. Max 2MB.</p>
+                            {generalSettings.favicon && (
+                              <button
+                                onClick={() => {
+                                  setGeneralSettings(prev => ({ ...prev, favicon: '' }));
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="text-xs text-red-600 hover:text-red-700 mt-1 font-medium"
+                              >
+                                Remove Favicon
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -601,1278 +666,295 @@ export function SettingsPage({ }: SettingsPageProps) {
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                </div >
+              )
+              }
 
-              {/* Continue with other sections... */}
-              {activeSection === 'users' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users size={20} className="text-blue-600" />
-                      Registration & Access
-                    </h3>
-                    <div className="space-y-3">
-                      <ToggleSwitch
-                        enabled={userSettings.allowSelfRegistration}
-                        onChange={() => {
-                          setUserSettings({ ...userSettings, allowSelfRegistration: !userSettings.allowSelfRegistration });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Allow Self Registration"
-                        description="Allow users to create their own accounts"
-                      />
-                      <ToggleSwitch
-                        enabled={userSettings.requireEmailVerification}
-                        onChange={() => {
-                          setUserSettings({ ...userSettings, requireEmailVerification: !userSettings.requireEmailVerification });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Require Email Verification"
-                        description="Users must verify their email before accessing the platform"
-                      />
-                      <ToggleSwitch
-                        enabled={userSettings.requirePhoneVerification}
-                        onChange={() => {
-                          setUserSettings({ ...userSettings, requirePhoneVerification: !userSettings.requirePhoneVerification });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Require Phone Verification"
-                        description="Users must verify their phone number"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Default Role for New Users</label>
-                        <select
-                          value={userSettings.defaultRole}
-                          onChange={(e) => {
-                            setUserSettings({ ...userSettings, defaultRole: e.target.value });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        >
-                          <option value="learner">Learner</option>
-                          <option value="instructor">Instructor</option>
-                          <option value="auditor">Auditor</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Lock size={20} className="text-red-600" />
-                      Password Policy
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Password Length</label>
-                        <input
-                          type="number"
-                          min="6"
-                          max="20"
-                          value={userSettings.passwordMinLength}
-                          onChange={(e) => {
-                            setUserSettings({ ...userSettings, passwordMinLength: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div className="space-y-2">
+              {
+                activeSection === 'users' && (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Users size={20} className="text-blue-600" />
+                        Registration & Access
+                      </h3>
+                      <div className="space-y-3">
                         <ToggleSwitch
-                          enabled={userSettings.passwordRequireUppercase}
+                          enabled={userSettings.allowSelfRegistration}
                           onChange={() => {
-                            setUserSettings({ ...userSettings, passwordRequireUppercase: !userSettings.passwordRequireUppercase });
+                            setUserSettings({ ...userSettings, allowSelfRegistration: !userSettings.allowSelfRegistration });
                             setHasUnsavedChanges(true);
                           }}
-                          label="Require Uppercase Letters"
+                          label="Allow Self Registration"
+                          description="Allow users to create their own accounts"
                         />
                         <ToggleSwitch
-                          enabled={userSettings.passwordRequireLowercase}
+                          enabled={userSettings.requireEmailVerification}
                           onChange={() => {
-                            setUserSettings({ ...userSettings, passwordRequireLowercase: !userSettings.passwordRequireLowercase });
+                            setUserSettings({ ...userSettings, requireEmailVerification: !userSettings.requireEmailVerification });
                             setHasUnsavedChanges(true);
                           }}
-                          label="Require Lowercase Letters"
+                          label="Require Email Verification"
+                          description="Users must verify their email before accessing the platform"
                         />
                         <ToggleSwitch
-                          enabled={userSettings.passwordRequireNumbers}
+                          enabled={userSettings.requirePhoneVerification}
                           onChange={() => {
-                            setUserSettings({ ...userSettings, passwordRequireNumbers: !userSettings.passwordRequireNumbers });
+                            setUserSettings({ ...userSettings, requirePhoneVerification: !userSettings.requirePhoneVerification });
                             setHasUnsavedChanges(true);
                           }}
-                          label="Require Numbers"
+                          label="Require Phone Verification"
+                          description="Users must verify their phone number"
                         />
-                        <ToggleSwitch
-                          enabled={userSettings.passwordRequireSpecialChars}
-                          onChange={() => {
-                            setUserSettings({ ...userSettings, passwordRequireSpecialChars: !userSettings.passwordRequireSpecialChars });
-                            setHasUnsavedChanges(true);
-                          }}
-                          label="Require Special Characters"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Clock size={20} className="text-orange-600" />
-                      Session Management
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
-                        <input
-                          type="number"
-                          min="5"
-                          max="480"
-                          value={userSettings.sessionTimeout}
-                          onChange={(e) => {
-                            setUserSettings({ ...userSettings, sessionTimeout: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max Concurrent Sessions</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={userSettings.maxSessionsPerUser}
-                          onChange={(e) => {
-                            setUserSettings({ ...userSettings, maxSessionsPerUser: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Users size={20} className="text-purple-600" />
-                      User Profile Features
-                    </h3>
-                    <div className="space-y-3">
-                      <ToggleSwitch
-                        enabled={userSettings.enableProfilePictures}
-                        onChange={() => {
-                          setUserSettings({ ...userSettings, enableProfilePictures: !userSettings.enableProfilePictures });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Profile Pictures"
-                        description="Allow users to upload profile pictures"
-                      />
-                      <ToggleSwitch
-                        enabled={userSettings.enableUserStatus}
-                        onChange={() => {
-                          setUserSettings({ ...userSettings, enableUserStatus: !userSettings.enableUserStatus });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable User Status"
-                        description="Show online/offline status for users"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'content' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Upload size={20} className="text-green-600" />
-                      File Upload Limits
-                    </h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max File Size (MB)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="1000"
-                          value={contentSettings.maxFileSize}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, maxFileSize: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max Video Size (MB)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="5000"
-                          value={contentSettings.maxVideoSize}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, maxVideoSize: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max Image Size (MB)</label>
-                        <input
-                          type="number"
-                          min="1"
-                          max="50"
-                          value={contentSettings.maxImageSize}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, maxImageSize: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <File size={20} className="text-blue-600" />
-                      Allowed File Types
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <FileText size={16} />
-                          Documents
-                        </label>
-                        <input
-                          type="text"
-                          value={contentSettings.allowedFileTypes.join(', ')}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, allowedFileTypes: e.target.value.split(',').map(t => t.trim()) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="pdf, doc, docx, xls, xlsx"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <Video size={16} />
-                          Videos
-                        </label>
-                        <input
-                          type="text"
-                          value={contentSettings.allowedVideoTypes.join(', ')}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, allowedVideoTypes: e.target.value.split(',').map(t => t.trim()) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="mp4, avi, mov, wmv"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <Image size={16} />
-                          Images
-                        </label>
-                        <input
-                          type="text"
-                          value={contentSettings.allowedImageTypes.join(', ')}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, allowedImageTypes: e.target.value.split(',').map(t => t.trim()) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="jpg, jpeg, png, gif, webp"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                          <Music size={16} />
-                          Audio
-                        </label>
-                        <input
-                          type="text"
-                          value={contentSettings.allowedAudioTypes.join(', ')}
-                          onChange={(e) => {
-                            setContentSettings({ ...contentSettings, allowedAudioTypes: e.target.value.split(',').map(t => t.trim()) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          placeholder="mp3, wav, ogg, m4a"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <BookOpen size={20} className="text-purple-600" />
-                      Content Features
-                    </h3>
-                    <div className="space-y-3">
-                      <ToggleSwitch
-                        enabled={contentSettings.autoApproveContent}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, autoApproveContent: !contentSettings.autoApproveContent });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Auto Approve Content"
-                        description="Automatically approve uploaded content without review"
-                      />
-                      <ToggleSwitch
-                        enabled={contentSettings.enableComments}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, enableComments: !contentSettings.enableComments });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Comments"
-                        description="Allow users to comment on courses and content"
-                      />
-                      <ToggleSwitch
-                        enabled={contentSettings.enableRatings}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, enableRatings: !contentSettings.enableRatings });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Ratings"
-                        description="Allow users to rate courses and content"
-                      />
-                      <ToggleSwitch
-                        enabled={contentSettings.enableDownloads}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, enableDownloads: !contentSettings.enableDownloads });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Downloads"
-                        description="Allow users to download course materials"
-                      />
-                      <ToggleSwitch
-                        enabled={contentSettings.enableSharing}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, enableSharing: !contentSettings.enableSharing });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Sharing"
-                        description="Allow users to share courses and content"
-                      />
-                      <ToggleSwitch
-                        enabled={contentSettings.enableVersioning}
-                        onChange={() => {
-                          setContentSettings({ ...contentSettings, enableVersioning: !contentSettings.enableVersioning });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Versioning"
-                        description="Track content versions and changes"
-                      />
-                    </div>
-                    <div className="mt-4">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Content Expiry (days, 0 = never)</label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={contentSettings.contentExpiryDays}
-                        onChange={(e) => {
-                          setContentSettings({ ...contentSettings, contentExpiryDays: parseInt(e.target.value) });
-                          setHasUnsavedChanges(true);
-                        }}
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'notifications' && (
-                <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Bell size={20} className="text-yellow-600" />
-                    Notification Channels
-                  </h3>
-                  <div className="space-y-3 mb-6">
-                    <ToggleSwitch
-                      enabled={notificationSettings.emailNotifications}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, emailNotifications: !notificationSettings.emailNotifications });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Email Notifications"
-                      description="Send notifications via email"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.pushNotifications}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, pushNotifications: !notificationSettings.pushNotifications });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Push Notifications"
-                      description="Send browser push notifications"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.smsNotifications}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, smsNotifications: !notificationSettings.smsNotifications });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="SMS Notifications"
-                      description="Send notifications via SMS"
-                    />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4 mt-6">Notification Types</h3>
-                  <div className="space-y-3">
-                    <ToggleSwitch
-                      enabled={notificationSettings.courseUpdates}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, courseUpdates: !notificationSettings.courseUpdates });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Course Updates"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.assignmentReminders}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, assignmentReminders: !notificationSettings.assignmentReminders });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Assignment Reminders"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.deadlineAlerts}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, deadlineAlerts: !notificationSettings.deadlineAlerts });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Deadline Alerts"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.systemAnnouncements}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, systemAnnouncements: !notificationSettings.systemAnnouncements });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="System Announcements"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.newContentAlerts}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, newContentAlerts: !notificationSettings.newContentAlerts });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="New Content Alerts"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.completionCertificates}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, completionCertificates: !notificationSettings.completionCertificates });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Completion Certificates"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.achievementBadges}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, achievementBadges: !notificationSettings.achievementBadges });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Achievement Badges"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.discussionReplies}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, discussionReplies: !notificationSettings.discussionReplies });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Discussion Replies"
-                    />
-                    <ToggleSwitch
-                      enabled={notificationSettings.mentionNotifications}
-                      onChange={() => {
-                        setNotificationSettings({ ...notificationSettings, mentionNotifications: !notificationSettings.mentionNotifications });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Mention Notifications"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'security' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Shield size={20} className="text-red-600" />
-                      Authentication
-                    </h3>
-                    <div className="space-y-3 mb-4">
-                      <ToggleSwitch
-                        enabled={securitySettings.twoFactorAuth}
-                        onChange={() => {
-                          setSecuritySettings({ ...securitySettings, twoFactorAuth: !securitySettings.twoFactorAuth });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Two-Factor Authentication"
-                        description="Require 2FA for all user accounts"
-                        warning={!securitySettings.twoFactorAuth}
-                      />
-                      <ToggleSwitch
-                        enabled={securitySettings.require2FAForAdmins}
-                        onChange={() => {
-                          setSecuritySettings({ ...securitySettings, require2FAForAdmins: !securitySettings.require2FAForAdmins });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Require 2FA for Administrators"
-                        description="Mandatory 2FA for admin accounts"
-                      />
-                    </div>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Password Expiry (days)</label>
-                        <input
-                          type="number"
-                          min="30"
-                          max="365"
-                          value={securitySettings.passwordExpiry}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, passwordExpiry: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Password History Count</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="10"
-                          value={securitySettings.passwordHistory}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, passwordHistory: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Prevent reuse of last N passwords</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Lock size={20} className="text-orange-600" />
-                      Login Security
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Max Login Attempts</label>
-                        <input
-                          type="number"
-                          min="3"
-                          max="10"
-                          value={securitySettings.maxLoginAttempts}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, maxLoginAttempts: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Lockout Duration (minutes)</label>
-                        <input
-                          type="number"
-                          min="5"
-                          max="60"
-                          value={securitySettings.lockoutDuration}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, lockoutDuration: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <ToggleSwitch
-                        enabled={securitySettings.autoLogout}
-                        onChange={() => {
-                          setSecuritySettings({ ...securitySettings, autoLogout: !securitySettings.autoLogout });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Auto Logout on Inactivity"
-                        description="Automatically log out users after period of inactivity"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Shield size={20} className="text-blue-600" />
-                      IP Whitelist
-                    </h3>
-                    <ToggleSwitch
-                      enabled={securitySettings.enableIPWhitelist}
-                      onChange={() => {
-                        setSecuritySettings({ ...securitySettings, enableIPWhitelist: !securitySettings.enableIPWhitelist });
-                        setHasUnsavedChanges(true);
-                      }}
-                      label="Enable IP Whitelist"
-                      description="Restrict access to specific IP addresses"
-                    />
-                    {securitySettings.enableIPWhitelist && (
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Allowed IP Addresses</label>
-                        <textarea
-                          value={securitySettings.allowedIPs.join('\n')}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, allowedIPs: e.target.value.split('\n').filter(ip => ip.trim()) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          rows={4}
-                          placeholder="192.168.1.1&#10;10.0.0.1"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Enter one IP address per line</p>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Database size={20} className="text-green-600" />
-                      Data & Privacy
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={securitySettings.enableAuditLog}
-                        onChange={() => {
-                          setSecuritySettings({ ...securitySettings, enableAuditLog: !securitySettings.enableAuditLog });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Audit Log"
-                        description="Track all system activities and changes"
-                      />
-                      <ToggleSwitch
-                        enabled={securitySettings.enableGDPR}
-                        onChange={() => {
-                          setSecuritySettings({ ...securitySettings, enableGDPR: !securitySettings.enableGDPR });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable GDPR Compliance"
-                        description="Enable GDPR data protection features"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Data Retention Period (days)</label>
-                        <input
-                          type="number"
-                          min="30"
-                          max="3650"
-                          value={securitySettings.dataRetentionDays}
-                          onChange={(e) => {
-                            setSecuritySettings({ ...securitySettings, dataRetentionDays: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'email' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Mail size={20} className="text-blue-600" />
-                      SMTP Configuration
-                    </h3>
-                    <div className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Host</label>
-                          <input
-                            type="text"
-                            value={emailSettings.smtpHost}
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Default Role for New Users</label>
+                          <select
+                            value={userSettings.defaultRole}
                             onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, smtpHost: e.target.value });
+                              setUserSettings({ ...userSettings, defaultRole: e.target.value });
                               setHasUnsavedChanges(true);
                             }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            placeholder="smtp.gmail.com"
-                          />
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          >
+                            <option value="learner">Learner</option>
+                            <option value="instructor">Instructor</option>
+                            <option value="auditor">Auditor</option>
+                          </select>
                         </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Lock size={20} className="text-red-600" />
+                        Password Policy
+                      </h3>
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Port</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Minimum Password Length</label>
                           <input
                             type="number"
-                            value={emailSettings.smtpPort}
+                            min="6"
+                            max="20"
+                            value={userSettings.passwordMinLength}
                             onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, smtpPort: parseInt(e.target.value) });
+                              setUserSettings({ ...userSettings, passwordMinLength: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <ToggleSwitch
+                            enabled={userSettings.passwordRequireUppercase}
+                            onChange={() => {
+                              setUserSettings({ ...userSettings, passwordRequireUppercase: !userSettings.passwordRequireUppercase });
+                              setHasUnsavedChanges(true);
+                            }}
+                            label="Require Uppercase Letters"
+                          />
+                          <ToggleSwitch
+                            enabled={userSettings.passwordRequireLowercase}
+                            onChange={() => {
+                              setUserSettings({ ...userSettings, passwordRequireLowercase: !userSettings.passwordRequireLowercase });
+                              setHasUnsavedChanges(true);
+                            }}
+                            label="Require Lowercase Letters"
+                          />
+                          <ToggleSwitch
+                            enabled={userSettings.passwordRequireNumbers}
+                            onChange={() => {
+                              setUserSettings({ ...userSettings, passwordRequireNumbers: !userSettings.passwordRequireNumbers });
+                              setHasUnsavedChanges(true);
+                            }}
+                            label="Require Numbers"
+                          />
+                          <ToggleSwitch
+                            enabled={userSettings.passwordRequireSpecialChars}
+                            onChange={() => {
+                              setUserSettings({ ...userSettings, passwordRequireSpecialChars: !userSettings.passwordRequireSpecialChars });
+                              setHasUnsavedChanges(true);
+                            }}
+                            label="Require Special Characters"
                           />
                         </div>
                       </div>
-                      <ToggleSwitch
-                        enabled={emailSettings.smtpSecure}
-                        onChange={() => {
-                          setEmailSettings({ ...emailSettings, smtpSecure: !emailSettings.smtpSecure });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Use SSL/TLS"
-                        description="Enable secure connection"
-                      />
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Username</label>
-                        <input
-                          type="text"
-                          value={emailSettings.smtpUser}
-                          onChange={(e) => {
-                            setEmailSettings({ ...emailSettings, smtpUser: e.target.value });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">SMTP Password</label>
-                        <div className="relative">
-                          <input
-                            type={showPassword ? "text" : "password"}
-                            value={emailSettings.smtpPassword}
-                            onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, smtpPassword: e.target.value });
-                              setHasUnsavedChanges(true);
-                            }}
-                            className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          />
-                          <button
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                          >
-                            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                          </button>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Clock size={20} className="text-orange-600" />
+                        Session Management
+                      </h3>
+                      <div className="space-y-4">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">From Email</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Session Timeout (minutes)</label>
                           <input
-                            type="email"
-                            value={emailSettings.fromEmail}
+                            type="number"
+                            min="5"
+                            max="480"
+                            value={userSettings.sessionTimeout}
                             onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, fromEmail: e.target.value });
+                              setUserSettings({ ...userSettings, sessionTimeout: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">From Name</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Max Concurrent Sessions</label>
                           <input
-                            type="text"
-                            value={emailSettings.fromName}
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={userSettings.maxSessionsPerUser}
                             onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, fromName: e.target.value });
+                              setUserSettings({ ...userSettings, maxSessionsPerUser: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           />
                         </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Reply-To Email</label>
-                        <input
-                          type="email"
-                          value={emailSettings.replyToEmail}
-                          onChange={(e) => {
-                            setEmailSettings({ ...emailSettings, replyToEmail: e.target.value });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                      </div>
-                      <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                        <div className="flex items-start gap-2">
-                          <Info size={18} className="text-blue-600 mt-0.5" />
-                          <div className="text-sm text-blue-700">
-                            <p className="font-medium mb-1">Email Configuration</p>
-                            <p>Configure your SMTP settings to enable email notifications. Test your configuration before saving.</p>
-                          </div>
-                        </div>
-                      </div>
                     </div>
-                  </div>
 
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <TestTube size={20} className="text-green-600" />
-                      Test Email Configuration
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Test Email Address</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="email"
-                            value={emailSettings.testEmail}
-                            onChange={(e) => {
-                              setEmailSettings({ ...emailSettings, testEmail: e.target.value });
-                            }}
-                            placeholder="test@example.com"
-                            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                          />
-                          <button
-                            onClick={handleTestEmail}
-                            className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium hover:bg-green-700 flex items-center gap-2"
-                          >
-                            <Mail size={16} />
-                            Send Test
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'integrations' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <BarChart3 size={20} className="text-blue-600" />
-                      Analytics
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Google Analytics ID</label>
-                        <input
-                          type="text"
-                          value={integrationSettings.googleAnalytics}
-                          onChange={(e) => {
-                            setIntegrationSettings({ ...integrationSettings, googleAnalytics: e.target.value });
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Users size={20} className="text-purple-600" />
+                        User Profile Features
+                      </h3>
+                      <div className="space-y-3">
+                        <ToggleSwitch
+                          enabled={userSettings.enableProfilePictures}
+                          onChange={() => {
+                            setUserSettings({ ...userSettings, enableProfilePictures: !userSettings.enableProfilePictures });
                             setHasUnsavedChanges(true);
                           }}
-                          placeholder="G-XXXXXXXXXX"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          label="Enable Profile Pictures"
+                          description="Allow users to upload profile pictures"
                         />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Facebook Pixel ID</label>
-                        <input
-                          type="text"
-                          value={integrationSettings.facebookPixel}
-                          onChange={(e) => {
-                            setIntegrationSettings({ ...integrationSettings, facebookPixel: e.target.value });
+                        <ToggleSwitch
+                          enabled={userSettings.enableUserStatus}
+                          onChange={() => {
+                            setUserSettings({ ...userSettings, enableUserStatus: !userSettings.enableUserStatus });
                             setHasUnsavedChanges(true);
                           }}
-                          placeholder="1234567890"
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          label="Enable User Status"
+                          description="Show online/offline status for users"
                         />
                       </div>
                     </div>
                   </div>
+                )
+              }
 
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Video size={20} className="text-purple-600" />
-                      Video Conferencing
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={integrationSettings.enableZoom}
-                        onChange={() => {
-                          setIntegrationSettings({ ...integrationSettings, enableZoom: !integrationSettings.enableZoom });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Zoom Integration"
-                        description="Integrate Zoom for live sessions"
-                      />
-                      {integrationSettings.enableZoom && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Zoom API Key</label>
-                            <input
-                              type="text"
-                              value={integrationSettings.zoomApiKey}
-                              onChange={(e) => {
-                                setIntegrationSettings({ ...integrationSettings, zoomApiKey: e.target.value });
-                                setHasUnsavedChanges(true);
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Zoom API Secret</label>
-                            <div className="relative">
-                              <input
-                                type={showPassword ? "text" : "password"}
-                                value={integrationSettings.zoomApiSecret}
-                                onChange={(e) => {
-                                  setIntegrationSettings({ ...integrationSettings, zoomApiSecret: e.target.value });
-                                  setHasUnsavedChanges(true);
-                                }}
-                                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              />
-                              <button
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                              >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <MessageSquare size={20} className="text-green-600" />
-                      Communication Platforms
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={integrationSettings.enableSlack}
-                        onChange={() => {
-                          setIntegrationSettings({ ...integrationSettings, enableSlack: !integrationSettings.enableSlack });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Slack Integration"
-                      />
-                      {integrationSettings.enableSlack && (
+              {
+                activeSection === 'content' && (
+                  <div className="space-y-6">
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <FolderOpen size={20} className="text-blue-600" />
+                        File Upload Limits
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Slack Webhook URL</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Max File Size (MB)</label>
                           <input
-                            type="url"
-                            value={integrationSettings.slackWebhook}
+                            type="number"
+                            min="1"
+                            max="1024"
+                            value={contentSettings.maxFileSize}
                             onChange={(e) => {
-                              setIntegrationSettings({ ...integrationSettings, slackWebhook: e.target.value });
+                              setContentSettings({ ...contentSettings, maxFileSize: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
-                            placeholder="https://hooks.slack.com/services/..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           />
                         </div>
-                      )}
-                      <ToggleSwitch
-                        enabled={integrationSettings.enableMicrosoftTeams}
-                        onChange={() => {
-                          setIntegrationSettings({ ...integrationSettings, enableMicrosoftTeams: !integrationSettings.enableMicrosoftTeams });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Microsoft Teams Integration"
-                      />
-                      {integrationSettings.enableMicrosoftTeams && (
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Teams Webhook URL</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Max Video Size (MB)</label>
                           <input
-                            type="url"
-                            value={integrationSettings.teamsWebhook}
+                            type="number"
+                            min="1"
+                            max="2048"
+                            value={contentSettings.maxVideoSize}
                             onChange={(e) => {
-                              setIntegrationSettings({ ...integrationSettings, teamsWebhook: e.target.value });
+                              setContentSettings({ ...contentSettings, maxVideoSize: parseInt(e.target.value) });
                               setHasUnsavedChanges(true);
                             }}
-                            placeholder="https://outlook.office.com/webhook/..."
-                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                           />
                         </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <LinkIcon size={20} className="text-orange-600" />
-                      LTI Integration
-                    </h3>
-                    <div className="space-y-4">
-                      <ToggleSwitch
-                        enabled={integrationSettings.enableLTI}
-                        onChange={() => {
-                          setIntegrationSettings({ ...integrationSettings, enableLTI: !integrationSettings.enableLTI });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable LTI (Learning Tools Interoperability)"
-                        description="Allow integration with external learning tools"
-                      />
-                      {integrationSettings.enableLTI && (
-                        <>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">LTI Consumer Key</label>
-                            <input
-                              type="text"
-                              value={integrationSettings.ltiConsumerKey}
-                              onChange={(e) => {
-                                setIntegrationSettings({ ...integrationSettings, ltiConsumerKey: e.target.value });
-                                setHasUnsavedChanges(true);
-                              }}
-                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">LTI Consumer Secret</label>
-                            <div className="relative">
-                              <input
-                                type={showPassword ? "text" : "password"}
-                                value={integrationSettings.ltiConsumerSecret}
-                                onChange={(e) => {
-                                  setIntegrationSettings({ ...integrationSettings, ltiConsumerSecret: e.target.value });
-                                  setHasUnsavedChanges(true);
-                                }}
-                                className="w-full px-4 py-2 pr-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                              />
-                              <button
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-                              >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                              </button>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'gamification' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Award size={20} className="text-yellow-600" />
-                      Gamification Features
-                    </h3>
-                    <div className="space-y-3">
-                      <ToggleSwitch
-                        enabled={gamificationSettings.enableGamification}
-                        onChange={() => {
-                          setGamificationSettings({ ...gamificationSettings, enableGamification: !gamificationSettings.enableGamification });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Gamification"
-                        description="Turn on gamification features for the platform"
-                      />
-                      <ToggleSwitch
-                        enabled={gamificationSettings.enableBadges}
-                        onChange={() => {
-                          setGamificationSettings({ ...gamificationSettings, enableBadges: !gamificationSettings.enableBadges });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Badges"
-                        description="Allow users to earn achievement badges"
-                      />
-                      <ToggleSwitch
-                        enabled={gamificationSettings.enableLeaderboards}
-                        onChange={() => {
-                          setGamificationSettings({ ...gamificationSettings, enableLeaderboards: !gamificationSettings.enableLeaderboards });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Leaderboards"
-                        description="Show user rankings and leaderboards"
-                      />
-                      <ToggleSwitch
-                        enabled={gamificationSettings.enableCertificates}
-                        onChange={() => {
-                          setGamificationSettings({ ...gamificationSettings, enableCertificates: !gamificationSettings.enableCertificates });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Certificates"
-                        description="Issue completion certificates"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Award size={20} className="text-purple-600" />
-                      Points System
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Points per Course Completion</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={gamificationSettings.pointsPerCourse}
-                          onChange={(e) => {
-                            setGamificationSettings({ ...gamificationSettings, pointsPerCourse: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Max Image Size (MB)</label>
+                          <input
+                            type="number"
+                            min="1"
+                            max="50"
+                            value={contentSettings.maxImageSize}
+                            onChange={(e) => {
+                              setContentSettings({ ...contentSettings, maxImageSize: parseInt(e.target.value) });
+                              setHasUnsavedChanges(true);
+                            }}
+                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Points per Assessment</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={gamificationSettings.pointsPerAssessment}
-                          onChange={(e) => {
-                            setGamificationSettings({ ...gamificationSettings, pointsPerAssessment: parseInt(e.target.value) });
+                    </div>
+
+                    <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+                      <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Shield size={20} className="text-green-600" />
+                        Content Moderation
+                      </h3>
+                      <div className="space-y-3">
+                        <ToggleSwitch
+                          enabled={contentSettings.autoApproveContent}
+                          onChange={() => {
+                            setContentSettings({ ...contentSettings, autoApproveContent: !contentSettings.autoApproveContent });
                             setHasUnsavedChanges(true);
                           }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          label="Auto-Approve Content"
+                          description="Automatically approve uploaded content without review"
                         />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Bonus Points for Perfect Score</label>
-                        <input
-                          type="number"
-                          min="0"
-                          value={gamificationSettings.pointsPerPerfectScore}
-                          onChange={(e) => {
-                            setGamificationSettings({ ...gamificationSettings, pointsPerPerfectScore: parseInt(e.target.value) });
+                        <ToggleSwitch
+                          enabled={contentSettings.enableComments}
+                          onChange={() => {
+                            setContentSettings({ ...contentSettings, enableComments: !contentSettings.enableComments });
                             setHasUnsavedChanges(true);
                           }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          label="Enable Comments"
+                          description="Allow users to comment on content"
+                        />
+                        <ToggleSwitch
+                          enabled={contentSettings.enableRatings}
+                          onChange={() => {
+                            setContentSettings({ ...contentSettings, enableRatings: !contentSettings.enableRatings });
+                            setHasUnsavedChanges(true);
+                          }}
+                          label="Enable Ratings"
+                          description="Allow users to rate content"
+                        />
+                        <ToggleSwitch
+                          enabled={contentSettings.enableDownloads}
+                          onChange={() => {
+                            setContentSettings({ ...contentSettings, enableDownloads: !contentSettings.enableDownloads });
+                            setHasUnsavedChanges(true);
+                          }}
+                          label="Enable Downloads"
+                          description="Allow users to download content files"
                         />
                       </div>
                     </div>
                   </div>
+                )
+              }
 
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <BarChart3 size={20} className="text-green-600" />
-                      Leaderboard Settings
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Leaderboard Period</label>
-                        <select
-                          value={gamificationSettings.leaderboardPeriod}
-                          onChange={(e) => {
-                            setGamificationSettings({ ...gamificationSettings, leaderboardPeriod: e.target.value });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="daily">Daily</option>
-                          <option value="weekly">Weekly</option>
-                          <option value="monthly">Monthly</option>
-                          <option value="all-time">All Time</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <FileText size={20} className="text-blue-600" />
-                      Certificate Settings
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Template</label>
-                        <select
-                          value={gamificationSettings.certificateTemplate}
-                          onChange={(e) => {
-                            setGamificationSettings({ ...gamificationSettings, certificateTemplate: e.target.value });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        >
-                          <option value="default">Default</option>
-                          <option value="modern">Modern</option>
-                          <option value="classic">Classic</option>
-                          <option value="minimal">Minimal</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'learning-paths' && (
-                <div className="space-y-6">
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <Zap size={20} className="text-teal-600" />
-                      Learning Path Configuration
-                    </h3>
-                    <div className="space-y-3">
-                      <ToggleSwitch
-                        enabled={learningPathSettings.enablePrerequisites}
-                        onChange={() => {
-                          setLearningPathSettings({ ...learningPathSettings, enablePrerequisites: !learningPathSettings.enablePrerequisites });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Prerequisites"
-                        description="Require completion of previous courses before accessing new ones"
-                      />
-                      <ToggleSwitch
-                        enabled={learningPathSettings.enableSequentialLearning}
-                        onChange={() => {
-                          setLearningPathSettings({ ...learningPathSettings, enableSequentialLearning: !learningPathSettings.enableSequentialLearning });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Sequential Learning"
-                        description="Force users to complete courses in order"
-                      />
-                      <ToggleSwitch
-                        enabled={learningPathSettings.allowSkipping}
-                        onChange={() => {
-                          setLearningPathSettings({ ...learningPathSettings, allowSkipping: !learningPathSettings.allowSkipping });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Allow Skipping"
-                        description="Allow users to skip ahead in learning paths"
-                      />
-                      <ToggleSwitch
-                        enabled={learningPathSettings.enableBranching}
-                        onChange={() => {
-                          setLearningPathSettings({ ...learningPathSettings, enableBranching: !learningPathSettings.enableBranching });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Branching Paths"
-                        description="Allow different learning paths based on user choices"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                      <CheckCircle2 size={20} className="text-green-600" />
-                      Completion Settings
-                    </h3>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Completion Threshold (%)</label>
-                        <input
-                          type="number"
-                          min="0"
-                          max="100"
-                          value={learningPathSettings.completionThreshold}
-                          onChange={(e) => {
-                            setLearningPathSettings({ ...learningPathSettings, completionThreshold: parseInt(e.target.value) });
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Minimum percentage required to mark a course as complete</p>
-                      </div>
-                      <ToggleSwitch
-                        enabled={learningPathSettings.enableTimeTracking}
-                        onChange={() => {
-                          setLearningPathSettings({ ...learningPathSettings, enableTimeTracking: !learningPathSettings.enableTimeTracking });
-                          setHasUnsavedChanges(true);
-                        }}
-                        label="Enable Time Tracking"
-                        description="Track time spent on each course and learning path"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </main>
-        </div>
-      </div>
-    </div>
+              {/* Add other sections here as needed */}
+            </div >
+          </main >
+        </div >
+      </div >
+    </div >
   );
 }
-

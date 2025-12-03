@@ -4,6 +4,8 @@ import { OTPCode } from '../models/OTP.js';
 import { generateToken } from '../utils/jwt.js';
 import { sendOTPEmail } from '../utils/email.js';
 
+import { Settings } from '../models/Settings.js';
+
 /**
  * User login
  */
@@ -20,7 +22,7 @@ export const login = async (req, res, next) => {
 
     // Verify password
     const isValid = await User.verifyPassword(email, password);
-    
+
     if (!isValid) {
       return res.status(401).json({
         success: false,
@@ -30,7 +32,7 @@ export const login = async (req, res, next) => {
 
     // Get user with role information
     const user = await User.findByEmail(email);
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -59,12 +61,102 @@ export const login = async (req, res, next) => {
 };
 
 /**
+ * Register new user
+ */
+export const register = async (req, res, next) => {
+  try {
+    const { email, password, name } = req.body;
+
+    if (!email || !password || !name) {
+      return res.status(400).json({
+        success: false,
+        error: 'Name, email and password are required'
+      });
+    }
+
+    // Check system settings for registration
+    const settingsRow = await Settings.findByCategory('users');
+    let userSettings = {};
+
+    if (settingsRow && settingsRow.settings) {
+      try {
+        userSettings = typeof settingsRow.settings === 'string'
+          ? JSON.parse(settingsRow.settings)
+          : settingsRow.settings;
+      } catch (e) {
+        console.error('Failed to parse user settings:', e);
+      }
+    }
+
+    // Check if self registration is allowed (default to false if not set)
+    if (!userSettings.allowSelfRegistration) {
+      return res.status(403).json({
+        success: false,
+        error: 'Registration is currently disabled'
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findByEmail(email);
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        error: 'User with this email already exists'
+      });
+    }
+
+    // Validate password
+    if (password.length < (userSettings.passwordMinLength || 8)) {
+      return res.status(400).json({
+        success: false,
+        error: `Password must be at least ${userSettings.passwordMinLength || 8} characters long`
+      });
+    }
+
+    // Get default role
+    const defaultRoleName = userSettings.defaultRole || 'learner';
+    const role = await Role.findByName(defaultRoleName);
+
+    if (!role) {
+      return res.status(500).json({
+        success: false,
+        error: 'Default role configuration error'
+      });
+    }
+
+    const user = await User.create({
+      email,
+      password,
+      name,
+      role_id: role.id
+    });
+
+    const { password: _, ...userWithoutPassword } = user;
+
+    // Generate JWT token
+    const token = generateToken({
+      id: user.id,
+      email: user.email,
+      role: role.name
+    });
+
+    res.status(201).json({
+      success: true,
+      token,
+      user: userWithoutPassword
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+/**
  * Get current user info
  */
 export const getMe = async (req, res, next) => {
   try {
     const user = await User.findById(req.user.id);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -99,7 +191,7 @@ export const forgotPassword = async (req, res, next) => {
 
     // Check if user exists
     const user = await User.findByEmail(email);
-    
+
     // Don't reveal if user exists or not for security
     if (!user) {
       return res.json({
@@ -114,7 +206,7 @@ export const forgotPassword = async (req, res, next) => {
     // Send OTP email
     try {
       await sendOTPEmail(email, otp);
-      
+
       const response = {
         success: true,
         message: 'Password reset code has been sent to your email.'
@@ -204,7 +296,7 @@ export const resetPassword = async (req, res, next) => {
 
     // Update password
     const user = await User.findByEmail(email);
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,

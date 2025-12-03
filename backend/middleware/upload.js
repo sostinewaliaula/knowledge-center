@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 // Create uploads directory if it doesn't exist
 const uploadsDir = path.join(process.cwd(), 'uploads', 'content');
 (async () => {
-  await fs.mkdir(uploadsDir, { recursive: true }).catch(() => {});
+  await fs.mkdir(uploadsDir, { recursive: true }).catch(() => { });
 })();
 
 // Configure storage
@@ -26,10 +26,49 @@ const storage = multer.diskStorage({
   }
 });
 
+import { Settings } from '../models/Settings.js';
+
 // File filter
-const fileFilter = (req, file, cb) => {
-  // Allow all file types
-  cb(null, true);
+const fileFilter = async (req, file, cb) => {
+  try {
+    // Fetch content settings
+    const settingsRow = await Settings.findByCategory('content');
+    let contentSettings = {};
+
+    if (settingsRow && settingsRow.settings) {
+      try {
+        contentSettings = typeof settingsRow.settings === 'string'
+          ? JSON.parse(settingsRow.settings)
+          : settingsRow.settings;
+      } catch (e) {
+        console.error('Failed to parse content settings:', e);
+      }
+    }
+
+    // If no settings or no restrictions, allow all
+    if (!contentSettings.allowedFileTypes && !contentSettings.allowedImageTypes && !contentSettings.allowedVideoTypes && !contentSettings.allowedAudioTypes) {
+      return cb(null, true);
+    }
+
+    const ext = path.extname(file.originalname).toLowerCase().substring(1); // remove dot
+
+    // Combine all allowed extensions
+    const allowedExtensions = [
+      ...(contentSettings.allowedFileTypes || []),
+      ...(contentSettings.allowedImageTypes || []),
+      ...(contentSettings.allowedVideoTypes || []),
+      ...(contentSettings.allowedAudioTypes || [])
+    ];
+
+    if (allowedExtensions.length > 0 && !allowedExtensions.includes(ext)) {
+      return cb(new Error(`File type .${ext} is not allowed`), false);
+    }
+
+    cb(null, true);
+  } catch (error) {
+    console.error('Error in file filter:', error);
+    cb(new Error('Failed to validate file type'), false);
+  }
 };
 
 // Create multer instance

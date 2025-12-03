@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useToast } from '../../contexts/ToastContext';
 import {
   Calendar,
   Video,
@@ -36,6 +37,7 @@ interface LiveSession {
 }
 
 export function LiveSessions() {
+  const { showSuccess, showError } = useToast();
   const [sessions, setSessions] = useState<LiveSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,8 +115,9 @@ export function LiveSessions() {
       setSessions(sessions.filter(s => s.id !== sessionToDelete.id));
       setShowDeleteModal(false);
       setSessionToDelete(null);
+      showSuccess('Session deleted successfully');
     } catch (err: any) {
-      alert('Failed to delete session: ' + err.message);
+      showError('Failed to delete session: ' + err.message);
     }
   };
 
@@ -170,7 +173,7 @@ export function LiveSessions() {
     try {
       // Basic validation
       if (!newSession.title || !newSession.scheduled_at) {
-        alert('Please fill in all required fields');
+        showError('Please fill in all required fields');
         return;
       }
 
@@ -181,14 +184,16 @@ export function LiveSessions() {
       };
 
       if (!sessionData.instructor_id) {
-        alert('Could not identify instructor. Please try again or re-login.');
+        showError('Could not identify instructor. Please try again or re-login.');
         return;
       }
 
       if (newSession.id) {
         await api.updateLiveSession(newSession.id, sessionData);
+        showSuccess('Session updated successfully');
       } else {
         await api.createLiveSession(sessionData);
+        showSuccess('Session created successfully');
       }
 
       setShowCreateModal(false);
@@ -207,7 +212,7 @@ export function LiveSessions() {
         category: 'General'
       });
     } catch (err: any) {
-      alert('Failed to save session: ' + err.message);
+      showError('Failed to save session: ' + err.message);
     }
   };
 

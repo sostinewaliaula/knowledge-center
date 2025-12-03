@@ -26,9 +26,13 @@ interface AdminSidebarProps {
   collapsed?: boolean;
 }
 
+import { useSettings } from '../contexts/SettingsContext';
+
+// ... (inside component)
 export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const { settings } = useSettings();
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['content', 'users', 'evaluations']));
 
   const toggleSection = (section: string) => {
@@ -152,29 +156,34 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
     }
   ];
 
+  // ...
+
   return (
     <aside className={`${collapsed ? 'w-20' : 'w-64'} bg-white border-r border-gray-200 flex flex-col h-screen transition-all duration-300`}>
-      {/* Logo */}
       {/* Logo */}
       <div className={`${collapsed ? 'px-2' : 'px-6'} py-4 border-b border-gray-200 flex items-center justify-between`}>
         {!collapsed && (
           <div className="flex items-center gap-3">
             <img
-              src="/assets/CcT2K1dC8NCSuB6a.png"
+              src={settings?.general?.companyLogo || "/assets/CcT2K1dC8NCSuB6a.png"}
               alt="Knowledge Center Logo"
               className="w-10 h-10 object-contain"
               onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }}
             />
             <div>
-              <div className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent leading-tight">Knowledge Center</div>
-              <div className="text-[10px] text-gray-500 leading-tight">TQ Academy</div>
+              <div className="text-lg font-semibold bg-gradient-to-r from-purple-600 to-green-600 bg-clip-text text-transparent leading-tight">
+                {settings?.general?.siteName || 'Knowledge Center'}
+              </div>
+              <div className="text-[10px] text-gray-500 leading-tight">
+                {settings?.general?.siteSubtitle || 'TQ Academy'}
+              </div>
             </div>
           </div>
         )}
         {collapsed && (
           <div className="flex justify-center w-full">
             <img
-              src="/assets/CcT2K1dC8NCSuB6a.png"
+              src={settings?.general?.companyLogo || "/assets/CcT2K1dC8NCSuB6a.png"}
               alt="KC"
               className="w-10 h-10 object-contain"
               onError={(e) => { (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><rect width="64" height="64" fill="%239433ff"/><text x="32" y="42" font-size="24" fill="white" text-anchor="middle" font-weight="bold">KC</text></svg>'; }}
@@ -225,8 +234,8 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
                             key={child.path}
                             onClick={() => navigate(child.path)}
                             className={`w-full px-3 py-2 flex items-center gap-3 rounded-lg text-sm transition-colors ${childActive
-                                ? 'bg-purple-50 text-purple-700 font-medium'
-                                : 'text-gray-600 hover:bg-gray-50'
+                              ? 'bg-purple-50 text-purple-700 font-medium'
+                              : 'text-gray-600 hover:bg-gray-50'
                               }`}
                           >
                             <child.icon size={16} />

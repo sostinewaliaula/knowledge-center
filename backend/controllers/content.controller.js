@@ -82,9 +82,47 @@ export const uploadContent = async (req, res, next) => {
       });
     }
 
-    const { title, description, category_id, is_public, tags: tagsParam } = req.body;
     const file = req.file;
-    
+
+    // Check system settings for file size limits
+    const { Settings } = await import('../models/Settings.js');
+    const settingsRow = await Settings.findByCategory('content');
+    let contentSettings = {};
+
+    if (settingsRow && settingsRow.settings) {
+      try {
+        contentSettings = typeof settingsRow.settings === 'string'
+          ? JSON.parse(settingsRow.settings)
+          : settingsRow.settings;
+      } catch (e) {
+        console.error('Failed to parse content settings:', e);
+      }
+    }
+
+    // Determine max size based on file type
+    let maxSizeMB = contentSettings.maxFileSize || 100; // Default 100MB
+    const fileType = getFileType(file.mimetype);
+
+    if (fileType === 'image' && contentSettings.maxImageSize) {
+      maxSizeMB = contentSettings.maxImageSize;
+    } else if (fileType === 'video' && contentSettings.maxVideoSize) {
+      maxSizeMB = contentSettings.maxVideoSize;
+    }
+
+    const maxSizeBytes = maxSizeMB * 1024 * 1024;
+
+    if (file.size > maxSizeBytes) {
+      // Delete the uploaded file
+      await fs.unlink(file.path).catch(console.error);
+
+      return res.status(400).json({
+        success: false,
+        error: `File size exceeds the limit of ${maxSizeMB}MB`
+      });
+    }
+
+    const { title, description, category_id, is_public, tags: tagsParam } = req.body;
+
     // Parse tags if provided as JSON string (from FormData)
     let tags = null;
     if (tagsParam) {
@@ -433,7 +471,7 @@ export const viewContent = async (req, res, next) => {
 
     // Get full file path
     const filePath = path.join(process.cwd(), content.file_path);
-    
+
     // Check if file exists
     try {
       await fs.access(filePath);
@@ -447,7 +485,7 @@ export const viewContent = async (req, res, next) => {
     // Detect file type from extension for proper Content-Type
     const fileExt = path.extname(content.file_name || '').toLowerCase();
     let contentType = content.mime_type;
-    
+
     // Ensure proper Content-Type for common file types
     if (!contentType) {
       const mimeTypes = {
@@ -469,7 +507,7 @@ export const viewContent = async (req, res, next) => {
       };
       contentType = mimeTypes[fileExt] || 'application/octet-stream';
     }
-    
+
     // Set headers for viewing (not downloading)
     // For PDFs, ensure we set Content-Type BEFORE any other headers
     if (fileExt === '.pdf') {
@@ -480,18 +518,18 @@ export const viewContent = async (req, res, next) => {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', `inline; filename="${encodeURIComponent(content.file_name || 'file')}"`);
     }
-    
+
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    
+
     // Add CORS headers for viewing (allows iframe/img/fetch to work)
     res.setHeader('Access-Control-Allow-Origin', req.headers.origin || '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    
+
     // For PDFs, also set Cache-Control to prevent caching issues
     if (fileExt === '.pdf') {
       res.setHeader('Cache-Control', 'public, max-age=3600');
     }
-    
+
     res.sendFile(filePath, (err) => {
       if (err) {
         console.error('Error sending file:', err);
@@ -536,7 +574,7 @@ export const downloadContent = async (req, res, next) => {
 
     // Get full file path for local files
     const filePath = path.join(process.cwd(), content.file_path);
-    
+
     // Check if file exists
     try {
       await fs.access(filePath);
@@ -550,7 +588,7 @@ export const downloadContent = async (req, res, next) => {
     // Detect file type from extension for proper Content-Type
     const fileExt = path.extname(content.file_name || '').toLowerCase();
     let contentType = content.mime_type;
-    
+
     // Ensure proper Content-Type for common file types
     if (!contentType) {
       const mimeTypes = {
@@ -566,7 +604,7 @@ export const downloadContent = async (req, res, next) => {
       };
       contentType = mimeTypes[fileExt] || 'application/octet-stream';
     }
-    
+
     // Set appropriate headers based on whether viewing or downloading
     if (view === 'true') {
       // For PDFs, do NOT set Content-Disposition - it causes downloads
@@ -629,13 +667,13 @@ const downloadExternalContent = async (req, res, content, isView = false) => {
     if (content.source_type === 'googledrive') {
       // Try multiple patterns to extract file ID
       let fileId = null;
-      
+
       // Pattern 1: /file/d/FILE_ID/view
       const driveIdMatch1 = sourceUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
       if (driveIdMatch1) {
         fileId = driveIdMatch1[1];
       }
-      
+
       // Pattern 2: /document/d/FILE_ID/edit (Google Docs)
       if (!fileId) {
         const docsIdMatch = sourceUrl.match(/\/document\/d\/([a-zA-Z0-9_-]+)/);
@@ -643,7 +681,7 @@ const downloadExternalContent = async (req, res, content, isView = false) => {
           fileId = docsIdMatch[1];
         }
       }
-      
+
       // Pattern 3: /spreadsheets/d/FILE_ID/edit (Google Sheets)
       if (!fileId) {
         const sheetsIdMatch = sourceUrl.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
@@ -651,7 +689,7 @@ const downloadExternalContent = async (req, res, content, isView = false) => {
           fileId = sheetsIdMatch[1];
         }
       }
-      
+
       // Pattern 4: /presentation/d/FILE_ID/edit (Google Slides)
       if (!fileId) {
         const slidesIdMatch = sourceUrl.match(/\/presentation\/d\/([a-zA-Z0-9_-]+)/);
@@ -659,7 +697,7 @@ const downloadExternalContent = async (req, res, content, isView = false) => {
           fileId = slidesIdMatch[1];
         }
       }
-      
+
       if (fileId) {
         // Use Google Drive direct download URL with confirm parameter to bypass virus scan
         downloadUrl = `https://drive.google.com/uc?export=download&id=${fileId}&confirm=t`;
@@ -706,14 +744,14 @@ const downloadExternalContent = async (req, res, content, isView = false) => {
 
       // Set headers
       const contentType = externalRes.headers['content-type'] || content.mime_type || 'application/octet-stream';
-      const contentDisposition = externalRes.headers['content-disposition'] || 
-        (isView 
+      const contentDisposition = externalRes.headers['content-disposition'] ||
+        (isView
           ? `inline; filename="${content.file_name || 'document'}"`
           : `attachment; filename="${content.file_name || 'document'}"`);
 
       res.setHeader('Content-Type', contentType);
       res.setHeader('Content-Disposition', contentDisposition);
-      
+
       // Copy content length if available
       if (externalRes.headers['content-length']) {
         res.setHeader('Content-Length', externalRes.headers['content-length']);
