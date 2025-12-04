@@ -93,6 +93,7 @@ export function AdminSidebar({ collapsed = false }: AdminSidebarProps) {
       children: [
         { label: 'All Users', path: '/admin/users', icon: Users },
         { label: 'User Groups', path: '/admin/user-groups', icon: Users },
+        { label: 'Course Assignments', path: '/admin/course-assignments', icon: BookOpen },
         { label: 'Departments', path: '/admin/departments', icon: Users },
         { label: 'Roles & Permissions', path: '/admin/roles', icon: Shield },
         { label: 'Bulk Import', path: '/admin/user-import', icon: Upload }

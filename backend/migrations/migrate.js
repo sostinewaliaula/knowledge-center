@@ -35,11 +35,11 @@ const markMigrationExecuted = async (name) => {
 // Execute a migration file
 const executeMigration = async (filePath, fileName) => {
   const sql = fs.readFileSync(filePath, 'utf8');
-  
+
   // Remove comments
   let cleanSql = sql.replace(/--.*$/gm, '');
   cleanSql = cleanSql.replace(/\/\*[\s\S]*?\*\//g, '');
-  
+
   // Split by semicolons, but handle multi-line statements (triggers, functions)
   // For functions and triggers, we need to keep BEGIN...END together
   const statements = [];
@@ -47,10 +47,10 @@ const executeMigration = async (filePath, fileName) => {
   let inBlock = false;
   let beginCount = 0;
   let endCount = 0;
-  
+
   // Process line by line to better handle multi-line statements
   const lines = cleanSql.split('\n');
-  
+
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) {
@@ -59,22 +59,22 @@ const executeMigration = async (filePath, fileName) => {
       }
       continue;
     }
-    
+
     // Check if this line starts a block
     if (trimmed.match(/^(CREATE|DROP)\s+(TRIGGER|FUNCTION|PROCEDURE)/i)) {
       inBlock = true;
       beginCount = 0;
       endCount = 0;
     }
-    
+
     // Count BEGIN and END
     const lineBeginMatches = (trimmed.match(/\bBEGIN\b/gi) || []).length;
     const lineEndMatches = (trimmed.match(/\bEND\b/gi) || []).length;
     beginCount += lineBeginMatches;
     endCount += lineEndMatches;
-    
+
     currentStatement += (currentStatement ? '\n' : '') + trimmed;
-    
+
     // Check if statement is complete
     if (trimmed.endsWith(';')) {
       // If we're in a block, wait for matching END
@@ -93,16 +93,16 @@ const executeMigration = async (filePath, fileName) => {
       }
     }
   }
-  
+
   // Add any remaining statement
   if (currentStatement.trim()) {
     statements.push(currentStatement.trim());
   }
-  
+
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    
+
     let statementCount = 0;
     for (const statement of statements) {
       const trimmed = statement.trim();
@@ -118,10 +118,10 @@ const executeMigration = async (filePath, fileName) => {
         }
       }
     }
-    
+
     await markMigrationExecuted(fileName);
     await connection.commit();
-    
+
     console.log(`✅ Executed: ${fileName} (${statementCount} statements)`);
   } catch (error) {
     await connection.rollback();
@@ -140,47 +140,51 @@ const executeMigration = async (filePath, fileName) => {
 const migrate = async (specificMigration = null) => {
   try {
     console.log('🔄 Starting database migrations...\n');
-    
+
     // Create migrations table
     await createMigrationTable();
-    
+
     // Get all SQL files in migrations directory
     const migrationsDir = path.join(__dirname);
     const files = fs.readdirSync(migrationsDir)
       .filter(file => file.endsWith('.sql'))
       .sort();
-    
+
     // Get already executed migrations
     const executed = await getExecutedMigrations();
-    
+
     // If specific migration is requested
     if (specificMigration) {
       // Find the migration file
-      const migrationFile = files.find(file => 
-        file === specificMigration || 
+      const migrationFile = files.find(file =>
+        file === specificMigration ||
         file.includes(specificMigration) ||
         file.startsWith(specificMigration)
       );
-      
+
       if (!migrationFile) {
         console.error(`\n❌ Migration not found: ${specificMigration}`);
         console.log('\nAvailable migrations:');
         files.forEach(file => console.log(`  - ${file}`));
         process.exit(1);
       }
-      
+
       if (executed.includes(migrationFile)) {
-        console.log(`⏭️  Migration already executed: ${migrationFile}`);
-        console.log('   Use --force to re-run (not recommended)');
-        process.exit(0);
+        if (process.argv.includes('--force')) {
+          console.log(`⚠️  Forcing re-execution of: ${migrationFile}`);
+        } else {
+          console.log(`⏭️  Migration already executed: ${migrationFile}`);
+          console.log('   Use --force to re-run (not recommended)');
+          process.exit(0);
+        }
       }
-      
+
       const filePath = path.join(migrationsDir, migrationFile);
       await executeMigration(filePath, migrationFile);
       console.log(`\n✅ Successfully executed: ${migrationFile}`);
       process.exit(0);
     }
-    
+
     // Execute all pending migrations
     let executedCount = 0;
     for (const file of files) {
@@ -192,13 +196,13 @@ const migrate = async (specificMigration = null) => {
         console.log(`⏭️  Skipped (already executed): ${file}`);
       }
     }
-    
+
     if (executedCount === 0) {
       console.log('\n✅ All migrations are up to date!');
     } else {
       console.log(`\n✅ Successfully executed ${executedCount} migration(s)!`);
     }
-    
+
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Migration error:', error.message);

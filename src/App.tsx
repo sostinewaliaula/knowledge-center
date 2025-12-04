@@ -27,7 +27,8 @@ import { Discussions } from './pages/admin/Discussions';
 import { Notifications } from './pages/admin/Notifications';
 import { Categories } from './pages/admin/Categories';
 import { Templates } from './pages/admin/Templates';
-import { UserGroups } from './pages/admin/UserGroups';
+import UserGroupsPage from './pages/admin/UserGroupsPage';
+import CourseAssignments from './pages/admin/CourseAssignments';
 import { Departments } from './pages/admin/Departments';
 import { Roles } from './pages/admin/Roles';
 import { UserImport } from './pages/admin/UserImport';
@@ -144,7 +145,12 @@ function AppContent() {
           } />
           <Route path="/admin/user-groups" element={
             <ProtectedRoute requiredRole="admin">
-              <UserGroups />
+              <UserGroupsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/course-assignments" element={
+            <ProtectedRoute requiredRole="admin">
+              <CourseAssignments />
             </ProtectedRoute>
           } />
           <Route path="/admin/departments" element={

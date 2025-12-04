@@ -804,6 +804,86 @@ export const api = {
     };
   },
 
+
+
+  // ============================================
+  // USER GROUPS API METHODS
+  // ============================================
+
+  async getUserGroups(page = 1, limit = 10, search = '') {
+    const params = new URLSearchParams();
+    if (page) params.append('page', page);
+    if (limit) params.append('limit', limit);
+    if (search) params.append('search', search);
+    const queryString = params.toString();
+    return this.request(`/user-groups${queryString ? `?${queryString}` : ''}`);
+  },
+
+  async createUserGroup(groupData) {
+    return this.request('/user-groups', {
+      method: 'POST',
+      body: JSON.stringify(groupData),
+    });
+  },
+
+  async updateUserGroup(id, groupData) {
+    return this.request(`/user-groups/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(groupData),
+    });
+  },
+
+  async deleteUserGroup(id) {
+    return this.request(`/user-groups/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async getGroupMembers(groupId) {
+    return this.request(`/user-groups/${groupId}/members`);
+  },
+
+  async addGroupMember(groupId, userId) {
+    return this.request(`/user-groups/${groupId}/members`, {
+      method: 'POST',
+      body: JSON.stringify({ userId }),
+    });
+  },
+
+  async removeGroupMember(groupId, userId) {
+    return this.request(`/user-groups/${groupId}/members/${userId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // ============================================
+  // COURSE ASSIGNMENTS API METHODS
+  // ============================================
+
+  async createCourseAssignment(assignmentData) {
+    return this.request('/course-assignments', {
+      method: 'POST',
+      body: JSON.stringify(assignmentData),
+    });
+  },
+
+  async getUserCourseAssignments(userId) {
+    const params = new URLSearchParams();
+    if (userId) params.append('userId', userId);
+    return this.request(`/course-assignments/user?${params.toString()}`);
+  },
+
+  async getCourseAssignments(courseId) {
+    return this.request(`/course-assignments/course/${courseId}`);
+  },
+
+  async deleteCourseAssignment(id) {
+    return this.request(`/course-assignments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+
   async getExam(id) {
     const response = await this.request(`/exams/${id}`);
     return response.exam;
