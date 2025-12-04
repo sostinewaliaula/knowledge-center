@@ -19,26 +19,27 @@ import { AdminSidebar } from '../../components/AdminSidebar';
 export default function CourseAssignments() {
     const [activeTab, setActiveTab] = useState('courses'); // 'courses' or 'assignments'
     const [courses, setCourses] = useState<any[]>([]);
-    const [assignments, setAssignments] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [learningPaths, setLearningPaths] = useState<any[]>([]);
+    const [loading, setLoading] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-
-    // Modal states
+    const [selectedCourse, setSelectedCourse] = useState<any | null>(null);
+    const [selectedPath, setSelectedPath] = useState<any>(null);
     const [showAssignModal, setShowAssignModal] = useState(false);
-    const [selectedCourse, setSelectedCourse] = useState<any>(null);
     const [assignType, setAssignType] = useState('user'); // 'user' or 'group'
     const [targetId, setTargetId] = useState('');
-    const [dueDate, setDueDate] = useState('');
-
-    // Data for selection
     const [users, setUsers] = useState<any[]>([]);
     const [groups, setGroups] = useState<any[]>([]);
+    const [dueDate, setDueDate] = useState('');
+    const { showToast } = useToast();
 
-    const { showSuccess, showError } = useToast();
+    const showSuccess = (message: string) => showToast(message, 'success');
+    const showError = (message: string) => showToast(message, 'error');
 
     useEffect(() => {
         if (activeTab === 'courses') {
             fetchCourses();
+        } else if (activeTab === 'learning-paths') {
+            fetchLearningPaths();
         } else {
             fetchAssignments();
         }
@@ -56,17 +57,22 @@ export default function CourseAssignments() {
         }
     };
 
+    const fetchLearningPaths = async () => {
+        try {
+            setLoading(true);
+            const data = await api.getLearningPaths(1, 100, searchQuery);
+            setLearningPaths(data.paths || []);
+        } catch (error) {
+            showError('Failed to fetch learning paths');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const fetchAssignments = async () => {
         try {
             setLoading(true);
-            // We might need a new API endpoint to get ALL assignments or filter by course
-            // For now, let's assume we can fetch assignments for a specific course if selected, 
-            // or we might need to implement a "getAllAssignments" endpoint.
-            // Since the backend `getUserAssignments` filters by user, and `getCourseAssignments` by course,
-            // we might need to iterate or add a general endpoint.
-            // For this MVP, let's just show assignments when a course is selected in the 'courses' tab,
-            // or add a 'getAllAssignments' to backend if needed.
-            // Let's stick to 'courses' tab as primary for now.
+            // Placeholder for fetching assignments
             setLoading(false);
         } catch (error) {
             showError('Failed to fetch assignments');
@@ -88,8 +94,14 @@ export default function CourseAssignments() {
         }
     };
 
-    const handleOpenAssignModal = (course) => {
-        setSelectedCourse(course);
+    const handleOpenAssignModal = (item, type = 'course') => {
+        if (type === 'course') {
+            setSelectedCourse(item);
+            setSelectedPath(null);
+        } else {
+            setSelectedPath(item);
+            setSelectedCourse(null);
+        }
         fetchSelectionData();
         setShowAssignModal(true);
         setTargetId('');
@@ -104,21 +116,35 @@ export default function CourseAssignments() {
         }
 
         try {
-            await api.createCourseAssignment({
-                course_id: selectedCourse.id,
-                user_id: assignType === 'user' ? targetId : null,
-                group_id: assignType === 'group' ? targetId : null,
-                due_date: dueDate || null
-            });
-            showSuccess('Course assigned successfully');
+            if (selectedCourse) {
+                await api.createCourseAssignment({
+                    course_id: selectedCourse.id,
+                    user_id: assignType === 'user' ? targetId : null,
+                    group_id: assignType === 'group' ? targetId : null,
+                    due_date: dueDate || null
+                });
+                showSuccess('Course assigned successfully');
+            } else if (selectedPath) {
+                await api.assignLearningPath({
+                    learning_path_id: selectedPath.id,
+                    user_id: assignType === 'user' ? targetId : null,
+                    group_id: assignType === 'group' ? targetId : null,
+                    due_date: dueDate || null
+                });
+                showSuccess('Learning Path assigned successfully');
+            }
             setShowAssignModal(false);
         } catch (error) {
-            showError(error.message || 'Failed to assign course');
+            showError(error.message || 'Failed to assign');
         }
     };
 
     const filteredCourses = courses.filter(course =>
         course.title.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const filteredPaths = learningPaths.filter(path =>
+        path.title.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     const isModalOpen = showAssignModal;
@@ -134,17 +160,17 @@ export default function CourseAssignments() {
                 <header className="bg-white border-b border-gray-200 px-6 py-4">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Course Assignments</h1>
-                            <p className="text-sm text-gray-500 mt-1">Assign courses to users or departments</p>
+                            <h1 className="text-2xl font-bold text-gray-900">Assignments</h1>
+                            <p className="text-sm text-gray-500 mt-1">Assign courses and learning paths to users or departments</p>
                         </div>
                     </div>
                 </header>
 
                 {/* Tabs */}
                 <div className="bg-white border-b border-gray-200 px-6">
-                    <div className="flex">
+                    <div className="flex gap-6">
                         <button
-                            className={`px-4 py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'courses'
+                            className={`py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'courses'
                                 ? 'border-purple-600 text-purple-600'
                                 : 'border-transparent text-gray-500 hover:text-gray-700'
                                 }`}
@@ -152,7 +178,15 @@ export default function CourseAssignments() {
                         >
                             Assign by Course
                         </button>
-                        {/* Future: Add 'View All Assignments' tab */}
+                        <button
+                            className={`py-3 font-medium text-sm border-b-2 transition-colors ${activeTab === 'learning-paths'
+                                ? 'border-purple-600 text-purple-600'
+                                : 'border-transparent text-gray-500 hover:text-gray-700'
+                                }`}
+                            onClick={() => setActiveTab('learning-paths')}
+                        >
+                            Assign by Learning Path
+                        </button>
                     </div>
                 </div>
 
@@ -164,7 +198,7 @@ export default function CourseAssignments() {
                             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
                             <input
                                 type="text"
-                                placeholder="Search courses..."
+                                placeholder={`Search ${activeTab === 'courses' ? 'courses' : 'learning paths'}...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
@@ -211,7 +245,7 @@ export default function CourseAssignments() {
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <button
-                                                    onClick={() => handleOpenAssignModal(course)}
+                                                    onClick={() => handleOpenAssignModal(course, 'course')}
                                                     className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
                                                 >
                                                     Assign
@@ -230,15 +264,76 @@ export default function CourseAssignments() {
                             </table>
                         </div>
                     )}
+
+                    {/* Learning Path List */}
+                    {activeTab === 'learning-paths' && (
+                        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                            <table className="w-full text-left">
+                                <thead className="bg-gray-50 border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Learning Path</th>
+                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Category</th>
+                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200">
+                                    {filteredPaths.map((path) => (
+                                        <tr key={path.id} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="p-2 bg-blue-50 rounded-lg">
+                                                        <BookOpen className="text-blue-600" size={20} />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-gray-900">{path.title}</p>
+                                                        <p className="text-xs text-gray-500 truncate max-w-xs">{path.description}</p>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-sm text-gray-500">
+                                                {path.category_name || 'Uncategorized'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${path.status === 'published' ? 'bg-green-100 text-green-700' :
+                                                    path.status === 'draft' ? 'bg-yellow-100 text-yellow-700' :
+                                                        'bg-gray-100 text-gray-700'
+                                                    }`}>
+                                                    {path.status.charAt(0).toUpperCase() + path.status.slice(1)}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button
+                                                    onClick={() => handleOpenAssignModal(path, 'learning-path')}
+                                                    className="px-3 py-1.5 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
+                                                >
+                                                    Assign
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                    {filteredPaths.length === 0 && (
+                                        <tr>
+                                            <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
+                                                No learning paths found
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </main>
             </div>
 
             {/* Assign Modal */}
-            {showAssignModal && selectedCourse && (
+            {showAssignModal && (selectedCourse || selectedPath) && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-xl shadow-xl max-w-md w-full">
                         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-                            <h2 className="text-xl font-bold text-gray-900">Assign Course</h2>
+                            <h2 className="text-xl font-bold text-gray-900">
+                                Assign {selectedCourse ? 'Course' : 'Learning Path'}
+                            </h2>
                             <button
                                 onClick={() => setShowAssignModal(false)}
                                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -249,8 +344,12 @@ export default function CourseAssignments() {
 
                         <div className="p-6">
                             <div className="mb-6 bg-purple-50 p-4 rounded-lg border border-purple-100">
-                                <p className="text-sm text-purple-700 mb-1 font-medium">Selected Course</p>
-                                <p className="font-bold text-gray-900">{selectedCourse.title}</p>
+                                <p className="text-sm text-purple-700 mb-1 font-medium">
+                                    Selected {selectedCourse ? 'Course' : 'Learning Path'}
+                                </p>
+                                <p className="font-bold text-gray-900">
+                                    {selectedCourse ? selectedCourse.title : selectedPath.title}
+                                </p>
                             </div>
 
                             <form onSubmit={handleAssign}>
@@ -341,7 +440,7 @@ export default function CourseAssignments() {
                                         type="submit"
                                         className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700"
                                     >
-                                        Assign Course
+                                        Assign {selectedCourse ? 'Course' : 'Learning Path'}
                                     </button>
                                 </div>
                             </form>

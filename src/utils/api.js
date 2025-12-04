@@ -459,6 +459,24 @@ export const api = {
     });
   },
 
+  async getLearningPathAssignments(pathId) {
+    const response = await this.request(`/learning-path-assignments/path/${pathId}`);
+    return response;
+  },
+
+  async assignLearningPath(assignmentData) {
+    return this.request('/learning-path-assignments', {
+      method: 'POST',
+      body: JSON.stringify(assignmentData),
+    });
+  },
+
+  async deleteLearningPathAssignment(id) {
+    return this.request(`/learning-path-assignments/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
   // ============================================
   // CATEGORY API METHODS
   // ============================================

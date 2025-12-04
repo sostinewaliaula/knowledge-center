@@ -27,6 +27,7 @@ import liveSessionRoutes from './routes/liveSession.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
 import userGroupRoutes from './routes/userGroup.routes.js';
 import courseAssignmentRoutes from './routes/courseAssignment.routes.js';
+import learningPathAssignmentRoutes from './routes/learningPathAssignment.routes.js';
 
 // Load environment variables
 dotenv.config();
@@ -119,6 +120,7 @@ app.use('/api/live-sessions', liveSessionRoutes);
 app.use('/api/settings', settingsRoutes);
 app.use('/api/user-groups', userGroupRoutes);
 app.use('/api/course-assignments', courseAssignmentRoutes);
+app.use('/api/learning-path-assignments', learningPathAssignmentRoutes);
 
 // 404 handler
 app.use(notFound);
