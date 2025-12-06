@@ -7,7 +7,8 @@ import {
     deleteDepartment,
     getDepartmentMembers,
     addDepartmentMember,
-    removeDepartmentMember
+    removeDepartmentMember,
+    getDepartmentCourses
 } from '../controllers/department.controller.js';
 import { authenticateToken, requireRole } from '../middleware/auth.js';
 
@@ -30,5 +31,8 @@ router.delete('/:id', requireRole('admin'), deleteDepartment);
 router.get('/:id/members', getDepartmentMembers);
 router.post('/:id/members', requireRole('admin'), addDepartmentMember);
 router.delete('/:id/members/:userId', requireRole('admin'), removeDepartmentMember);
+
+// Course management
+router.get('/:id/courses', getDepartmentCourses);
 
 export default router;

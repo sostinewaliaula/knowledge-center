@@ -134,4 +134,24 @@ export class Department {
         await query(sql, [departmentId, userId]);
         return true;
     }
+
+    /**
+     * Get department courses (via compliance requirements)
+     */
+    static async getCourses(departmentId) {
+        const sql = `
+            SELECT c.*, 
+                   cat.name as category_name,
+                   u.name as instructor_name,
+                   cr.due_date,
+                   cr.priority
+            FROM courses c
+            JOIN compliance_requirements cr ON c.id = cr.course_id
+            LEFT JOIN categories cat ON c.category_id = cat.id
+            LEFT JOIN users u ON c.instructor_id = u.id
+            WHERE cr.department_id = ?
+            ORDER BY c.title ASC
+        `;
+        return await query(sql, [departmentId]);
+    }
 }

@@ -82,3 +82,12 @@ export const removeDepartmentMember = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+export const getDepartmentCourses = async (req, res) => {
+    try {
+        const courses = await Department.getCourses(req.params.id);
+        res.json(courses);
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
