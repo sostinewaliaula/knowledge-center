@@ -48,7 +48,7 @@ export default function CourseAssignments() {
     const fetchCourses = async () => {
         try {
             setLoading(true);
-            const data = await api.getCourses(1, 100, searchQuery);
+            const data = await api.getCourses(1, 100, searchQuery, 'published');
             setCourses(data.courses || []);
         } catch (error) {
             showError('Failed to fetch courses');
@@ -60,7 +60,7 @@ export default function CourseAssignments() {
     const fetchLearningPaths = async () => {
         try {
             setLoading(true);
-            const data = await api.getLearningPaths(1, 100, searchQuery);
+            const data = await api.getLearningPaths(1, 100, searchQuery, 'published');
             setLearningPaths(data.paths || []);
         } catch (error) {
             showError('Failed to fetch learning paths');

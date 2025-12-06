@@ -48,15 +48,19 @@ export class UserGroup {
      */
     static async findAll(page = 1, limit = 10, search = '') {
         const offset = (page - 1) * limit;
-        let sql = `SELECT * FROM user_groups`;
+        let sql = `
+            SELECT ug.*, COUNT(ugm.user_id) as member_count 
+            FROM user_groups ug
+            LEFT JOIN user_group_members ugm ON ug.id = ugm.group_id
+        `;
         const params = [];
 
         if (search) {
-            sql += ` WHERE name LIKE ?`;
+            sql += ` WHERE ug.name LIKE ?`;
             params.push(`%${search}%`);
         }
 
-        sql += ` ORDER BY created_at DESC LIMIT ${limit} OFFSET ${offset}`;
+        sql += ` GROUP BY ug.id ORDER BY ug.created_at DESC LIMIT ${limit} OFFSET ${offset}`;
         const groups = await query(sql, params);
 
         // Count total
@@ -70,7 +74,6 @@ export class UserGroup {
 
         return {
             groups,
-            total: countResult.total,
             page,
             limit,
             totalPages: Math.ceil(countResult.total / limit)
@@ -78,19 +81,15 @@ export class UserGroup {
     }
 
     /**
-     * Add member to group
+     * Add member to group (and remove from any other groups)
      */
     static async addMember(groupId, userId) {
-        const sql = `INSERT IGNORE INTO user_group_members (group_id, user_id) VALUES (?, ?)`;
-        await query(sql, [groupId, userId]);
-        return true;
-    }
+        // First remove from any existing groups to enforce 1-group-per-user
+        const deleteSql = `DELETE FROM user_group_members WHERE user_id = ?`;
+        await query(deleteSql, [userId]);
 
-    /**
-     * Remove member from group
-     */
-    static async removeMember(groupId, userId) {
-        const sql = `DELETE FROM user_group_members WHERE group_id = ? AND user_id = ?`;
+        // Then add to new group
+        const sql = `INSERT INTO user_group_members (group_id, user_id) VALUES (?, ?)`;
         await query(sql, [groupId, userId]);
         return true;
     }
