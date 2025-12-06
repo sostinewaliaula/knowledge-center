@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   Building2,
   Plus,
@@ -12,7 +12,10 @@ import {
   Save,
   Loader,
   ChevronRight,
-  LayoutDashboard
+  LayoutDashboard,
+  UserPlus,
+  UserMinus,
+  ChevronDown
 } from 'lucide-react';
 import { AdminSidebar } from '../../components/AdminSidebar';
 import { api } from '../../utils/api';
@@ -55,6 +58,10 @@ export function Departments() {
     manager_id: '',
     parent_id: ''
   });
+  // User Search State
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Edit Form State (for Settings tab)
   const [editFormData, setEditFormData] = useState({
@@ -63,6 +70,16 @@ export function Departments() {
     manager_id: '',
     parent_id: ''
   });
+
+  // Add Member Modal State
+  const [showAddMemberModal, setShowAddMemberModal] = useState(false); // Can be removed if fully replaced, but kept for now just in case hooks rely on it? Actually, better remove it to be clean.
+
+
+  const [addMemberData, setAddMemberData] = useState({
+    userId: '',
+    role: 'member'
+  });
+  const [memberSearchQuery, setMemberSearchQuery] = useState('');
 
   const [users, setUsers] = useState<User[]>([]);
   const [saving, setSaving] = useState(false);
@@ -199,10 +216,68 @@ export function Departments() {
     }
   };
 
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedDept || !addMemberData.userId) return;
+
+    setSaving(true);
+    try {
+      await api.post(`/departments/${selectedDept.id}/members`, addMemberData);
+      showSuccess('Member added successfully');
+      // No modal to close
+      setAddMemberData({ userId: '', role: 'member' });
+      await fetchMembers(selectedDept.id);
+      await fetchDepartments();
+    } catch (error) {
+      showError('Failed to add member');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleRemoveMember = async (userId: string) => {
+    if (!selectedDept || !window.confirm('Are you sure you want to remove this member?')) return;
+
+    try {
+      await api.delete(`/departments/${selectedDept.id}/members/${userId}`);
+      showSuccess('Member removed successfully');
+      await fetchMembers(selectedDept.id);
+      await fetchDepartments();
+    } catch (error) {
+      showError('Failed to remove member');
+    }
+  };
+
+
+
   const filteredDepartments = departments.filter(dept =>
     dept.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     dept.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const filteredMembers = members.filter(member =>
+    member.name.toLowerCase().includes(memberSearchQuery.toLowerCase()) ||
+    member.email.toLowerCase().includes(memberSearchQuery.toLowerCase())
+  );
+
+  const filteredUsers = users.filter(user =>
+    !members.some(m => m.id === user.id) &&
+    (user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(userSearchTerm.toLowerCase()))
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
@@ -391,6 +466,7 @@ export function Departments() {
                         }`}
                     >
                       <Users size={18} />
+
                       Members
                       <span className="bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full text-xs">
                         {members.length}
@@ -457,6 +533,85 @@ export function Departments() {
 
                   {activeTab === 'members' && (
                     <div className="max-w-4xl">
+                      <div className="flex justify-between items-center mb-4 gap-4">
+                        <div className="relative flex-1">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                          <input
+                            type="text"
+                            placeholder="Search members..."
+                            value={memberSearchQuery}
+                            onChange={(e) => setMemberSearchQuery(e.target.value)}
+                            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 text-sm"
+                          />
+                        </div>
+
+                        <div className="flex items-center gap-2" ref={dropdownRef}>
+                          <div className="relative w-64">
+                            <div
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg cursor-pointer flex items-center justify-between bg-white hover:border-purple-500 transition-colors"
+                              onClick={() => setIsUserDropdownOpen(!isUserDropdownOpen)}
+                            >
+                              <span className={`text-sm ${addMemberData.userId ? 'text-gray-900' : 'text-gray-500'} truncate`}>
+                                {addMemberData.userId
+                                  ? users.find(u => u.id === addMemberData.userId)?.name
+                                  : 'Select User'}
+                              </span>
+                              <ChevronDown size={16} className={`text-gray-400 transition-transform ${isUserDropdownOpen ? 'rotate-180' : ''}`} />
+                            </div>
+
+                            {isUserDropdownOpen && (
+                              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-hidden flex flex-col">
+                                <div className="p-2 border-b border-gray-100 bg-gray-50">
+                                  <div className="relative">
+                                    <Search size={14} className="absolute left-2.5 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                                    <input
+                                      type="text"
+                                      className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 bg-white"
+                                      placeholder="Search..."
+                                      value={userSearchTerm}
+                                      onChange={(e) => setUserSearchTerm(e.target.value)}
+                                      autoFocus
+                                      onClick={(e) => e.stopPropagation()}
+                                    />
+                                  </div>
+                                </div>
+                                <div className="overflow-y-auto flex-1">
+                                  {filteredUsers.length === 0 ? (
+                                    <div className="px-4 py-8 text-center text-sm text-gray-500">
+                                      No users found
+                                    </div>
+                                  ) : (
+                                    filteredUsers.map(user => (
+                                      <div
+                                        key={user.id}
+                                        className={`px-4 py-2.5 hover:bg-purple-50 cursor-pointer flex flex-col gap-0.5 transition-colors border-b border-gray-50 last:border-0 ${addMemberData.userId === user.id ? 'bg-purple-50' : ''}`}
+                                        onClick={() => {
+                                          setAddMemberData({ ...addMemberData, userId: user.id });
+                                          setIsUserDropdownOpen(false);
+                                          setUserSearchTerm('');
+                                        }}
+                                      >
+                                        <span className="text-sm font-medium text-gray-900">{user.name}</span>
+                                        <span className="text-xs text-gray-500">{user.email}</span>
+                                      </div>
+                                    ))
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <button
+                            onClick={handleAddMember}
+                            disabled={!addMemberData.userId || saving}
+                            className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
+                          >
+                            {saving ? <Loader size={16} className="animate-spin" /> : <Plus size={16} />}
+                            Add
+                          </button>
+                        </div>
+                      </div>
+
+
                       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                         <table className="w-full text-left">
                           <thead className="bg-gray-50 border-b border-gray-200">
@@ -465,17 +620,18 @@ export function Departments() {
                               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Email</th>
                               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Role</th>
                               <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase">Joined</th>
+                              <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase text-right">Actions</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-200">
-                            {members.length === 0 ? (
+                            {filteredMembers.length === 0 ? (
                               <tr>
-                                <td colSpan={4} className="px-6 py-8 text-center text-gray-500">
-                                  No members found in this department
+                                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                                  No members found
                                 </td>
                               </tr>
                             ) : (
-                              members.map((member) => (
+                              filteredMembers.map((member) => (
                                 <tr key={member.id} className="hover:bg-gray-50">
                                   <td className="px-6 py-4">
                                     <div className="flex items-center gap-3">
@@ -496,6 +652,15 @@ export function Departments() {
                                   </td>
                                   <td className="px-6 py-4 text-sm text-gray-600">
                                     {new Date(member.joined_at).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-6 py-4 text-right">
+                                    <button
+                                      onClick={() => handleRemoveMember(member.id)}
+                                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-lg transition-colors"
+                                      title="Remove Member"
+                                    >
+                                      <UserMinus size={16} />
+                                    </button>
                                   </td>
                                 </tr>
                               ))
@@ -653,9 +818,7 @@ export function Departments() {
             )}
           </div>
         </div>
-
-
       </div>
     </div>
   );
-}
+} // Reload
